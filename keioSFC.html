@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <title>形態素検索 — Version 7.2 (動的UI対応)</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    /* 全体スタイル（Version 6 系の色調を維持） */
+    body { font-family: "Hiragino Sans","Noto Sans JP",sans-serif;  color:#133; padding:18px; }
+    h1 { color:#1f6f3a; margin-bottom:12px; }
+    /* Top area (冒頭〜CSVダウンロード) :  */
+    .top-area { background: #f5fff5; padding:14px; border-radius:10px; border:0px solid #cfe3ff; margin-bottom:12px; }
+    fieldset { background:#fff; border:1px solid #9fcf9f; padding:12px; margin-bottom:12px; border-radius:8px; }
+    legend { color:#1f6f3a; font-weight:700; }
+    .form { border-collapse:collapse; width:100%; }
+    .form td { padding:6px; vertical-align:middle; }
+    .form .label { padding-right:8px; text-align:left; white-space:nowrap; width:auto; }
+    /* ★ 変更: input[type="text"] の width を 100% に統一 */
+    input[type="text"] { width:100%; padding:6px; border:1px solid #9fcf9f; border-radius:6px; background:#f6fff6; box-sizing:border-box; }
+    input[type="file"] { width:100%; max-width:380px; padding:6px; border:1px solid #9fcf9f; border-radius:6px; background:#f6fff6; box-sizing:border-box; }
+    .controls { display:flex; gap:8px; align-items:center; margin:10px 0; flex-wrap:wrap; }
+    button { background:#95d5b2; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
+    button:hover { background:#74c69d; color:white; }
+    /* ★ 追加: カスタマイズボタンのスタイル */
+    #customizeBtn { background: #d4a373; }
+    #customizeBtn:hover { background: #bc6c25; color: white; }
+    .hit-count { color:#d00000; font-weight:700; margin:8px 0; display:none; }
+    .error { color:#d00000; font-weight:700; margin:8px 0; display:none; }
+    .search-grid { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
+    .col { flex:1 1 480px; min-width:260px; }
+    table.output { width:100%; border-collapse:collapse; margin-top:12px; background:#fff; box-shadow:0 2px 6px rgba(0,0,0,0.06); }
+    table.output th, table.output td { border:1px solid #c7e7c7; padding:6px; text-align:left; vertical-align:middle; }
+    table.output th { background:#dff3df; cursor:pointer; }
+    table.output td { background:transparent; }
+    
+    /* V7.1 追加: 二段表示用スタイル */
+    .context-upper {
+        margin-bottom: 4px;
+        /* 上段はスペース区切りなので、必要に応じて折り返しを許可 */
+        white-space: normal; 
+    }
+    .context-lower {
+        font-size: 0.9em;
+        color: #555; /* 下段は少し薄く表示 */
+    }
+    /* キーワードのクリック領域をセル全体に広げる */
+    .key-cell-container {
+        display: block;
+        cursor: pointer;
+    }
+
+    .pager { margin:10px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+    .small { font-size:0.9em; color:#666; }
+    .progress-wrap { width:100%; background:#eee; border-radius:8px; overflow:hidden; height:18px; border:1px solid #cfc; margin-top:8px; display:none; }
+    .progress-bar { height:100%; width:0%; background: linear-gradient(90deg,#8fd3a9,#5fbf87); transition:width 0.2s linear; }
+    .progress-text { margin-top:6px; font-weight:700; color:#1f6f3a; display:none; }
+    .cond-row { display:flex; gap:8px; align-items:center; margin:6px 0; }
+    .cond-block { border:1px solid #cfe9d1; padding:8px; border-radius:6px; background:#fbfff9; }
+    details summary { cursor:pointer; font-weight:700; }
+    .detail-box { background: #ffffff; border:1px solid #ddd; padding:12px; margin-top:14px; border-radius:8px; min-height:64px; box-shadow:0 1px 4px rgba(0,0,0,0.04); position: relative; }
+    .detail-header { font-weight:700; color:#1f6f3a; margin-bottom:8px; }
+    .sentence-meta { font-size:0.95em; color:#444; margin-bottom:8px; padding:8px; border-radius:6px; border:1px solid #cfc; background:#fbfff9; cursor:pointer; display:inline-block; }
+    .sentence-area { line-height:1.8; font-size:1rem; }
+    /* post area: 文詳細表示／文章詳細表示以降を薄紫トーンに */
+    .post-area { background: #f1fff9; padding:14px; border-radius:10px; border:0px solid #e5d5ff; margin-top:12px; }
+    .article-box { background:#fff; border:1px solid #cfc; padding:10px; border-radius:8px; margin-top:10px; display:none; }
+    .tooltip { position: fixed; background: #fff; color: #111; padding: 6px 10px; border-radius: 6px; font-size: 0.9em; white-space: pre-line; display: none; pointer-events: none; z-index: 10000; box-shadow: 0px 3px 6px rgba(0,0,0,0.12); border: 1px solid #ccc; max-width: 380px; }
+    /* 単語ホバー色（薄め） */
+    .word { display:inline-block; padding:2px 4px; margin:0 1px; border-radius:4px; transition: background 0.12s, border 0.12s; position:relative; border: 2px dashed transparent; }
+    .word.punct { margin-left:0; margin-right:0; padding:0 2px; }
+
+    .word.key-selected { box-shadow: 0 0 0 0 inset; }
+    .selected-row td { background-color: #eaf7ec !important; }
+    .meta-box { border:1px solid #cfc; border-radius:6px; padding:8px; background:#fbfff9; display:inline-block; cursor:pointer; }
+    .article-header { font-weight:700; color:#1f6f3a; margin-bottom:6px; }
+    .keyword-fieldset { border:3px solid #2d6a4f; } /* 太い枠（キーワード条件） */
+    .matrix-table { width:100%; border-collapse:collapse; margin-top:6px; }
+    .matrix-table th, .matrix-table td { border:1px solid #dfefe0; padding:6px; text-align:center; }
+    .matrix-table th { background:#f2fff2; font-weight:700; }
+    @media (max-width:700px){ .form .label { width:40%; } }
+    
+    /* ★ V7.3 UD表示用スタイル 追加 */
+    #udToggleBtn.active {
+      background: #57a070;
+      color: white;
+      font-weight: bold;
+    }
+    #udCanvas {
+      /* キャンバス自体がクリックイベントを拾わないように */
+      pointer-events: none;
+    }
+  </style>
+  <style id="dynamicPosStyles"></style>
+  <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
+</head>
+<body>
+  <h1>形態素検索（Version 7.2）</h1>
+  <div class="top-area">
+  <h2>☞　検索条件入力</h2>
+    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
+      <button id="showLBtn">Lワード条件を表示</button>
+      <button id="showRBtn">Rワード条件を表示</button>
+      <button id="showDocBtn">文書情報による検索条件を追加</button>
+      <button id="showUploadBtn">自分のデータをアップロード</button>
+    </div>
+    <fieldset id="uploadFieldset" style="display:none;">
+      <legend>データ選択（デフォルトは埋め込み。XML をアップロードするとそれを使用）</legend>
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+        <div>
+          <input id="fileInput" type="file" accept=".xml,text/xml" />
+        </div>
+        <div>
+          <button id="clearDataBtn">データをクリア（デフォルトに戻す）</button>
+          <button id="customizeBtn" style="display:none;">取り込んだデータに合わせてカスタマイズ</button>
+        </div>
+        <div id="fileError" class="error" style="display:none;"></div>
+      </div>
+    </fieldset>
+    <fieldset id="LFieldset" style="display:none;">
+      <legend>Lワード条件（L5 → L4 → L3 → L2 → L1）</legend>
+      <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
+        <button id="hideLBtn">Lを非表示（検索条件は保持）</button>
+        <button id="clearLallBtn">全Lを削除（クリアかつ非表示）</button>
+        <span class="small">Lk はキーから k 語前の単語を指定します（位置的完全一致）。</span>
+      </div>
+      <div id="Lmatrix" style="display:block;">
+        <table class="matrix-table">
+          <thead><tr><th>条件</th><th>L5</th><th>L4</th><th>L3</th><th>L2</th><th>L1</th></tr></thead>
+          <tbody id="Lmatrix_body">
+            <tr><td class="label">品詞</td>
+              <td><input id="L5_pos" type="text" placeholder="例：名詞" /></td>
+              <td><input id="L4_pos" type="text" /></td>
+              <td><input id="L3_pos" type="text" /></td>
+              <td><input id="L2_pos" type="text" /></td>
+              <td><input id="L1_pos" type="text" /></td>
+            </tr>
+            <tr><td class="label">品詞細分類1</td>
+              <td><input id="L5_pos1" type="text" placeholder="例：固有名詞" disabled /></td>
+              <td><input id="L4_pos1" type="text" disabled /></td>
+              <td><input id="L3_pos1" type="text" disabled /></td>
+              <td><input id="L2_pos1" type="text" disabled /></td>
+              <td><input id="L1_pos1" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">品詞細分類2</td>
+              <td><input id="L5_pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td>
+              <td><input id="L4_pos2" type="text" disabled /></td>
+              <td><input id="L3_pos2" type="text" disabled /></td>
+              <td><input id="L2_pos2" type="text" disabled /></td>
+              <td><input id="L1_pos2" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">品詞細分類3</td>
+              <td><input id="L5_pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td>
+              <td><input id="L4_pos3" type="text" disabled /></td>
+              <td><input id="L3_pos3" type="text" disabled /></td>
+              <td><input id="L2_pos3" type="text" disabled /></td>
+              <td><input id="L1_pos3" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">活用型</td>
+              <td><input id="L5_conjClass" type="text" placeholder="例：五段・サ行" 　 /></td>
+              <td><input id="L4_conjClass" type="text" /></td>
+              <td><input id="L3_conjClass" type="text" /></td>
+              <td><input id="L2_conjClass" type="text" /></td>
+              <td><input id="L1_conjClass" type="text" /></td>
+            </tr>
+            <tr><td class="label">活用形</td>
+              <td><input id="L5_conjForm" type="text" placeholder="例：連用形" /></td>
+              <td><input id="L4_conjForm" type="text" /></td>
+              <td><input id="L3_conjForm" type="text" /></td>
+              <td><input id="L2_conjForm" type="text" /></td>
+              <td><input id="L1_conjForm" type="text" /></td>
+            </tr>
+            <tr><td class="label">原形</td>
+              <td><input id="L5_root" type="text" placeholder="例：帰る" 　/></td>
+              <td><input id="L4_root" type="text" /></td>
+              <td><input id="L3_root" type="text" /></td>
+              <td><input id="L2_root" type="text" /></td>
+              <td><input id="L1_root" type="text" /></td>
+            </tr>
+            <tr><td class="label">原文文字列 (表層形)</td>
+              <td><input id="L5_surface" type="text" placeholder="例：カエッ" /></td>
+              <td><input id="L4_surface" type="text" /></td>
+              <td><input id="L3_surface" type="text" /></td>
+              <td><input id="L2_surface" type="text" /></td>
+              <td><input id="L1_surface" type="text" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+    <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap;">
+      <fieldset class="keyword-fieldset" style="min-width:320px;">
+        <legend>キーワード条件</legend>
+        <table class="form" id="keyword_table">
+          <tbody>
+            <tr><td class="label">品詞</td><td><input id="pos" type="text" placeholder="例：名詞" /></td></tr>
+            <tr><td class="label">品詞細分類１</td><td><input id="pos1" type="text" placeholder="例：固有名詞（※品詞によって利用可否が変わります）" disabled /></td></tr>
+            <tr><td class="label">品詞細分類２</td><td><input id="pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td></tr>
+            <tr><td class="label">品詞細分類３</td><td><input id="pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td></tr>
+            <tr><td class="label">活用型</td><td><input id="conjClass" type="text" placeholder="例：五段・サ行" /></td></tr>
+            <tr><td class="label">活用形</td><td><input id="conjForm" type="text" placeholder="例：連用形" /></td></tr>
+            <tr><td class="label">原形</td><td><input id="root" type="text" placeholder="例：帰る" /></td></tr>
+            <tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="例：カエッ" /></td></tr>
+          </tbody>
+        </table>
+      </fieldset>
+      <fieldset id="docFieldset" style="display:none; min-width:240px;">
+        <legend>文書情報による検索</legend>
+        <table class="form">
+          <tr><td class="label">タスク番号</td><td><input id="Task" type="text" placeholder="例：91" /></td></tr>
+          <tr><td class="label">作文番号</td><td><input id="textID" type="text" placeholder="例：1" /></td></tr>
+          <tr><td class="label">個人ID</td><td><input id="personID" type="text" placeholder="例：1" /></td></tr>
+          <tr><td class="label">年齢</td><td><input id="personAge" type="text" placeholder="例：18" /></td></tr>
+          <tr><td class="label">使用言語</td><td><input id="language" type="text" placeholder="例：日" /></td></tr>
+          <tr><td class="label">第一言語</td><td><input id="personFirstLang" type="text" placeholder="例：日" /></td></tr>
+          <tr><td class="label">第二言語</td><td><input id="personSecondLang" type="text" placeholder="例：英" /></td></tr>
+        </table>
+        <div style="display:flex; gap:8px; margin-top:10px;">
+          <button id="clearDocBtn">クリア</button>
+          <button id="removeDocBtn">条件の削除</button>
+        </div>
+      </fieldset>
+    </div>
+    <fieldset id="RFieldset" style="display:none;">
+      <legend>Rワード条件（R1 → R2 → R3 → R4 → R5）</legend>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+        <button id="hideRBtn">Rを非表示（検索条件は保持）</button>
+        <button id="clearRallBtn">全Rを削除（クリアかつ非表示）</button>
+        <span class="small">Rk はキーから k 語後の単語を指定します（位置的完全一致）。</span>
+      </div>
+      <div id="Rmatrix" style="display:block;">
+        <table class="matrix-table">
+          <thead><tr><th>条件</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr></thead>
+          <tbody id="Rmatrix_body">
+            <tr><td class="label">品詞</td>
+              <td><input id="R1_pos" type="text" placeholder="例：名詞"　/></td>
+              <td><input id="R2_pos" type="text" /></td>
+              <td><input id="R3_pos" type="text" /></td>
+              <td><input id="R4_pos" type="text" /></td>
+              <td><input id="R5_pos" type="text" /></td>
+            </tr>
+            <tr><td class="label">品詞細分類1</td>
+              <td><input id="R1_pos1" type="text" placeholder="例：固有名詞（※品詞によって利用可否が変わります）" disabled /></td>
+              <td><input id="R2_pos1" type="text" disabled /></td>
+              <td><input id="R3_pos1" type="text" disabled /></td>
+              <td><input id="R4_pos1" type="text" disabled /></td>
+              <td><input id="R5_pos1" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">品詞細分類2</td>
+              <td><input id="R1_pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td>
+              <td><input id="R2_pos2" type="text" disabled /></td>
+              <td><input id="R3_pos2" type="text" disabled /></td>
+              <td><input id="R4_pos2" type="text" disabled /></td>
+              <td><input id="R5_pos2" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">品詞細分類3</td>
+              <td><input id="R1_pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td>
+              <td><input id="R2_pos3" type="text" disabled /></td>
+              <td><input id="R3_pos3" type="text" disabled /></td>
+              <td><input id="R4_pos3" type="text" disabled /></td>
+              <td><input id="R5_pos3" type="text" disabled /></td>
+            </tr>
+            <tr><td class="label">活用型</td>
+              <td><input id="R1_conjClass" type="text" placeholder="例：五段・サ行"　/></td>
+              <td><input id="R2_conjClass" type="text" /></td>
+              <td><input id="R3_conjClass" type="text" /></td>
+              <td><input id="R4_conjClass" type="text" /></td>
+              <td><input id="R5_conjClass" type="text" /></td>
+            </tr>
+            <tr><td class="label">活用形</td>
+              <td><input id="R1_conjForm" type="text" placeholder="例：連用形"/></td>
+              <td><input id="R2_conjForm" type="text" /></td>
+              <td><input id="R3_conjForm" type="text" /></td>
+              <td><input id="R4_conjForm" type="text" /></td>
+              <td><input id="R5_conjForm" type="text" /></td>
+            </tr>
+            <tr><td class="label">原形</td>
+              <td><input id="R1_root" type="text" placeholder="例：帰る" /></td>
+              <td><input id="R2_root" type="text" /></td>
+              <td><input id="R3_root" type="text" /></td>
+              <td><input id="R4_root" type="text" /></td>
+              <td><input id="R5_root" type="text" /></td>
+            </tr>
+            <tr><td class="label">原文文字列 (表層形)</td>
+              <td><input id="R1_surface" type="text" placeholder="例：カエッ" /></td>
+              <td><input id="R2_surface" type="text" /></td>
+              <td><input id="R3_surface" type="text" /></td>
+              <td><input id="R4_surface" type="text" /></td>
+              <td><input id="R5_surface" type="text" /></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </fieldset>
+    <div class="controls" style="margin-top:10px;">
+      <button id="searchBtn">検索</button>
+      <button id="clearBtn">全条件クリア</button>
+      表示件数:
+      <select id="pageSize">
+        <option value="1">1件</option>
+        <option value="5">5件</option>
+        <option value="10" selected>10件</option>
+        <option value="100">100件</option>
+        <option value="200">200件</option>
+        <option value="500">500件</option>
+      </select>
+      エンコーディング:
+      <select id="encoding">
+        <option value="utf-8">UTF-8</option>
+        <option value="shift-jis">Shift-JIS</option>
+      </select>
+      <button id="downloadBtn">CSVダウンロード</button>
+    </div>
+    <div id="progressArea">
+      <div id="progressText" class="progress-text"></div>
+      <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
+    </div>
+    <div id="errorMsg" class="error"></div>
+    <div id="hitCount" class="hit-count"></div>
+  </div> <h2><b>☞　検索結果</b></h2>
+    <div class="pager" id="pagerTop"></div>
+    <div id="tableContainer"></div>
+    <div class="pager" id="pagerBottom"></div>
+  <div class="post-area">
+  <h2>☞　詳細な分析</h2>
+    <div class="detail-box" id="sentenceDetail" style="display:none;">
+      <div class="detail-header">
+        文詳細表示
+        <button id="udToggleBtn" style="margin-left: 15px; font-size: 0.8em; padding: 4px 8px; background: #b7e4c7;">UD表示 OFF</button>
+      </div>
+      <div class="sentence-meta meta-box" id="sentenceMeta" style="display:none;" title="クリックで表の表示位置を変更します"></div>
+      
+      <div id="udCanvasContainer" style="display:none; position: relative; border: 1px solid #ddd; background: #fdfdfd; margin-top: 10px; overflow-x: auto; overflow-y: hidden;">
+        <canvas id="udCanvas" height="100"></canvas>
+        <div id="udError" style="color: red; padding: 10px; display: none; text-align: center;"></div>
+      </div>
+      
+      <div class="sentence-area" id="sentenceArea"></div>
+    </div>
+    <div style="margin-top:8px;">
+      <button id="showArticleBtn" style="display:none;">文章全体を表示</button>
+      <label id="articleRangeLabel" style="display:none;margin-left:8px;">前後:
+        <select id="articleRange" style="margin-left:6px;">
+          <option value="1">1文</option>
+          <option value="5" selected>5文</option>
+          <option value="10">10文</option>
+          <option value="50">50文</option>
+          <option value="100">100文</option>
+          <option value="all">全文（同一 textID のみ）</option>
+        </select>
+      </label>
+    </div>
+    <div class="article-box" id="articleBox" style="display:none;">
+      <div class="article-header">文章詳細表示</div>
+      <div id="articleContent"></div>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+  </div> <script>
+/* Version 7.2
+   - V7.1: 検索結果の二段表示
+   - V7.2: 検索インターフェイスの動的構築機能
+     - XMLアップロード後、「カスタマイズ」ボタンでUIを再構築
+     - 検索ロジック(collectConditions, wordMatchesExact)を動的UIに対応
+     - UI復元機能(rebuildForms, clearDataBtn)
+*/
+/* ---------- デフォルトサンプルデータ（埋め込み） ---------- */
+const defaultData = ` 
+  <document filename="Task92ID00001.txt">
+    <s sentId="1" Task="92" textID="1" personID="2" personAge="18" language="Japanese" personFirstLang="日" personSecondLang="英">
+        <w wordId="1" pos="SYM" lemma="●" tag="補助記号-一般" udType="dep" udFrom="24" udTo="" original="●">●</w>
+        <w wordId="2" pos="VERB" lemma="慌てる" tag="動詞-一般" udType="advcl" udFrom="8" udTo="3" original="慌て">awate</w>
+        <w wordId="3" pos="SCONJ" lemma="て" tag="助詞-接続助詞" udType="mark" udFrom="2" udTo="" original="て">te</w>
+        <w wordId="4" pos="NOUN" lemma="バスケット" tag="名詞-普通名詞-サ変可能" udType="nmod" udFrom="6" udTo="5" original="バスケット">basuketto</w>
+        <w wordId="5" pos="ADP" lemma="の" tag="助詞-格助詞" udType="case" udFrom="4" udTo="" original="の">no</w>
+        <w wordId="6" pos="NOUN" lemma="中" tag="名詞-普通名詞-副詞可能" udType="obj" udFrom="8" udTo="4/7" original="中">naka</w>
+        <w wordId="7" pos="ADP" lemma="を" tag="助詞-格助詞" udType="case" udFrom="6" udTo="" original="を">wo</w>
+        <w wordId="8" pos="VERB" lemma="見る" tag="動詞-非自立可能" udType="advcl" udFrom="15" udTo="2/6/9/10" original="見れ">mire</w>
+        <w wordId="9" pos="SCONJ" lemma="ば" tag="助詞-接続助詞" udType="mark" udFrom="8" udTo="" original="ば">ba</w>
+        <w wordId="10" pos="PUNCT" lemma="、" tag="補助記号-読点" udType="punct" udFrom="8" udTo="" original="、">,</w>
+        <w wordId="11" pos="NOUN" lemma="サンドイッチ" tag="名詞-普通名詞-一般" udType="nmod" udFrom="13" udTo="12" original="サンドイッチ">sandoitchi</w>
+        <w wordId="12" pos="ADP" lemma="や" tag="助詞-副助詞" udType="case" udFrom="11" udTo="" original="や">ya</w>
+        <w wordId="13" pos="NOUN" lemma="リンゴ" tag="名詞-普通名詞-一般" udType="nsubj" udFrom="15" udTo="11/14" original="リンゴ">ringo</w>
+        <w wordId="14" pos="ADP" lemma="は" tag="助詞-係助詞" udType="case" udFrom="13" udTo="" original="は">ha</w>
+        <w wordId="15" pos="VERB" lemma="食い荒らす" tag="動詞-一般" udType="advcl" udFrom="24" udTo="8/13/16/17/19" original="食い荒らさ">kuiarasa</w>
+        <w wordId="16" pos="AUX" lemma="れる" tag="助動詞" udType="aux" udFrom="15" udTo="" original="れ">re</w>
+        <w wordId="17" pos="SCONJ" lemma="て" tag="助詞-接続助詞" udType="mark" udFrom="15" udTo="18" original="て">te</w>
+        <w wordId="18" pos="VERB" lemma="おる" tag="動詞-非自立可能" udType="fixed" udFrom="17" udTo="" original="おり">ori</w>
+        <w wordId="19" pos="PUNCT" lemma="、" tag="補助記号-読点" udType="punct" udFrom="15" udTo="" original="、">,</w>
+        <w wordId="20" pos="NOUN" lemma="二人" tag="名詞-普通名詞-副詞可能" udType="obl" udFrom="24" udTo="21" original="二人">futari</w>
+        <w wordId="21" pos="ADP" lemma="は" tag="助詞-係助詞" udType="case" udFrom="20" udTo="" original="は">ha</w>
+        <w wordId="22" pos="NOUN" lemma="ショック" tag="名詞-普通名詞-形状詞可能" udType="obj" udFrom="24" udTo="23" original="ショック">shokku</w>
+        <w wordId="23" pos="ADP" lemma="を" tag="助詞-格助詞" udType="case" udFrom="22" udTo="" original="を">wo</w>
+        <w wordId="24" pos="VERB" lemma="受ける" tag="動詞-一般" udType="ROOT" udFrom="24" udTo="1/15/20/22/24/25/27/28" original="受ける">ukeru</w>
+        <w wordId="25" pos="SCONJ" lemma="の" tag="助詞-準体助詞" udType="mark" udFrom="24" udTo="26" original="の">no</w>
+        <w wordId="26" pos="AUX" lemma="だ" tag="助動詞" udType="fixed" udFrom="25" udTo="" original="だっ">datsu</w>
+        <w wordId="27" pos="AUX" lemma="た" tag="助動詞" udType="aux" udFrom="24" udTo="" original="た">ta</w>
+        <w wordId="28" pos="PUNCT" lemma="。" tag="補助記号-句点" udType="punct" udFrom="24" udTo="" original="。">.</w>
+    </s>
+  </document>
+`;
+/* ---------- 状態とユーティリティ ---------- */
+let currentData = defaultData;
+let uploadFileName = "keioSFC";
+let isFileUploaded = false;
+let hits = [];
+let parsedSentences = [];
+let currentStartIndex = 0;
+let sortCol = null;
+let sortAsc = true;
+let hasSearched = false;
+let searchAbort = false;
+let selectedHitNo = null;
+let isUDViewActive = false; // ★ V7.3 追加
+
+// ★ 追加: 動的UIのための状態
+let detectedAttributes = new Set();
+let isCustomized = false;
+// ★ 変更: デフォルトのフォームHTMLを保持する変数を宣言 (初期化は DOMContentLoaded で行う)
+let defaultKeywordForm = "";
+let defaultLMatrixForm = "";
+let defaultRMatrixForm = "";
+// ★ 変更: デフォルトの品詞関連の属性（日本語UI用）
+const defaultWAttributes = ['pos','pos1','pos2','pos3','conjClass','conjForm','root'];
+// ★ V7.4: posColors を動的に生成するため let に変更し、空にする
+let posColors = {};
+const staticHeaders = [
+  {label:"通し番号", key:"no"},
+  {label:"タスク番号", key:"Task"},
+  {label:"作文番号", key:"textID"},
+  {label:"前文脈", key:"prev"},
+  {label:"キー", key:"key"},
+  {label:"後文脈", key:"next"}
+];
+const defaultDynamicHeaders = [
+  {label:"個人ID", key:"personID"},
+  {label:"年齢", key:"personAge"},
+  {label:"使用言語", key:"language"},
+  {label:"第一言語", key:"personFirstLang"},
+  {label:"第二言語", key:"personSecondLang"},
+  {label:"品詞", key:"pos"},
+  {label:"品詞細分類1", key:"pos1"},
+  {label:"品詞細分類2", key:"pos2"},
+  {label:"品詞細分類3", key:"pos3"},
+  {label:"活用型", key:"conjClass"},
+  {label:"活用形", key:"conjForm"},
+  {label:"原形", key:"root"},
+  {label:"読み", key:"reading"}
+];
+let currentDynamicHeaders = defaultDynamicHeaders;
+function getCurrentHeaders() {
+  return staticHeaders.concat(currentDynamicHeaders);
+}
+const $ = id => document.getElementById(id);
+function trimStr(s){ return (s===null||s===undefined) ? "" : String(s).trim(); }
+function getWAttr(w,a){ return trimStr(w.getAttribute(a)); }
+/* ---------- パース / 条件チェック ---------- */
+function parseSentencesFromCurrentData(){
+  try {
+    const parser = new DOMParser();
+    const trimmedData = currentData.trim();
+    if (trimmedData === "") {
+        return {error:null, sentences:[]};
+    }
+    let xml;
+    xml = parser.parseFromString(trimmedData,"application/xml");
+    let parserError = xml.getElementsByTagName("parsererror");
+    if(parserError.length > 0) {
+        if (trimmedData.startsWith('<?xml')) {
+            const errorDetails = parserError[0].textContent || "";
+            const cleanedDetails = errorDetails.replace(/error on line.*:/i, '').trim();
+            return {error:`XMLパースエラー（整形式XMLですが構造が不正です）。詳細: ${cleanedDetails}`, sentences:[]};
+        }
+        const wrappedXml = parser.parseFromString(`<root>${trimmedData}</root>`,"application/xml");
+        const wrappedError = wrappedXml.getElementsByTagName("parsererror");
+        if (wrappedError.length === 0) {
+            xml = wrappedXml;
+        } else {
+            const errorDetails = wrappedError[0].textContent || parserError[0].textContent || "";
+            const cleanedDetails = errorDetails.replace(/error on line.*:/i, '').trim();
+            return {error:`データの XML パースに失敗しました。データ形式（タグの構造など）を確認してください。詳細: ${cleanedDetails}`, sentences:[]};
+        }
+    }
+    const sentences = Array.from(xml.getElementsByTagName("s"));
+    return {error:null, sentences};
+  } catch(e){
+    return {error:`不明なエラー（パース）: ${e.message}`, sentences:[]};
+  }
+}
+
+// ★ 変更: enablePosSubfields はデフォルトUI (isCustomized=false) の時だけ機能させる
+function enablePosSubfields(prefix){
+  if (isCustomized) return; // カスタムUI時は無効
+  const posEl = $(prefix + 'pos');
+  if(!posEl) return;
+  const val = trimStr(posEl.value);
+  ['pos1','pos2','pos3'].forEach(n => {
+    const el = $(prefix + n);
+    if(!el) return;
+    el.disabled = (val === "");
+    if(val === "") el.value = "";
+  });
+}
+/* ---------- 初期イベント登録 ---------- */
+document.addEventListener('DOMContentLoaded', ()=>{
+  // ★ 変更: DOM構築後のHTML保存処理を、TypeErrorを確実に回避する安全なコードに変更
+  try {
+    const kwTable = $('keyword_table');
+    if (kwTable && kwTable.tBodies && kwTable.tBodies.length > 0) {
+        defaultKeywordForm = kwTable.tBodies[0].innerHTML;
+    }
+    const lMatrix = $('Lmatrix_body');
+    if (lMatrix) {
+        defaultLMatrixForm = lMatrix.innerHTML;
+    }
+    const rMatrix = $('Rmatrix_body');
+    if (rMatrix) {
+        defaultRMatrixForm = rMatrix.innerHTML;
+    }
+  } catch (e) {
+    console.error("デフォルトフォームの保存に失敗:", e);
+    // エラーが発生しても、ボタン登録処理に進む
+  }
+
+  /* Upload button */
+  $('showUploadBtn').addEventListener('click', ()=> {
+    $('uploadFieldset').style.display = 'block';
+    $('showUploadBtn').style.display = 'none';
+  });
+  $('fileInput').addEventListener('change', handleFileUpload);
+  
+  // ★ 変更: clearDataBtn の処理
+  $('clearDataBtn').addEventListener('click', ()=> {
+    currentData = defaultData;
+    uploadFileName = "keioSFC";
+	isFileUploaded = false;
+    isCustomized = false; // ★ 追加
+    detectedAttributes.clear(); // ★ 追加
+    rebuildForms(null); // ★ 追加: フォームをデフォルトに戻す
+    
+    // ★ V7.4: デフォルトデータのスキャンを再実行
+    const initialParsed = parseSentencesFromCurrentData();
+    if (!initialParsed.error) {
+        scanAndGenerateColors(initialParsed.sentences);
+    }
+    
+    currentDynamicHeaders = defaultDynamicHeaders;
+    $('fileInput').value = "";
+    $('fileError').style.display='none';
+    $('errorMsg').style.display='none';
+    $('customizeBtn').style.display = 'none'; // ★ 追加
+    hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0;
+    $('uploadFieldset').style.display='none';
+    $('showUploadBtn').style.display='inline-block';
+    renderTable();
+  });
+
+  // ★ 追加: customizeBtn の処理
+  $('customizeBtn').addEventListener('click', scanAttributesAndRebuildUI);
+
+  /* L: show (one-step) */
+  $('showLBtn').addEventListener('click', ()=> {
+    $('LFieldset').style.display = 'block';
+    $('Lmatrix').style.display = 'block';
+    $('showLBtn').style.display = 'none';
+  });
+  $('hideLBtn').addEventListener('click', ()=> {
+    $('LFieldset').style.display = 'none';
+    $('showLBtn').style.display = 'inline-block';
+  });
+  $('clearLallBtn').addEventListener('click', ()=> {
+    const prefixes = ['L5_','L4_','L3_','L2_','L1_'];
+    const attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes;
+    prefixes.forEach(pref => {
+        attributes.forEach(k => { if($(pref+k)) $(pref+k).value=''; });
+        if($(pref+'surface')) $(pref+'surface').value=''; // 表層形もクリア
+    });
+    if (!isCustomized) enableAllPosSubfields();
+    $('LFieldset').style.display='none';
+    $('showLBtn').style.display='inline-block';
+  });
+  /* R: show (one-step) */
+  $('showRBtn').addEventListener('click', ()=> {
+    $('RFieldset').style.display = 'block';
+    $('Rmatrix').style.display = 'block';
+    $('showRBtn').style.display = 'none';
+  });
+  $('hideRBtn').addEventListener('click', ()=> {
+    $('RFieldset').style.display = 'none';
+    $('showRBtn').style.display = 'inline-block';
+  });
+  $('clearRallBtn').addEventListener('click', ()=> {
+    const prefixes = ['R1_','R2_','R3_','R4_','R5_'];
+    const attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes;
+    prefixes.forEach(pref => {
+        attributes.forEach(k => { if($(pref+k)) $(pref+k).value=''; });
+        if($(pref+'surface')) $(pref+'surface').value=''; // 表層形もクリア
+    });
+    if (!isCustomized) enableAllPosSubfields();
+    $('RFieldset').style.display='none';
+    $('showRBtn').style.display='inline-block';
+  });
+  /* 文書情報表示 */
+  $('showDocBtn').addEventListener('click', ()=> {
+    $('docFieldset').style.display = 'block';
+    $('showDocBtn').style.display = 'none';
+  });
+  $('clearDocBtn').addEventListener('click', ()=> {
+    ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(id => { if($(id)) $(id).value = ""; });
+  });
+  $('removeDocBtn').addEventListener('click', ()=> {
+    ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(id => { if($(id)) $(id).value = ""; });
+    $('docFieldset').style.display = 'none';
+    $('showDocBtn').style.display = 'inline-block';
+  });
+  /* search / clear / download / page size / encoding */
+  $('searchBtn').addEventListener('click', onSearchClick);
+  $('clearBtn').addEventListener('click', clearAll);
+  $('downloadBtn').addEventListener('click', ()=> downloadCSV($('encoding').value));
+  $('pageSize').addEventListener('change', ()=> { clampStartIndex(); renderTable(); });
+  
+  /* Enter triggers search (★ 変更: document レベルで動的生成に対応) */
+  document.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text'){
+          e.preventDefault();
+          onSearchClick();
+      }
+  });
+
+  /* tooltip follow */
+  document.addEventListener('mousemove', e => {
+    const tt = $('tooltip');
+    if(tt.style.display === 'block'){
+      const gap = 12; let x = e.clientX + gap, y = e.clientY + gap;
+      const bw = tt.offsetWidth, bh = tt.offsetHeight;
+      if(x + bw > window.innerWidth) x = e.clientX - bw - gap;
+      if(y + bh > window.innerHeight) y = e.clientY - bh - gap;
+      tt.style.left = x + 'px'; tt.style.top = y + 'px';
+    }
+  });
+  
+  /* pos enabling (★ 変更: 動的生成対応のため委譲) */
+  document.body.addEventListener('input', e => {
+      if (e.target.matches('#pos, #L1_pos, #L2_pos, #L3_pos, #L4_pos, #L5_pos, #R1_pos, #R2_pos, #R3_pos, #R4_pos, #R5_pos')) {
+          const prefix = e.target.id.replace('pos', '');
+          enablePosSubfields(prefix);
+      }
+  });
+
+  /* showArticle button handler */
+  $('showArticleBtn').addEventListener('click', ()=> {
+    if(selectedHitNo === null) return;
+    const range = $('articleRange').value;
+    showArticleDetailByHitNo(selectedHitNo, range);
+  });
+  /* articleRange change -> auto update */
+  $('articleRange').addEventListener('change', ()=> {
+    if($('showArticleBtn').style.display !== 'none' && selectedHitNo !== null){
+      $('showArticleBtn').click();
+    }
+  });
+  /* click meta: center selected hit */
+  $('sentenceMeta').addEventListener('click', ()=> {
+    if(selectedHitNo === null) return;
+    const sorted = getSortedRows();
+    const posInSorted = sorted.findIndex(r => r.no === selectedHitNo);
+    if(posInSorted === -1) return;
+    const pageSize = parseInt($('pageSize').value,10);
+    let desiredStart = posInSorted - Math.floor(pageSize/2);
+    const maxStart = Math.max(0, sorted.length - pageSize);
+    if(desiredStart < 0) desiredStart = 0;
+    if(desiredStart > maxStart) desiredStart = maxStart;
+    currentStartIndex = desiredStart;
+    renderTable();
+  });
+  
+ // ★ 変更: 初期状態ではデフォルトのposリスナーのみ有効化
+  enableAllPosSubfields(); 
+
+  // ★ V7.4: デフォルトデータをスキャンしてPOSカラーを生成
+  const initialParsed = parseSentencesFromCurrentData();
+  if (!initialParsed.error) {
+      scanAndGenerateColors(initialParsed.sentences);
+  }
+  
+  renderTable();
+
+  // ★ V7.3 UDボタンのイベントリスナー追加
+  $('udToggleBtn').addEventListener('click', toggleUDView);
+});
+/* ---------- ★ V7.2 追加: UI動的構築 ---------- */
+function scanAttributesAndRebuildUI() {
+    isCustomized = true;
+    const parsed = parseSentencesFromCurrentData();
+    if (parsed.error) {
+        $('fileError').textContent = `カスタマイズ失敗: ${parsed.error}`;
+        $('fileError').style.display = 'block';
+        isCustomized = false;
+        return;
+    }
+    if (parsed.sentences.length === 0) {
+        $('fileError').textContent = "カスタマイズ失敗: 有効な <s> タグが見つかりません。";
+        $('fileError').style.display = 'block';
+        isCustomized = false;
+        return;
+    }
+
+    // 属性をスキャン
+    detectedAttributes.clear();
+    const sentences = parsed.sentences;
+    for (const s of sentences) {
+        const words = s.getElementsByTagName('w');
+        for (const w of words) {
+            for (const attr of w.attributes) {
+                detectedAttributes.add(attr.name);
+            }
+        }
+    }
+
+    const sortedAttributes = Array.from(detectedAttributes).sort();
+    
+    // フォームを再構築
+    rebuildForms(sortedAttributes);
+
+    // 検索結果テーブルのヘッダーも更新（結果はクリア）
+    hits = [];
+    hasSearched = false;
+    currentStartIndex = 0;
+    selectedHitNo = null;
+    currentDynamicHeaders = sortedAttributes.map(attrName => {
+        return { label: attrName, key: attrName };
+    });
+    renderTable(); // 空のテーブルをカスタムヘッダーで描画
+}
+
+function rebuildForms(attributes) {
+    const keywordTbody = $('keyword_table').tBodies[0];
+    const lMatrixTbody = $('Lmatrix_body');
+    const rMatrixTbody = $('Rmatrix_body');
+
+    if (attributes === null) {
+        // デフォルトに戻す
+        keywordTbody.innerHTML = defaultKeywordForm;
+        lMatrixTbody.innerHTML = defaultLMatrixForm;
+        rMatrixTbody.innerHTML = defaultRMatrixForm;
+    } else {
+        // カスタムUIを構築
+        // 1. キーワード
+        keywordTbody.innerHTML = '';
+        // 1-1. 原文文字列 (表層形) を固定で追加
+        keywordTbody.innerHTML += `<tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="例：ケン" /></td></tr>`;
+        // 1-2. 検出された属性を追加
+        attributes.forEach(attr => {
+            keywordTbody.innerHTML += `<tr><td class="label">${attr}</td><td><input id="${attr}" type="text" placeholder="例：${attr}の値を入力" /></td></tr>`;
+        });
+
+        // 2. Lワード
+        lMatrixTbody.innerHTML = '';
+        // 2-1. 原文文字列 (表層形)
+        let lSurfaceRow = '<tr><td class="label">原文文字列 (表層形)</td>';
+        for (let i = 5; i >= 1; i--) {
+            lSurfaceRow += `<td><input id="L${i}_surface" type="text" /></td>`;
+        }
+        lSurfaceRow += '</tr>';
+        lMatrixTbody.innerHTML += lSurfaceRow;
+        // 2-2. 検出された属性
+        attributes.forEach(attr => {
+            let row = `<tr><td class="label">${attr}</td>`;
+            for (let i = 5; i >= 1; i--) {
+                row += `<td><input id="L${i}_${attr}" type="text" /></td>`;
+            }
+            row += '</tr>';
+            lMatrixTbody.innerHTML += row;
+        });
+
+        // 3. Rワード
+        rMatrixTbody.innerHTML = '';
+        // 3-1. 原文文字列 (表層形)
+        let rSurfaceRow = '<tr><td class="label">原文文字列 (表層形)</td>';
+        for (let i = 1; i <= 5; i++) {
+            rSurfaceRow += `<td><input id="R${i}_surface" type="text" /></td>`;
+        }
+        rSurfaceRow += '</tr>';
+        rMatrixTbody.innerHTML += rSurfaceRow;
+        // 3-2. 検出された属性
+        attributes.forEach(attr => {
+            let row = `<tr><td class="label">${attr}</td>`;
+            for (let i = 1; i <= 5; i++) {
+                row += `<td><input id="R${i}_${attr}" type="text" /></td>`;
+            }
+            row += '</tr>';
+            rMatrixTbody.innerHTML += row;
+        });
+    }
+    
+    // デフォルトに戻した場合のみ、pos連動を有効化
+    if (attributes === null) {
+        enableAllPosSubfields();
+    }
+}
+
+/* ---------- ★ V7.4: 動的POSカラー生成 ---------- */
+
+// HSL (Hue, Saturation, Lightness) から RGB への変換
+function hslToRgb(h, s, l){
+    let r, g, b;
+    if(s == 0){
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+// ランダムな薄い色 (RGB配列) を生成
+function getRandomPastelColor() {
+    const hue = Math.random();
+    const saturation = 0.7 + Math.random() * 0.1; // 彩度を高め (0.7-0.8)
+    const lightness = 0.85 + Math.random() * 0.1; // 明度を高く (0.85-0.95)
+    return hslToRgb(hue, saturation, lightness);
+}
+
+// posColorsオブジェクトからCSSルールを生成し、<style>タグに注入
+function injectPosStyles(colors) {
+    const styleEl = $('dynamicPosStyles');
+    if (!styleEl) return;
+    
+    let css = '';
+    for (const pos in colors) {
+        const bg = colors[pos].bg;
+        const border = colors[pos].border;
+        
+        // ★ V7.6 修正:
+        // バグ (不正な正規表現) を削除。
+        // 'pos' 属性の値 (例: "名詞", "NOUN") をそのままクラス名として使用する。
+        // (span.classList.add(pos) の仕様と一致させる)
+        
+        css += `.${pos}.hover, .${pos}:hover {\n`;
+        css += `  background: ${bg};\n`;
+        css += `  border: 2px dashed ${border};\n`;
+        css += `}\n`;
+    }
+    styleEl.textContent = css;
+}
+// センテンスをスキャンし、posColorsを生成・注入
+function scanAndGenerateColors(sentences) {
+    posColors = {}; // グローバルをリセット
+    const posSet = new Set();
+    
+    sentences.forEach(s => {
+        const words = s.getElementsByTagName('w');
+        Array.from(words).forEach(w => {
+            const pos = w.getAttribute('pos') || 'その他';
+            posSet.add(pos);
+        });
+    });
+    
+    // 'その他' があれば、固定色を先に追加
+    if (posSet.has('その他')) {
+        posColors['その他'] = {bg:"whitesmoke", border:"rgba(0,0,0,0.12)"};
+        posSet.delete('その他');
+    }
+
+    // 残りのPOSにランダム色を割り当て
+    posSet.forEach(pos => {
+        const [r, g, b] = getRandomPastelColor();
+        posColors[pos] = {
+            bg: `rgb(${r},${g},${b})`,
+            // ボーダー色は背景色より少し暗く、透明度を持たせる
+            border: `rgba(${Math.max(0, r-40)},${Math.max(0, g-40)},${Math.max(0, b-40)},0.45)`
+        };
+    });
+    
+    // 生成したCSSを注入
+    injectPosStyles(posColors);
+}
+
+/* ---------- 条件収集 / マッチング ---------- */
+function enableAllPosSubfields(){
+    if (isCustomized) return;
+    ['', 'L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'].forEach(p=>enablePosSubfields(p)); 
+}
+function handleFileUpload(e){
+  const file = e.target.files[0];
+  $('fileError').style.display='none'; $('fileError').textContent = '';
+  $('errorMsg').style.display='none';
+  if(!file) return;
+
+  const readerForEncoding = new FileReader();
+  readerForEncoding.onload = function(ev) {
+    const codes = new Uint8Array(ev.target.result);
+    const encoding = Encoding.detect(codes);
+    const textReader = new FileReader();
+    
+    textReader.onload = function(eText) {
+      const text = eText.target.result;
+      const previousData = currentData;
+      currentData = text;
+      const parsed = parseSentencesFromCurrentData();
+      if (parsed.error) {
+          currentData = previousData;
+          $('fileError').textContent = `ファイルの読み込みに失敗しました: ${parsed.error}`;
+          $('fileError').style.display = 'block';
+          $('fileInput').value = ""; 
+          return;
+      }
+      if (parsed.sentences.length === 0 && text.trim() !== "") {
+        currentData = previousData;
+        $('fileError').textContent = "ファイルから有効なデータ（<s>タグ）が見つかりませんでした。";
+        $('fileError').style.display = 'block';
+        $('fileInput').value = "";
+        return;
+      }
+
+      // 成功した場合の処理
+      isFileUploaded = true;
+      isCustomized = false; // ★ 追加: アップロード直後は非カスタマイズ状態
+      rebuildForms(null); // ★ 追加: フォームをデフォルトに戻す
+      $('customizeBtn').style.display = 'inline-block'; // ★ 追加: カスタマイズボタンを表示
+      
+      // ★ V7.4: アップロードされたデータをスキャンしてPOSカラーを生成
+      // (parsed はこのスコープで利用可能)
+      scanAndGenerateColors(parsed.sentences);
+      
+      uploadFileName = (file.name || "uploaded").replace(/\.[^/.]+$/, "");
+      hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0; renderTable();
+    };
+    textReader.onerror = function() {
+      $('fileError').textContent = "ファイルのテキスト読み込みに失敗しました。";
+      $('fileError').style.display = 'block';
+    };
+    try {
+        textReader.readAsText(file, encoding || 'UTF-8');
+    } catch (e) {
+        $('fileError').textContent = "ファイルの読み込み開始に失敗しました。(Encoding Error)";
+        $('fileError').style.display = 'block';
+    }
+  };
+  readerForEncoding.onerror = function() {
+    $('fileError').textContent = "ファイルのエンコーディング検出に失敗しました。";
+    $('fileError').style.display = 'block';
+  };
+  readerForEncoding.readAsArrayBuffer(file);
+}
+
+// ★ 変更: collectConditions (動的UI対応)
+function collectConditions(){
+  const cond = {};
+  const Lconds = [];
+  const Rconds = [];
+
+  // 文書情報（これは常に固定）
+  ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(k => {
+      cond[k] = trimStr($(k).value);
+  });
+
+  if (isCustomized) {
+      // --- カスタマイズUIの場合 ---
+      const attributes = Array.from(detectedAttributes);
+      
+      // 1. キーワード条件
+      cond['surface'] = trimStr($('surface').value);
+      attributes.forEach(attr => {
+          cond[attr] = trimStr($(attr) ? $(attr).value : "");
+      });
+
+      // 2. Lワード条件
+      for(let k=5; k>=1; k--){
+          const p = `L${k}_`;
+          const tmp = {};
+          tmp['surface'] = trimStr($(p+'surface') ? $(p+'surface').value : "");
+          attributes.forEach(attr => {
+              tmp[attr] = trimStr($(p+attr) ? $(p+attr).value : "");
+          });
+          const any = Object.values(tmp).some(v => v !== "");
+          Lconds.push(any ? tmp : null);
+      }
+
+      // 3. Rワード条件
+      for(let k=1; k<=5; k++){
+          const p = `R${k}_`;
+          const tmp = {};
+          tmp['surface'] = trimStr($(p+'surface') ? $(p+'surface').value : "");
+          attributes.forEach(attr => {
+              tmp[attr] = trimStr($(p+attr) ? $(p+attr).value : "");
+          });
+          const any = Object.values(tmp).some(v => v !== "");
+          Rconds.push(any ? tmp : null);
+      }
+
+  } else {
+      // --- デフォルトUIの場合 ---
+      const defaultKeys = ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'];
+      
+      // 1. キーワード条件
+      defaultKeys.forEach(k => {
+          cond[k] = trimStr($(k).value);
+      });
+
+      // 2. Lワード条件
+      for(let k=5;k>=1;k--){
+          const p = `L${k}_`;
+          const tmp = {};
+          defaultKeys.forEach(k => {
+              tmp[k] = trimStr($(p+k) ? $(p+k).value : "");
+          });
+          const any = Object.values(tmp).some(v => v !== "");
+          Lconds.push(any ? tmp : null);
+      }
+      
+      // 3. Rワード条件
+      for(let k=1;k<=5;k++){
+          const p = `R${k}_`;
+          const tmp = {};
+          defaultKeys.forEach(k => {
+              tmp[k] = trimStr($(p+k) ? $(p+k).value : "");
+          });
+          const any = Object.values(tmp).some(v => v !== "");
+          Rconds.push(any ? tmp : null);
+      }
+  }
+  
+  return {cond, Lconds, Rconds};
+}
+
+// 日本語品詞名 -> XMLの英語タグ への対応表
+const posJpToEn = {
+  "名詞": "NOUN", "固有名詞": "PROPN", "代名詞": "PRON", "動詞": "VERB",
+  "形容詞": "ADJ", "副詞": "ADV", "連体詞": "DET", "接続詞": "CCONJ",
+  "助詞": "ADP", "助動詞": "AUX", "感動詞": "INTJ", "記号": "PUNCT",
+  "接頭辞": "NOUN", "数詞": "NUM", "補助記号": "PUNCT", "形状詞": "ADJ",
+};
+
+// ★ 変更: wordMatchesExact (動的UI対応)
+function wordMatchesExact(w, cond){
+  if(!w) return false;
+
+  if (isCustomized) {
+      // --- カスタマイズUIの場合 ---
+      // cond には 'surface' と検出された全属性が含まれる
+      for (const attrName in cond) {
+          if (!cond[attrName]) continue; // 条件指定なし
+
+          if (attrName === 'surface') {
+              if (w.textContent.trim() !== cond.surface) return false;
+          } else if (defaultWAttributes.includes(attrName) || detectedAttributes.has(attrName)) {
+              // 'pos'などのデフォルト属性も、カスタム時は属性としてそのまま比較
+              if (getWAttr(w, attrName) !== cond[attrName]) return false;
+          }
+          // (文書情報キー(Taskなど)はここではチェックしない)
+      }
+  } else {
+      // --- デフォルトUIの場合 ---
+      const attrNames = ['pos','pos1','pos2','pos3','conjClass','conjForm','root'];
+      for(const name of attrNames) {
+          if (cond[name]) {
+              let condValue = cond[name];
+              let xmlValue = getWAttr(w, name);
+
+              // デフォルト時のみ、'pos'の日本語変換を行う
+              if (name === 'pos' && posJpToEn[condValue]) {
+                  condValue = posJpToEn[condValue];
+              }
+              if (xmlValue !== condValue) return false;
+          }
+      }
+      if(cond.surface && w.textContent.trim() !== cond.surface) return false;
+  }
+  
+  return true;
+}
+
+function sentenceMatchesExact(s, cond){
+  const sKeys = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
+  for(const k of sKeys) if(cond[k] && trimStr(s.getAttribute(k)) !== cond[k]) return false;
+  return true;
+}
+
+// ★ 変更: keywordAllEmpty (動的UI対応)
+function keywordAllEmpty(){
+  let keys;
+  if (isCustomized) {
+      keys = ['surface', ...Array.from(detectedAttributes)];
+  } else {
+      keys = ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'];
+  }
+  return keys.every(id => trimStr($(id) ? $(id).value : "") === "");
+}
+
+/* ---------- 検索（プログレス/中断処理） ---------- */
+function onSearchClick(){
+  $('errorMsg').style.display = 'none'; $('errorMsg').textContent = '';
+  $('fileError').style.display = 'none';
+  if(keywordAllEmpty()){
+    $('errorMsg').textContent = "キーワード条件を指定してください";
+    $('errorMsg').style.display = 'block';
+    return;
+  }
+  runSearchWithProgress();
+}
+function runSearchWithProgress(){
+  const parsed = parseSentencesFromCurrentData();
+  if(parsed.error){ $('errorMsg').textContent = parsed.error; $('errorMsg').style.display='block'; return; }
+  parsedSentences = parsed.sentences;
+  const sentences = parsed.sentences;
+  const totalSent = sentences.length;
+  hits = []; currentStartIndex=0; sortCol=null; sortAsc=true; hasSearched=false; searchAbort=false; selectedHitNo=null;
+  const progressWrap = $('progressWrap'); const progressBar = $('progressBar'); const progressText = $('progressText');
+  progressWrap.style.display='block'; progressBar.style.width='0%'; progressText.style.display='block'; progressText.textContent='検索中です (0% 完了)';
+  const startTime = Date.now(); const timeoutMs = 10000; const targetUpdates = 100;
+  const batchSize = Math.max(1, Math.ceil(totalSent / targetUpdates));
+  const {cond, Lconds, Rconds} = collectConditions();
+  
+  // ★ 変更: 
+  // uploadedFileAttrNames は「検索にヒットしたwタグ」から属性を集める
+  // (カスタマイズ時にスキャンした detectedAttributes とは別)
+  let uploadedFileAttrNames = new Set(); 
+  
+  let idx = 0; let serial = 0; const serializer = new XMLSerializer(); function processChunk(){
+    if(searchAbort){ progressWrap.style.display='none'; progressText.style.display='block'; progressText.textContent="ファイルが大きすぎます。検索は中断されました。"; hasSearched=false; renderTable(); return; }
+    const chunkEnd = Math.min(totalSent, idx + batchSize);
+    for(; idx < chunkEnd; idx++){
+      const s = sentences[idx];
+      if(!sentenceMatchesExact(s, cond)) continue;
+      const words = Array.from(s.getElementsByTagName('w'));
+      for(let i=0;i<words.length;i++){
+        const w = words[i];
+        if(!wordMatchesExact(w, cond)) continue;
+        // Lchecks
+        let Lok = true; const Lmatched = [];
+        for(let k=0;k<5;k++){
+          const Lcond = Lconds[k];
+          if(!Lcond) continue;
+          const offset = 5 - k; const posIndex = i - offset;
+          if(posIndex < 0){ Lok=false; break; }
+          const prevW = words[posIndex];
+          if(!wordMatchesExact(prevW,Lcond)){ Lok=false; break; }
+          Lmatched.push(posIndex);
+        }
+        if(!Lok) continue;
+        // Rchecks
+        let Rok = true; const Rmatched = [];
+        for(let k=0;k<5;k++){
+          const Rcond = Rconds[k];
+          if(!Rcond) continue;
+          const offset = k+1; const posIndex = i + offset;
+          if(posIndex >= words.length){ Rok=false; break; }
+          const nextW = words[posIndex];
+          if(!wordMatchesExact(nextW,Rcond)){ Rok=false; break; }
+          Rmatched.push(posIndex);
+        }
+        if(!Rok) continue;
+
+        // V7.1 二段表示用データ生成
+        const beforeWords = words.slice(0,i);
+        const afterWords = words.slice(i+1);
+        const Lset = new Set(Lmatched);
+        const Rset = new Set(Rmatched);
+        
+        const prevDetails = beforeWords.map((x, idxBw) => ({
+          text: x.textContent.trim(),
+          original: getWAttr(x, 'original') || x.textContent.trim(),
+          isMatched: Lset.has(idxBw)
+        }));
+        const keyDetails = {
+          text: w.textContent.trim(),
+          original: getWAttr(w, 'original') || w.textContent.trim(),
+          isMatched: false
+        };
+        const nextDetails = afterWords.map((x, idxAw) => ({
+          text: x.textContent.trim(),
+          original: getWAttr(x, 'original') || x.textContent.trim(),
+          isMatched: Rset.has(i + 1 + idxAw)
+        }));
+        const generateDisplayText = (details, separator) => {
+          return details.map(d => d.isMatched ? `(${d.text})` : d.text).join(separator);
+        };
+        const generateOriginalText = (details) => {
+          return details.map(d => d.isMatched ? `(${d.original})` : d.original).join('');
+        };
+        const prevData = {
+          upper: generateDisplayText(prevDetails, ' '),
+          lower: generateOriginalText(prevDetails)
+        };
+        const keyData = {
+          upper: keyDetails.text,
+          lower: keyDetails.original
+        };
+        const nextData = {
+          upper: generateDisplayText(nextDetails, ' '),
+          lower: generateOriginalText(nextDetails)
+        };
+
+        // CSV出力用
+        const prevRaw = beforeWords.map((x, idxBw) => Lset.has(idxBw) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
+        const nextRaw = afterWords.map((x, idxAw) => {
+          const realIdx = i + 1 + idxAw;
+          return Rset.has(realIdx) ? "(" + x.outerHTML + ")" : x.outerHTML;
+        }).join("");
+        const keyRaw = w.outerHTML;
+        const sentenceXML = serializer.serializeToString(s);
+        serial++;
+        
+        // ★ 変更: w_attrs 収集ロジック
+        const hit_w_attrs = {};
+        if (isFileUploaded) {
+            // isCustomized フラグに関わらず、ファイルアップロード時なら
+            // ヒットした w の全属性を収集する
+            Array.from(w.attributes).forEach(attr => {
+                hit_w_attrs[attr.name] = attr.value;
+                uploadedFileAttrNames.add(attr.name);
+            });
+        }
+        
+        hits.push({
+          no: serial,
+          Task: trimStr(s.getAttribute('Task')),
+          textID: trimStr(s.getAttribute('textID')),
+          prev: prevData,
+          key: keyData,
+          next: nextData,
+          personID: trimStr(s.getAttribute('personID')),
+          personAge: trimStr(s.getAttribute('personAge')),
+          language: trimStr(s.getAttribute('language')),
+          personFirstLang: trimStr(s.getAttribute('personFirstLang')),
+          personSecondLang: trimStr(s.getAttribute('personSecondLang')),
+          pos: getWAttr(w,'pos'),
+          pos1: getWAttr(w,'pos1'),
+          pos2: getWAttr(w,'pos2'),
+          pos3: getWAttr(w,'pos3'),
+          conjClass: getWAttr(w,'conjClass'),
+          conjForm: getWAttr(w,'conjForm'),
+          root: getWAttr(w,'root'),
+          reading: (getWAttr(w,'pronunciation')||getWAttr(w,'reading')),
+          rawPrev: prevRaw, rawKey: keyRaw, rawNext: nextRaw, rawSentence: sentenceXML,
+          keyIndex: i,
+          sentenceNodeIndex: idx,
+		  w_attrs: hit_w_attrs
+        });
+      }
+    }
+    // progress
+    const progress = Math.floor((idx / Math.max(1,totalSent)) * 100);
+    $('progressBar').style.width = progress + '%';
+    $('progressText').textContent = `検索中です (${progress}% 完了)`;
+    const elapsed = Date.now() - startTime;
+    if(elapsed > timeoutMs && progress < 10) searchAbort = true;
+    if(searchAbort){ $('progressWrap').style.display='none'; $('progressText').style.display='block'; $('progressText').textContent = "ファイルが大きすぎます。検索は中断されました。"; hasSearched=false; renderTable(); return; }
+    if(idx < totalSent) { setTimeout(processChunk,0); }
+    else {
+      
+      // ★ 変更: ヘッダー生成ロジック
+      // isCustomized フラグは見ない。
+      // ファイルがアップロードされていれば、ヒットしたwタグから収集した属性(uploadedFileAttrNames)でヘッダーを作る。
+      // (カスタマイズボタンを押していなくても、結果は動的になる)
+      if (isFileUploaded) {
+          currentDynamicHeaders = Array.from(uploadedFileAttrNames).sort().map(attrName => {
+              return { label: attrName, key: attrName };
+          });
+      } else {
+          currentDynamicHeaders = defaultDynamicHeaders;
+      }
+      
+      hasSearched=true; $('progressBar').style.width='100%'; $('progressText').textContent='検索完了 (100% 完了)'; setTimeout(()=>{$('progressWrap').style.display='none'; $('progressText').style.display='none';},500); currentStartIndex=0; renderTable();
+    }
+  }
+  setTimeout(processChunk,0);
+}
+/* ---------- 表示 / ソート / ページング ---------- */
+function getSortedRows(){
+  let rows = hits.slice();
+  const headers = getCurrentHeaders();
+  if(sortCol !== null){
+    const key = headers[sortCol].key;
+    const isStatic = staticHeaders.find(sh => sh.key === key);
+    
+    rows.sort((a,b) => {
+      let valA, valB;
+
+      // ★ 変更: isFileUploaded フラグのみで判断 (isCustomized は不要)
+      if (isFileUploaded && !isStatic) {
+          valA = a.w_attrs[key];
+          valB = b.w_attrs[key];
+      } else {
+          valA = a[key];
+          valB = b[key];
+      }
+      
+      if (key === 'prev' || key === 'key' || key === 'next') {
+          valA = valA ? valA.upper : "";
+          valB = valB ? valB.upper : "";
+      }
+
+      const A = (valA ?? "").toString(); const B = (valB ?? "").toString();
+      const nA = Number(A), nB = Number(B);
+      if(!isNaN(nA) && !isNaN(nB)) return sortAsc ? nA - nB : nB - nA;
+      return sortAsc ? A.localeCompare(B,'ja') : B.localeCompare(A,'ja');
+    });
+  }
+  return rows;
+}
+function clampStartIndex(){
+  const pageSize = parseInt($('pageSize').value,10);
+  const rows = getSortedRows();
+  const maxStart = Math.max(0, rows.length - pageSize);
+  if(currentStartIndex > maxStart) currentStartIndex = maxStart;
+  if(currentStartIndex < 0) currentStartIndex = 0;
+}
+function renderTable(){
+  const container = $('tableContainer'); container.innerHTML = "";
+  const pageSize = parseInt($('pageSize').value,10);
+  const rows = getSortedRows();
+  const total = rows.length;
+  clampStartIndex();
+  const start = currentStartIndex;
+  const end = Math.min(start + pageSize, total);
+  const pageRows = rows.slice(start, end);
+  const tbl = document.createElement('table'); tbl.className='output';
+  const thead = document.createElement('thead'); const thr = document.createElement('tr');
+  const headers = getCurrentHeaders();
+  headers.forEach((h, idx) => {
+    const th = document.createElement('th'); th.textContent = h.label;
+    th.addEventListener('click', ()=> { if(sortCol === idx) sortAsc = !sortAsc; else { sortCol = idx; sortAsc = true; } renderTable(); });
+    thr.appendChild(th);
+  });
+  thead.appendChild(thr); tbl.appendChild(thead);
+  const tbody = document.createElement('tbody');
+  pageRows.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    headers.forEach(h => {
+      const td = document.createElement('td');
+      
+      let val;
+      const isStatic = staticHeaders.find(sh => sh.key === h.key);
+      // ★ 変更: isFileUploaded フラグのみで判断
+      if (isFileUploaded && !isStatic) {
+          val = r.w_attrs[h.key];
+      } else {
+          val = r[h.key];
+      }
+
+      // V7.1 二段表示ロジック
+      if (h.key === 'prev' || h.key === 'next') {
+        if (val) {
+            const upperDiv = document.createElement('div');
+            upperDiv.textContent = val.upper;
+            upperDiv.className = 'context-upper';
+            const lowerDiv = document.createElement('div');
+            lowerDiv.textContent = val.lower;
+            lowerDiv.className = 'context-lower';
+            td.appendChild(upperDiv);
+            td.appendChild(lowerDiv);
+        }
+      } else if(h.key === 'key'){
+        if (val) {
+            const span = document.createElement('span');
+            span.className='key-cell-container';
+            span.dataset.hitNo = r.no;
+            const upperDiv = document.createElement('div');
+            upperDiv.textContent = val.upper;
+            upperDiv.className = 'context-upper';
+            const lowerDiv = document.createElement('div');
+            lowerDiv.textContent = val.lower;
+            lowerDiv.className = 'context-lower';
+            span.appendChild(upperDiv);
+            span.appendChild(lowerDiv);
+            span.addEventListener('click', ()=> {
+              const hitNo = parseInt(span.dataset.hitNo,10);
+              const sorted = getSortedRows();
+              const posInSorted = sorted.findIndex(x => x.no === hitNo);
+              if(posInSorted === -1) return;
+              $('pageSize').value = '5';
+              const newPageSize = 5;
+              let desiredStart = posInSorted - Math.floor(newPageSize/2);
+              const maxStart = Math.max(0, sorted.length - newPageSize);
+              if(desiredStart < 0) desiredStart = 0;
+              if(desiredStart > maxStart) desiredStart = maxStart;
+              currentStartIndex = desiredStart;
+              selectedHitNo = hitNo;
+              renderTable();
+              const hitIdx = hits.findIndex(hh => hh.no === hitNo);
+              if(hitIdx !== -1) showSentenceDetailByIndex(hitIdx);
+            });
+            td.appendChild(span);
+        }
+      } else {
+        td.textContent = val ?? "";
+      }
+      tr.appendChild(td);
+    });
+    if(selectedHitNo !== null && r.no === selectedHitNo) tr.classList.add('selected-row');
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody); container.appendChild(tbl);
+  if(hasSearched){
+    $('hitCount').style.display = 'block';
+    $('hitCount').innerHTML = `<b>${total}</b>件ヒットしました`;
+  } else { $('hitCount').style.display='none'; $('hitCount').innerHTML=''; }
+  renderPager(total, pageSize);
+}
+function renderPager(total, pageSize){
+  const top = $('pagerTop'); const bottom = $('pagerBottom');
+  [top,bottom].forEach(el => el.innerHTML = '');
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
+  clampStartIndex();
+  const currentPageIndex = Math.floor(currentStartIndex / pageSize);
+  if(currentStartIndex > 0){
+    const prevBtn = document.createElement('button'); prevBtn.textContent = `前の${pageSize}件を表示`;
+    prevBtn.addEventListener('click', ()=>{ currentStartIndex = Math.max(0, currentStartIndex - pageSize); renderTable(); });
+    top.appendChild(prevBtn); const prevBtn2 = prevBtn.cloneNode(true);
+    prevBtn2.addEventListener('click', ()=>{ currentStartIndex = Math.max(0, currentStartIndex - pageSize); renderTable(); });
+    bottom.appendChild(prevBtn2);
+  }
+  const info = document.createElement('span'); info.className='small';
+  info.textContent = ` ${currentPageIndex+1} / ${totalPages} ページ (全 ${total} 件) `;
+  top.appendChild(info.cloneNode(true)); bottom.appendChild(info);
+  if(currentStartIndex + pageSize < total){
+    const nextBtn = document.createElement('button'); nextBtn.textContent = `次の${pageSize}件を表示`;
+    nextBtn.addEventListener('click', ()=>{ currentStartIndex = Math.min(total - pageSize, currentStartIndex + pageSize); renderTable(); });
+    top.appendChild(nextBtn); const nextBtn2 = nextBtn.cloneNode(true);
+    nextBtn2.addEventListener('click', ()=>{ currentStartIndex = Math.min(total - pageSize, currentStartIndex + pageSize); renderTable(); });
+    bottom.appendChild(nextBtn2);
+  }
+}
+/* ---------- 文詳細表示 / 文の表示（キー選択） ---------- */
+function showSentenceDetailByIndex(hitIndex){
+  const hit = hits[hitIndex]; if(!hit) return;
+  selectedHitNo = hit.no;
+  renderTable();
+  const detail = $('sentenceDetail'); const meta = $('sentenceMeta'); const area = $('sentenceArea');
+  area.innerHTML = ""; meta.style.display='block'; meta.textContent = `${hit.no || ''}-${hit.Task || ''}-${hit.textID || ''}`;
+  $('showArticleBtn').style.display = 'inline-block'; $('articleRangeLabel').style.display = 'inline-block';
+  $('articleBox').style.display='none'; $('articleContent').innerHTML='';
+
+  // ★ V7.3 描画エリアの表示切り替え
+  if (isUDViewActive) {
+    // UD表示がアクティブ
+    $('sentenceArea').style.display = 'none';
+    $('udCanvasContainer').style.display = 'block';
+    drawUDTree(hit); // ★ 新しい関数を呼ぶ
+  } else {
+    // 通常の文詳細表示
+    $('sentenceArea').style.display = 'block';
+    $('udCanvasContainer').style.display = 'none';
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(hit.rawSentence, "application/xml");
+      const wnodes = Array.from(doc.getElementsByTagName('w'));
+      wnodes.forEach((wn, idx) => {
+        const span = document.createElement('span');
+        span.classList.add('word');
+        const pos = (wn.getAttribute('pos') || 'その他');
+        span.classList.add(pos);
+        span.dataset.pos = pos;
+        // ★ 変更: ツールチップ用に、w_attrs (全属性) を data-* に格納
+        if (isFileUploaded) {
+            // ★ 修正: hit.w_attrs (キーワードの属性) ではなく、wn (現在の単語) の全属性を参照する
+            Array.from(wn.attributes).forEach(attr => {
+                span.dataset[attr.name] = attr.value;
+            });
+        } else {
+            // デフォルトデータ用の属性
+            span.dataset.pos1 = wn.getAttribute('pos1') || "";
+            span.dataset.pos2 = wn.getAttribute('pos2') || "";
+            span.dataset.pos3 = wn.getAttribute('pos3') || "";
+            span.dataset.conjClass = wn.getAttribute('conjClass') || "";
+            span.dataset.conjForm = wn.getAttribute('conjForm') || "";
+            span.dataset.root = wn.getAttribute('root') || "";
+            span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
+        }
+        span.textContent = wn.textContent || "";
+        if(pos === '記号') span.classList.add('punct');
+        if(typeof hit.keyIndex === 'number' && idx === hit.keyIndex){
+          span.classList.add('key-selected');
+          const col = posColors[pos] ? posColors[pos].border : 'rgba(0,0,0,0.2)';
+          span.style.border = `2px solid ${col}`; span.style.borderRadius = '4px';
+        }
+        span.addEventListener('mouseenter', onWordMouseEnter);
+        span.addEventListener('mouseleave', onWordMouseLeave);
+        span.addEventListener('mousemove', onWordMouseMove);
+        area.appendChild(span);
+      });
+    } catch(e){
+      area.textContent = "文の表示に失敗しました。";
+    }
+  }
+  
+  detail.style.display = 'block';
+  $('tooltip').style.display = 'none';
+}
+/* ---------- ツールチップ / ホバー処理 ---------- */
+// ★ 変更: ツールチップ (動的属性対応)
+function onWordMouseEnter(e){
+  const span = e.currentTarget; const pos = span.dataset.pos || '';
+  const areaRoot = span.closest('.sentence-area') || span.closest('.article-box') || document;
+  const siblings = areaRoot.querySelectorAll('.word');
+  siblings.forEach(w => { if((w.dataset.pos||'') === pos) w.classList.add('hover'); });
+  
+  const lines = [];
+  // data-* 属性をすべて表示する
+  // ★ 修正: 'pos' を先に表示し、その後 'pos' 以外をすべて表示する
+  if (span.dataset.pos) {
+      lines.push(`pos：${span.dataset.pos}`);
+  }
+  Object.keys(span.dataset).forEach(key => {
+      // 'pos' 以外で、値が存在するものを追加
+      if (key !== 'pos' && span.dataset[key]) {
+          lines.push(`${key}：${span.dataset[key]}`);
+      }
+  });
+
+  const tt = $('tooltip'); tt.textContent = lines.join("\n");
+  const pc = posColors[pos] ? posColors[pos].bg : '#fff'; tt.style.background = pc; tt.style.border='1px solid #ccc';
+  tt.style.display = 'block';
+}
+function onWordMouseLeave(e){
+  const span = e.currentTarget; const pos = span.dataset.pos || '';
+  const areaRoot = span.closest('.sentence-area') || span.closest('.article-box') || document;
+  const siblings = areaRoot.querySelectorAll('.word');
+  siblings.forEach(w => { if((w.dataset.pos||'') === pos) w.classList.remove('hover'); });
+  const tt = $('tooltip'); tt.style.display = 'none';
+}
+function onWordMouseMove(e){
+  const tt = $('tooltip'); if(tt.style.display === 'block'){
+    const gap = 12; let x = e.clientX + gap, y = e.clientY + gap;
+    const bw = tt.offsetWidth, bh = tt.offsetHeight;
+    if(x + bw > window.innerWidth) x = e.clientX - bw - gap;
+    if(y + bh > window.innerHeight) y = e.clientY - bh - gap;
+    tt.style.left = x + 'px'; tt.style.top = y + 'px';
+  }
+}
+/* ---------- 文章詳細表示（前後 N 文 または 同一 textID の全文） ---------- */
+function showArticleDetailByHitNo(hitNo, range){
+  const hitIdx = hits.findIndex(h => h.no === hitNo); if(hitIdx === -1) return;
+  const hit = hits[hitIdx];
+  if(!parsedSentences || parsedSentences.length === 0) return;
+  let indices = [];
+  if(range === 'all'){
+    parsedSentences.forEach((s, idx)=>{ if(trimStr(s.getAttribute('textID')) === trimStr(hit.textID)) indices.push(idx); });
+    if(indices.length === 0) return;
+    const start = Math.min(...indices), end = Math.max(...indices);
+    renderArticleRange(start, end, hit);
+    return;
+  }
+  const N = parseInt(range,10);
+  const sIdx = hit.sentenceNodeIndex;
+  const start = Math.max(0, sIdx - N);
+  const end = Math.min(parsedSentences.length - 1, sIdx + N);
+  renderArticleRange(start, end, hit);
+}
+function renderArticleRange(start, end, hit){
+  const articleContent = $('articleContent'); articleContent.innerHTML = "";
+  for(let i=start;i<=end;i++){
+    const sNode = parsedSentences[i];
+    const div = document.createElement('div'); div.style.marginBottom='8px';
+    if(i === hit.sentenceNodeIndex) div.style.background = '#f0fff0';
+    const wnodes = Array.from(sNode.getElementsByTagName('w'));
+    wnodes.forEach((wn, idx) => {
+      const span = document.createElement('span');
+      span.classList.add('word');
+      const pos = (wn.getAttribute('pos') || 'その他');
+      span.classList.add(pos);
+      span.dataset.pos = pos;
+      
+      // ★ 変更: ツールチップ用に、w の全属性を data-* に格納
+      if (isFileUploaded) {
+          Array.from(wn.attributes).forEach(attr => {
+              span.dataset[attr.name] = attr.value;
+          });
+      } else {
+          // デフォルトデータ用の属性
+          span.dataset.pos1 = wn.getAttribute('pos1') || "";
+          span.dataset.pos2 = wn.getAttribute('pos2') || "";
+          span.dataset.pos3 = wn.getAttribute('pos3') || "";
+          span.dataset.conjClass = wn.getAttribute('conjClass') || "";
+          span.dataset.conjForm = wn.getAttribute('conjForm') || "";
+          span.dataset.root = wn.getAttribute('root') || "";
+          span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
+      }
+      
+      span.textContent = wn.textContent || "";
+      if(pos === '記号') span.classList.add('punct');
+      if(i === hit.sentenceNodeIndex && typeof hit.keyIndex === 'number' && idx === hit.keyIndex){
+        span.classList.add('key-selected');
+        const col = posColors[pos] ? posColors[pos].border : 'rgba(0,0,0,0.2)';
+        span.style.border = `2px solid ${col}`; span.style.borderRadius = '4px';
+      }
+      span.addEventListener('mouseenter', onWordMouseEnter);
+      span.addEventListener('mouseleave', onWordMouseLeave);
+      span.addEventListener('mousemove', onWordMouseMove);
+      div.appendChild(span);
+    });
+    articleContent.appendChild(div);
+  }
+  $('articleBox').style.display = 'block';
+  $('articleBox').scrollIntoView({behavior:'smooth', block:'nearest'});
+}
+/* ---------- CSV（無修正列を末尾に付与） ---------- */
+function sanitizeFilename(s){ return (s||"").replace(/[\/\\?%*:|"<>]/g, '_'); }
+function buildCondString(){
+    // ★ 変更: CSVファイル名 (動的UI対応)
+    let keys;
+    if (isCustomized) {
+        keys = ['surface', 'pos', 'wordId', 'lemma']; // 代表的なもの
+    } else {
+        keys = ['pos','root','surface']; // デフォルト
+    }
+    const parts = [];
+    keys.forEach(k=>{
+        const el = $(k); const v = el ? trimStr(el.value || "") : "";
+        if(v) parts.push(`${k}-${v}`);
+    });
+    // 文書情報
+    ['textID','personID'].forEach(k=>{
+        const el = $(k); const v = el ? trimStr(el.value || "") : "";
+        if(v) parts.push(`${k}-${v}`);
+    });
+    return parts.length ? parts.join('_') : 'all';
+}
+function downloadCSV(encoding){
+  if(hits.length === 0){ alert("出力する結果がありません。"); return; }
+  const headers = getCurrentHeaders();
+  const visibleLabels = headers.map(h => h.label);
+  const headerRow = visibleLabels.concat(["無修正前文脈","無修正キー","無修正後文脈","無修正全文"]);
+  const rows = hits.map(r => {
+    const visible = headers.map(h => {
+        let val;
+        const isStatic = staticHeaders.find(sh => sh.key === h.key);
+        // ★ 変更: isFileUploaded フラグのみで判断
+        if (isFileUploaded && !isStatic) {
+            val = r.w_attrs[h.key];
+        } else {
+            val = r[h.key];
+        }
+        if (h.key === 'prev' || h.key === 'key' || h.key === 'next') {
+            return val ? val.upper : "";
+        }
+        return val ?? "";
+    });
+   return visible.concat([r.rawPrev ?? "", r.rawKey ?? "", r.rawNext ?? "", r.rawSentence ?? ""]);
+  });
+  // ★ 修正: 改行コードのタイプミス ("\rn" -> "\r\n")
+  const csvText = [headerRow, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+  const date = new Date(); const yy = String(date.getFullYear()).slice(2); const mm = String(date.getMonth()+1).padStart(2,'0'); const dd = String(date.getDate()).padStart(2,'0');
+  
+  const datestr = `${yy}-${mm}-${dd}`; const prefix = sanitizeFilename(uploadFileName || 'keioSFC'); const condStr = sanitizeFilename(buildCondString());
+  const fname = `${prefix}_${datestr}_${condStr}.csv`;
+  let blob;
+  if(encoding === 'shift-jis'){
+    const uint8 = Encoding.convert(Encoding.stringToCode(csvText), 'SJIS', 'UNICODE');
+    blob = new Blob([new Uint8Array(uint8)], {type:'text/csv'});
+  } else {
+    blob = new Blob(["\uFEFF" + csvText], {type:'text/csv;charset=utf-8;'});
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = fname; document.body.appendChild(a); a.click(); a.remove();
+}
+/* ---------- クリア ---------- */
+// ★ 変更: clearAll (動的UI対応)
+function clearAll(){
+  // 1. 文書情報クリア
+  const docIds = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
+  docIds.forEach(id => { if($(id)) $(id).value = ""; });
+
+  // 2. L/R/キーワード クリア
+  const prefixes = ['', 'L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'];
+  let attributesToClear;
+
+  if (isCustomized) {
+      attributesToClear = ['surface', ...Array.from(detectedAttributes)];
+  } else {
+      attributesToClear = ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'];
+  }
+
+  prefixes.forEach(pref => {
+      attributesToClear.forEach(k => {
+          if($(pref+k)) $(pref+k).value = "";
+      });
+  });
+  
+  // 3. デフォルトUIの場合のみ、pos連動を再有効化
+  if (!isCustomized) {
+      enableAllPosSubfields();
+  }
+
+  // 4. 検索結果・状態クリア
+  hits=[]; currentStartIndex=0; sortCol=null; sortAsc=true; hasSearched=false; searchAbort=false; selectedHitNo=null;
+  $('tableContainer').innerHTML=""; $('hitCount').style.display='none'; $('hitCount').textContent=''; $('pagerTop').innerHTML=''; $('pagerBottom').innerHTML='';
+  $('errorMsg').style.display='none'; $('errorMsg').textContent='';
+  $('fileError').style.display='none'; 
+  $('progressWrap').style.display='none'; $('progressText').style.display='none'; $('sentenceDetail').style.display='none'; $('sentenceArea').innerHTML=''; $('sentenceMeta').style.display='none'; $('articleBox').style.display='none';
+  $('tooltip').style.display='none';
+  
+  // ★ V7.3 UD表示をクリア
+  isUDViewActive = false;
+  if ($('udToggleBtn')) { // ボタンが存在すれば
+    $('udToggleBtn').textContent = 'UD表示 OFF';
+    $('udToggleBtn').classList.remove('active');
+  }
+  if ($('udCanvasContainer')) { // コンテナが存在すれば
+    $('udCanvasContainer').style.display = 'none';
+  }
+  if ($('sentenceArea')) {
+    $('sentenceArea').style.display = 'block'; // 念のため
+  }
+  
+  // 5. ヘッダーのクリア
+  // isCustomized=true の場合は、ヘッダーはカスタム状態を維持する
+  // isCustomized=false (デフォルト) の場合は、デフォルトヘッダーに戻す
+  if (!isCustomized) {
+      currentDynamicHeaders = defaultDynamicHeaders;
+  }
+  // renderTableを呼んで、ヘッダーを（空の状態で）再描画
+  renderTable();
+}
+
+/* ---------- ★ V7.3 UDツリー描画 ---------- */
+
+// UD表示ボタンのトグル処理
+function toggleUDView() {
+  isUDViewActive = !isUDViewActive;
+  const btn = $('udToggleBtn');
+  const area = $('sentenceArea');
+  const canvasContainer = $('udCanvasContainer');
+
+  if (isUDViewActive) {
+    btn.textContent = 'UD表示 ON';
+    btn.classList.add('active');
+    area.style.display = 'none';
+    canvasContainer.style.display = 'block';
+    // 現在選択中のヒットがあれば、即時描画
+    if (selectedHitNo !== null) {
+      const hitIdx = hits.findIndex(h => h.no === selectedHitNo);
+      if (hitIdx !== -1) {
+        drawUDTree(hits[hitIdx]);
+      }
+    }
+  } else {
+    btn.textContent = 'UD表示 OFF';
+    btn.classList.remove('active');
+    area.style.display = 'block';
+    canvasContainer.style.display = 'none';
+  }
+}
+
+// UDツリーのメイン描画関数
+function drawUDTree(hit) {
+  const canvas = $('udCanvas');
+  const ctx = canvas.getContext('2d');
+  const errDiv = $('udError');
+  errDiv.style.display = 'none';
+  
+  // 1. データのパース
+  let words = [];
+  let rootNode = null;
+  const wordMap = new Map();
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(hit.rawSentence, "application/xml");
+    const wnodes = Array.from(doc.getElementsByTagName('w'));
+    
+    if (wnodes.length === 0) throw new Error("wタグが見つかりません。");
+
+    wnodes.forEach(wn => {
+      const id = parseInt(wn.getAttribute('wordId'), 10);
+      const headId = parseInt(wn.getAttribute('udFrom'), 10);
+      // ★ 修正: 画像に合わせて 'original' 属性を優先
+      const text = wn.getAttribute('original') || wn.textContent.trim();
+      const pos = wn.getAttribute('pos') || 'その他'; // ★ V7.5: pos 属性を取得
+      
+      if (isNaN(id) || isNaN(headId)) {
+          // udFrom が空や不正な値の場合はスキップ (例: V7.3のサンプルデータ '●' (wordId=1, udFrom="24", udTo=""))
+          // ただし、これがエラーの原因になる可能性もある
+          if (isNaN(id)) throw new Error(`wordId が不正です: ${wn.outerHTML}`);
+          // headId が不正な場合は、ひとまず自分自身を指すようにしてエラー回避
+          console.warn(`udFrom が不正なため、 ${id} を仮ルートとして扱います: ${wn.outerHTML}`);
+      }
+
+      const node = {
+        id: id,
+        text: text,
+        pos: pos, // ★ V7.5: pos 属性をノードに保存
+        headId: isNaN(headId) ? id : headId, // 不正な場合は仮にself-loop
+        children: [],
+        level: -1, // レイアウト計算用
+        x: 0,
+        y: 0
+      };
+      words.push(node);
+      wordMap.set(id, node);
+    });
+
+    // 親子関係の構築とルートの特定
+    words.forEach(node => {
+      if (node.id === node.headId) {
+        rootNode = node;
+      } else {
+        const head = wordMap.get(node.headId);
+        if (head) {
+          head.children.push(node);
+        } else {
+          // headId が存在しない場合 (例: 0 や範囲外)
+          console.warn(`ID ${node.headId} の親ノードが見つかりません (ノード ${node.id})`);
+          if (!rootNode) { // まだルートが未定なら、これを暫定ルートにする
+            rootNode = node;
+          }
+        }
+      }
+    });
+
+    if (!rootNode) {
+        // self-loop がない場合、udFrom="0" などを探す
+        const zeroHead = words.find(w => w.headId === 0);
+        if (zeroHead) {
+            rootNode = zeroHead;
+        } else if (words.length > 0) {
+            // それでもない場合、udFrom が自分以外を指しているが、
+            // その headId が見つからない最初のノードをルートとみなす
+             console.warn("ルートノード (headId=id or headId=0) が見つかりません。暫定ルートを適用します。");
+             rootNode = words.find(w => w.headId !== w.id && !wordMap.has(w.headId)) || words[0];
+        } else {
+             throw new Error("描画する単語がありません。");
+        }
+    }
+
+  } catch (e) {
+    errDiv.textContent = `UDデータのパースに失敗しました: ${e.message}`;
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  // 2. レイアウト計算 (レベル決定 - 葉から)
+  let maxLevel = 0;
+  function calculateLevel(node) {
+    if (node.children.length === 0) {
+      node.level = 0;
+    } else {
+      let maxChildLevel = 0;
+      node.children.forEach(child => {
+        calculateLevel(child); // 再帰的に子を計算
+        if (child.level > maxChildLevel) {
+          maxChildLevel = child.level;
+        }
+      });
+      node.level = maxChildLevel + 1;
+    }
+    if (node.level > maxLevel) {
+      maxLevel = node.level;
+    }
+  }
+  
+  // wordMapにある全ノードを対象に、未計算のノードからレベルを計算
+  words.forEach(node => {
+      if(node.level === -1) {
+          // 接続されていない孤立ノードや、
+          // 循環参照によって calculateLevel(rootNode) から漏れたノード
+          // のレベルを計算する
+          try {
+            calculateLevel(node);
+          } catch(e) {
+            // 循環参照エラーなど
+            console.error("レベル計算中にエラー:", e);
+            node.level = 0; // 暫定的に0
+          }
+      }
+  });
+
+
+  // 3. 描画設定
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  const boxHeight = 30;
+  const boxPaddingY = 50; // 箱と箱のY間隔
+  const boxPaddingX = 10; // 箱と箱のX間隔
+  let totalWidth = 0;
+  
+  // テキスト幅に基づいてX座標とキャンバス幅を決定
+  // ★ 順序は wordId 順 (words 配列の順)
+  let currentX = 20; // 左右マージン
+  const nodeMetrics = new Map();
+  words.sort((a,b) => a.id - b.id); // wordId順にソート
+  
+  words.forEach(node => {
+      const metrics = ctx.measureText(node.text);
+      const boxWidth = Math.max(40, metrics.width + 16); // 最小幅40px, 左右パディング8px
+      nodeMetrics.set(node.id, { width: boxWidth, height: boxHeight });
+      
+      node.x = currentX + (boxWidth / 2);
+      currentX += boxWidth + boxPaddingX;
+  });
+  totalWidth = currentX + 20; // 左右マージン
+
+  // Y座標を決定 (maxLevel = 0 が一番下)
+  words.forEach(node => {
+    node.y = (maxLevel - node.level) * (boxHeight + boxPaddingY) + (boxHeight / 2) + 20; // 20pxマージン
+  });
+
+  const totalHeight = (maxLevel + 1) * (boxHeight + boxPaddingY) + 40;
+
+  // キャンバスサイズを調整
+  canvas.width = totalWidth;
+  canvas.height = totalHeight;
+
+  // 4. 描画 (再度設定が必要)
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.5;
+
+  // 4a. 線の描画 (下から)
+  words.forEach(node => {
+    if (node.id === node.headId) return; // ルートは描画しない
+    const head = wordMap.get(node.headId);
+    if (!head) return; // 親が見つからない
+
+    ctx.beginPath();
+    ctx.moveTo(node.x, node.y - boxHeight / 2); // 子の上端
+    ctx.lineTo(head.x, head.y + boxHeight / 2); // 親の下端
+    ctx.stroke();
+  });
+
+  // 4b. ノード(箱とテキスト)の描画 (上から)
+  words.forEach(node => {
+    const metrics = nodeMetrics.get(node.id);
+    const x = node.x - metrics.width / 2;
+    const y = node.y - metrics.height / 2;
+
+    // ★ V7.5: posColors から動的に色を取得
+    // ('その他' またはハードコード値をフォールバックとして使用)
+    const colorInfo = posColors[node.pos] || posColors['その他'] || { bg: '#eafff4', border: '#57a070' };
+
+    // 箱
+    ctx.fillStyle = colorInfo.bg; // ★ 動的な背景色を設定
+    ctx.fillRect(x, y, metrics.width, metrics.height);
+    ctx.strokeStyle = colorInfo.border; // ★ 動的な境界色を設定
+    ctx.strokeRect(x, y, metrics.width, metrics.height);
+    
+    // テキスト
+    ctx.fillStyle = '#133';
+    ctx.fillText(node.text, node.x, node.y);
+  });
+}
+
+/* ---------- debug helper ---------- */
+window._debug = {
+    getCurrentData: ()=> currentData, 
+    getHits: ()=> hits, 
+    getParsedSentences: ()=> parsedSentences,
+    getDetectedAttrs: ()=> detectedAttributes,
+    isCustomized: ()=> isCustomized
+};
+</script>
+</body>
+</html>
