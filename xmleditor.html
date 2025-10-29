@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>XML Token Editor — Version3 Final (Aki) - Rev3</title>
+<title>KeioXML</title>
 <style>
 :root{--bg:#FFF8FB;--card:#fff;--muted:#666;--accent:#4B9CFF;--radius:12px;--shadow:0 6px 18px rgba(52,40,80,0.06)}
 body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:#222}
@@ -30,12 +30,12 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 .upright-arc-group {
     pointer-events: auto; /* SVG全体が無効化されているため、クリック対象を明示的に有効化 */
 }
-/* ▼▼▼ 追加 ▼▼▼ */
+
 .tokens.hide-sentence-info .sentence-header {
     display: none;
 }
 
-/* ▼▼▼ 追加 ▼▼▼ */
+
 #mainLayout.wide-mode {
     flex-direction: column;
 }
@@ -73,17 +73,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 .tokens-wrapper {
     position: relative; /* SVGキャンバスの基準点 */
     /* UDモード時のみパディングを適用 */
-    /* ▼▼▼ 削除: トランジションは座標計算を不安定にするため削除 ▼▼▼ */
-    /* transition: padding-top 0.2s ease-out; */
-    /* ▲▲▲ 削除 ▲▲▲ */
-}/* ▼▼▼ 削除: 固定パディングは削除し、JSで動的に制御する ▼▼▼ */
-/*
-#tokens.ud-mode-active .tokens-wrapper {
-    padding-top: 60px;
-}
-*/
-/* ▲▲▲ 削除 ▲▲▲ */
-
+    }
 
 /* (9) ROOTのスタイル */
 .token.ud-root {
@@ -193,7 +183,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 }
 .status{font-size:13px;color:var(--muted);margin-top:8px}
 
-/* ▲▲▲ 追加 ▲▲▲ */
+
 .control-group { border: 1px solid #eee; padding: 12px; border-radius: var(--radius); flex: 1; min-width: 220px; display: flex; flex-direction: column;}
 .control-group h3 { margin-top: 0; font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; color: var(--muted);}
 .control-group .controls-content { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -205,9 +195,9 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
     margin-bottom: 8px; /* トークンとの間隔 */
     margin-top: -4px; /* ヘッダーとの間隔を詰める */
 }
-/* ▲▲▲ 追加 ▲▲▲ */
 
-/* ▼▼▼ 追加: Uprightモード用スタイル ▼▼▼ */
+
+/* ▼▼▼ Uprightモード用スタイル ▼▼▼ */
 .tokens-wrapper.upright-mode {
     position: relative;
     overflow: auto; /* ツリーがはみ出た場合にスクロール */
@@ -239,7 +229,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
     font-weight: 500;
 }
 .upright-arc-group.selected {
-    /* ▼▼▼ 追加: 線とラベル全体に青いグロー効果を適用 ▼▼▼ */
+    /* ▼▼▼ 線とラベル全体に青いグロー効果を適用 ▼▼▼ */
     filter: drop-shadow(0 0 4px rgba(30, 144, 255, 0.7)); 
 }
 .upright-arc-group.selected .upright-line {
@@ -255,7 +245,7 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 <body>
 <div class="app">
   <div class="card">
-    <h1>XML editor (Version 1)</h1>
+    <h1>KeioXML editor (Version 1)</h1>
     <div id="controlsContainer" style="display: flex; flex-wrap: wrap; gap: 16px;">
       <div class="control-group">
         <h3>ファイル操作</h3>
@@ -2838,3 +2828,4 @@ document.addEventListener('keydown', function(e){
 </script>
 </body>
 </html>
+
