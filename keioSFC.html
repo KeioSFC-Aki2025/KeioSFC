@@ -162,21 +162,30 @@
       align-items: flex-start; /* ★ 追加: アイテムを上揃えにし、高さを可変にする */
     }
 
-//* ★ H/Dラッパー(flex)内のテーブルを中央揃えにし、フィールドセット風にする */
+/* ★ H/Dラッパー(flex)内のテーブルを中央揃えにし、フィールドセット風にする */
 #H-area-wrapper, #D-area-wrapper {
   justify-content: center;
-  flex-direction: column; /* ★ 子要素(チェーン)を縦に積む */
-  align-items: center; /* ★ 子要素(チェーン)の幅に合わせて伸縮させる */
+  /* flex-direction と align-items は JS側で設定 */
   
   /* ★ keyword-fieldset のスタイルを適用 */
   background: #fff;
-  border: 1px solid #9fcf9f; /* fieldset の色 */
+  border: 3px solid #2d6a4f; /* ★ 太枠に変更 */
   padding: 12px;
   border-radius: 8px;
   box-sizing: border-box; /* padding を含めて計算 */
   /* H/Dボタンとのマージン */
   margin-top: 8px;
   margin-bottom: 8px;
+}
+
+/* H/Dラッパー内のテーブルの枠線を削除 (二重枠線防止) */
+#H-area-wrapper .lr-table,
+#D-area-wrapper .lr-table {
+    border: none;
+    background: none;
+    overflow: visible;
+    padding: 0;
+    box-sizing: border-box;
 }
 
 /* L/Rを中央ボックス内に収めたため、外側セルの役割を無効化 */
@@ -339,13 +348,15 @@
       height: 200px; /* 高さを指定 */
     }
 
-
-
 /* ★ 追加: L/R 動的テーブル用の新スタイル */
     .lr-table {
       border-collapse: collapse;
-      border: 2px solid #cfe9d1;
-      background: #fbfff9;
+      /* ★ キーワード欄のスタイルに合わせる */
+      border: 3px solid #2d6a4f;
+      background: #fff;
+      padding: 6px; /* ★ 枠線との余白を追加 */
+      box-sizing: border-box; /* ★ パディングを幅に含める */
+      /* ★ 以下の2行は変更なし */
       border-radius: 8px;
       overflow: hidden; /* border-radiusを効かせる */
     }
@@ -2180,11 +2191,19 @@ function showSearchArea(type) {
         let newLabel = "";
         let isDep = false; // H/D (係り受け) かどうか
 
-        // ★ 1. ラッパーを表示 (インラインフレックス + 縦積み + 中央揃え)
+        // ★ 1. ラッパーを表示
         const wrapper = $(wrapperId);
-        wrapper.style.display = 'inline-flex';
-        wrapper.style.flexDirection = 'column';
-        wrapper.style.alignItems = 'center';
+        
+        // ★★★ 修正: H/D のみ flex スタイルを適用する ★★★
+        if (type === 'H' || type === 'D') {
+            // (インラインフレックス + 縦積み + 中央揃え)
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.flexDirection = 'column';
+            wrapper.style.alignItems = 'center';
+        } else {
+            // L/R は通常のブロック要素として表示 (インラインフレックスは不要)
+            wrapper.style.display = 'block'; 
+        }
 		
         // ★ 2. タイプに応じてヘッダー生成とボタン設定
         if (type === 'L' || type === 'R') {
@@ -2342,7 +2361,7 @@ function showSearchArea(type) {
 
        const chainContainer = document.createElement('div');
         chainContainer.id = `${type}-chain-${chainIndex}`;
-        chainContainer.style = "padding: 0; margin-top: 8px; width: 100%;"; // ★ width: 100% に変更
+        chainContainer.style = "padding: 0; margin-top: 8px; width: 100%;"; // ★ width: 100% を適用
 		
         // 1. チェーンのヘッダー (と削除ボタン)
         const header = document.createElement('div');
@@ -2365,7 +2384,7 @@ function showSearchArea(type) {
             addRowBtn_H.type = 'button';
             addRowBtn_H.textContent = '▲ 親ノードを追加';
             addRowBtn_H.className = 'trigger-btn'; 
-            //addRowBtn_H.style.backgroundColor = '#d4a373'; // ★ 茶色に変更
+            // ★ 茶色 (backgroundColor) の指定を削除
             addRowBtn_H.style.marginBottom = '8px'; // ★ ヘッダーとのマージン
             addRowBtn_H.onclick = () => {
                 const tbody = $(`${type}-table-${chainIndex}`).tBodies[0];
@@ -2477,7 +2496,7 @@ function showSearchArea(type) {
         });
     }
   
- // ★ 変更: H/D 行削除時にIDとラベルを振り直すヘルパー関数
+// ★ 変更: H/D 行削除時にIDとラベルを振り直すヘルパー関数
     function renumberHDRows(tbody, type, chainIndex, oldChainIndex = -1) { // ★ chainIndex と oldChainIndex を追加
         const rows = Array.from(tbody.querySelectorAll('tr'));
         const attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Dep;
