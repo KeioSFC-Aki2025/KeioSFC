@@ -552,12 +552,20 @@
     <div id="tableContainer"></div>
     <div class="pager" id="pagerBottom"></div>
   <div class="post-area">
-  <h2>☞　詳細な分析</h2>
+  <h2>☞SAMP詳細な分析</h2>
     <div class="detail-box" id="sentenceDetail" style="display:none;">
       <div class="detail-header">
         文詳細表示
         <button id="udToggleBtn" style="margin-left: 15px; font-size: 0.8em; padding: 4px 8px; background: #b7e4c7;">UD表示 OFF</button>
-      </div>
+        
+        <span id="udOptions" style="display:none; margin-left: 10px; font-size: 0.9em; vertical-align: middle;">
+          ノード表示:
+          <input type="checkbox" id="udOpt_original" class="udOpt" value="original" checked> <label for="udOpt_original" style="cursor:pointer;">表層形</label>
+          <input type="checkbox" id="udOpt_text" class="udOpt" value="textContent" style="margin-left: 5px;"> <label for="udOpt_text" style="cursor:pointer;">読み</label>
+          <input type="checkbox" id="udOpt_root" class="udOpt" value="root" style="margin-left: 5px;"> <label for="udOpt_root" style="cursor:pointer;">原形</label>
+          <input type="checkbox" id="udOpt_pos" class="udOpt" value="pos" style="margin-left: 5px;"> <label for="udOpt_pos" style="cursor:pointer;">品詞</label>
+        </span>
+        </div>
       <div class="sentence-meta meta-box" id="sentenceMeta" style="display:none;" title="クリックで表の表示位置を変更します"></div>
       
       <div id="udCanvasContainer" style="display:none; position: relative; border: 1px solid #ddd; background: #fdfdfd; margin-top: 10px; overflow-x: auto; overflow-y: hidden;">
@@ -2166,10 +2174,21 @@ document.addEventListener('DOMContentLoaded', ()=>{
   
   renderTable();
 
-  $('udToggleBtn').addEventListener('click', toggleUDView);
+ $('udToggleBtn').addEventListener('click', toggleUDView);
+  
+  // ★ 追加: UD表示オプションのチェックボックスが変更されたらUDツリーを再描画
+  document.querySelectorAll('.udOpt').forEach(cb => {
+      cb.addEventListener('change', () => {
+          if (isUDViewActive && selectedHitNo !== null) {
+              const hitIdx = hits.findIndex(h => h.no === selectedHitNo);
+              if (hitIdx !== -1) {
+                  drawUDTree(hits[hitIdx]); // ★ ツリーを再描画
+              }
+          }
+      });
+  });
 });
 /* ---------- ★ V8.0 (新UI) 動的検索ボックス生成 ---------- */
-
 
 
 
@@ -4079,18 +4098,22 @@ function clearAll(){
 
 /* ---------- ★ V7.3 UDツリー描画 ---------- */
 
+
 // UD表示ボタンのトグル処理
 function toggleUDView() {
   isUDViewActive = !isUDViewActive;
   const btn = $('udToggleBtn');
   const area = $('sentenceArea');
   const canvasContainer = $('udCanvasContainer');
+  const udOptions = $('udOptions'); // ★ 追加
 
   if (isUDViewActive) {
     btn.textContent = 'UD表示 ON';
     btn.classList.add('active');
     area.style.display = 'none';
     canvasContainer.style.display = 'block';
+    udOptions.style.display = 'inline-block'; // ★ 追加
+    
     // 現在選択中のヒットがあれば、即時描画
     if (selectedHitNo !== null) {
       const hitIdx = hits.findIndex(h => h.no === selectedHitNo);
@@ -4103,9 +4126,9 @@ function toggleUDView() {
     btn.classList.remove('active');
     area.style.display = 'block';
     canvasContainer.style.display = 'none';
+    udOptions.style.display = 'none'; // ★ 追加
   }
-}
-
+}s
 // UDツリーのメイン描画関数
 function drawUDTree(hit) {
   const canvas = $('udCanvas');
@@ -4125,12 +4148,41 @@ function drawUDTree(hit) {
     
     if (wnodes.length === 0) throw new Error("wタグが見つかりません。");
 
+    // ★ 追加: チェックボックスから表示内容を決定
+    const displayOptions = [];
+    if ($('udOpt_original').checked) displayOptions.push('original');
+    if ($('udOpt_text').checked) displayOptions.push('textContent');
+    if ($('udOpt_root').checked) displayOptions.push('root');
+    if ($('udOpt_pos').checked) displayOptions.push('pos');
+    // デフォルトフォールバック
+    if (displayOptions.length === 0) {
+        displayOptions.push('original');
+        $('udOpt_original').checked = true; // フォールバック時はチェックをON
+    }
+
     wnodes.forEach(wn => {
       const id = parseInt(wn.getAttribute('wordId'), 10);
       const headId = parseInt(wn.getAttribute('udFrom'), 10);
-      // ★ 修正: 画像に合わせて 'original' 属性を優先
-      const text = wn.getAttribute('original') || wn.textContent.trim();
-      const pos = wn.getAttribute('pos') || 'その他'; // ★ V7.5: pos 属性を取得
+      
+      // ★ 修正: チェックボックスに応じて表示テキストを構築
+      const nodeTexts = [];
+      displayOptions.forEach(opt => {
+          if (opt === 'original') {
+              nodeTexts.push(wn.getAttribute('original') || wn.textContent.trim());
+          } else if (opt === 'textContent') {
+              nodeTexts.push(wn.textContent.trim());
+          } else if (opt === 'root') {
+              // 'root' が空なら '-' を表示
+              nodeTexts.push(wn.getAttribute('root') || '-');
+          } else if (opt === 'pos') {
+              // 'pos' が空なら '-' を表示
+              nodeTexts.push(wn.getAttribute('pos') || '-');
+          }
+      });
+      const textLines = nodeTexts;
+
+      const pos = wn.getAttribute('pos') || 'その他';
+      const udType = wn.getAttribute('udType') || '';
       
       if (isNaN(id) || isNaN(headId)) {
           // udFrom が空や不正な値の場合はスキップ (例: V7.3のサンプルデータ '●' (wordId=1, udFrom="24", udTo=""))
@@ -4140,13 +4192,14 @@ function drawUDTree(hit) {
           console.warn(`udFrom が不正なため、 ${id} を仮ルートとして扱います: ${wn.outerHTML}`);
       }
 
-      const node = {
+     const node = {
         id: id,
-        text: text,
-        pos: pos, // ★ V7.5: pos 属性をノードに保存
-        headId: isNaN(headId) ? id : headId, // 不正な場合は仮にself-loop
+        textLines: textLines, 
+        pos: pos,
+        headId: isNaN(headId) ? id : headId,
+        udType: udType,
         children: [],
-        level: -1, // レイアウト計算用
+        level: -1,
         x: 0,
         y: 0
       };
@@ -4236,37 +4289,65 @@ function drawUDTree(hit) {
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   
-  const boxHeight = 30;
+  // const boxHeight = 30; // ★ 削除
   const boxPaddingY = 50; // 箱と箱のY間隔
   const boxPaddingX = 10; // 箱と箱のX間隔
   let totalWidth = 0;
   
-  // テキスト幅に基づいてX座標とキャンバス幅を決定
-  // ★ 順序は wordId 順 (words 配列の順)
-  let currentX = 20; // 左右マージン
+  // ★ 修正: 複数行に対応したレイアウト計算
+  const lineHeight = 16; // 1行の高さ (14pxフォント + 2px隙間)
   const nodeMetrics = new Map();
   words.sort((a,b) => a.id - b.id); // wordId順にソート
+
+  let currentX = 20; // 左右マージン
   
   words.forEach(node => {
-      const metrics = ctx.measureText(node.text);
-      const boxWidth = Math.max(40, metrics.width + 16); // 最小幅40px, 左右パディング8px
-      nodeMetrics.set(node.id, { width: boxWidth, height: boxHeight });
+      let maxWidth = 0;
+      // ★ node.text ではなく node.textLines を使用
+      node.textLines.forEach(line => {
+          const metrics = ctx.measureText(line);
+          if (metrics.width > maxWidth) {
+              maxWidth = metrics.width;
+          }
+      });
+      
+      const boxWidth = Math.max(40, maxWidth + 16); // 最小幅40px, 左右パディング8px
+      // ★ 高さを動的に計算 (上下パディング4px)
+      const boxHeight = node.textLines.length * lineHeight + 8; 
+      
+      nodeMetrics.set(node.id, { width: boxWidth, height: boxHeight, lineHeight: lineHeight });
       
       node.x = currentX + (boxWidth / 2);
       currentX += boxWidth + boxPaddingX;
   });
   totalWidth = currentX + 20; // 左右マージン
 
-  // Y座標を決定 (maxLevel = 0 が一番下)
+  // ★ 修正: Y座標をレベルごとの最大高さを考慮して決定
+  const levelMaxHeight = new Array(maxLevel + 1).fill(0);
   words.forEach(node => {
-    node.y = (maxLevel - node.level) * (boxHeight + boxPaddingY) + (boxHeight / 2) + 20; // 20pxマージン
+      const metrics = nodeMetrics.get(node.id);
+      if (metrics.height > levelMaxHeight[node.level]) {
+          levelMaxHeight[node.level] = metrics.height;
+      }
   });
 
-  const totalHeight = (maxLevel + 1) * (boxHeight + boxPaddingY) + 40;
+  const levelYTop = new Array(maxLevel + 1).fill(0);
+  let currentY_Layout = 20; // Top margin
+  for (let l = maxLevel; l >= 0; l--) { // Top level (maxLevel) to Bottom level (0)
+      levelYTop[l] = currentY_Layout;
+      currentY_Layout += levelMaxHeight[l] + boxPaddingY;
+  }
+  const totalHeight = currentY_Layout + 20; // Add bottom margin (20 - boxPaddingY)
 
+  words.forEach(node => {
+      const metrics = nodeMetrics.get(node.id);
+      // node.y を箱の「中央」Y座標として設定
+      node.y = levelYTop[node.level] + (metrics.height / 2);
+  });
+  
   // キャンバスサイズを調整
   canvas.width = totalWidth;
-  canvas.height = totalHeight;
+  canvas.height = totalHeight; // ★ 修正
 
   // 4. 描画 (再度設定が必要)
   ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -4282,34 +4363,67 @@ function drawUDTree(hit) {
     const head = wordMap.get(node.headId);
     if (!head) return; // 親が見つからない
 
+    // ★ 修正: metrics から動的な高さを取得
+    const nodeMetrics_child = nodeMetrics.get(node.id);
+    const nodeMetrics_head = nodeMetrics.get(head.id);
+    if (!nodeMetrics_child || !nodeMetrics_head) return; // 安全装置
+
     ctx.beginPath();
-    ctx.moveTo(node.x, node.y - boxHeight / 2); // 子の上端
-    ctx.lineTo(head.x, head.y + boxHeight / 2); // 親の下端
+    ctx.moveTo(node.x, node.y - nodeMetrics_child.height / 2); // 子の上端
+    ctx.lineTo(head.x, head.y + nodeMetrics_head.height / 2); // 親の下端
     ctx.stroke();
+    
+    // ★ 修正: udType を線の中央に描画 (Y座標の計算を修正)
+    if (node.udType) {
+        const midX = (node.x + head.x) / 2;
+        // ★ Y座標もエッジ基準で中央を計算
+        const midY = ( (node.y - nodeMetrics_child.height / 2) + (head.y + nodeMetrics_head.height / 2) ) / 2;
+        
+        ctx.font = '12px "Hiragino Sans", "Noto Sans JP", sans-serif';
+        ctx.fillStyle = '#1f6f3a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const text = node.udType;
+        const textMetrics = ctx.measureText(text);
+        
+        ctx.clearRect(midX - (textMetrics.width / 2) - 2, midY - 8, textMetrics.width + 4, 16);
+        ctx.fillText(text, midX, midY);
+        
+        ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif'; // 元に戻す
+    }
   });
 
   // 4b. ノード(箱とテキスト)の描画 (上から)
   words.forEach(node => {
     const metrics = nodeMetrics.get(node.id);
-    const x = node.x - metrics.width / 2;
-    const y = node.y - metrics.height / 2;
+    const x_box = node.x - metrics.width / 2; // 箱の左上X
+    const y_box = node.y - metrics.height / 2; // 箱の左上Y
+    const lineHeight = metrics.lineHeight;
 
     // ★ V7.5: posColors から動的に色を取得
     // ('その他' またはハードコード値をフォールバックとして使用)
     const colorInfo = posColors[node.pos] || posColors['その他'] || { bg: '#eafff4', border: '#57a070' };
 
     // 箱
-    ctx.fillStyle = colorInfo.bg; // ★ 動的な背景色を設定
-    ctx.fillRect(x, y, metrics.width, metrics.height);
-    ctx.strokeStyle = colorInfo.border; // ★ 動的な境界色を設定
-    ctx.strokeRect(x, y, metrics.width, metrics.height);
+    ctx.fillStyle = colorInfo.bg;
+    ctx.fillRect(x_box, y_box, metrics.width, metrics.height);
+    ctx.strokeStyle = colorInfo.border;
+    ctx.strokeRect(x_box, y_box, metrics.width, metrics.height);
     
-    // テキスト
+    // ★ 修正: 複数行のテキストを描画
     ctx.fillStyle = '#133';
-    ctx.fillText(node.text, node.x, node.y);
+    ctx.textBaseline = 'middle';
+    
+    // 垂直方向の開始位置を計算 (箱の上端 + 上パディング(4px) + 最初の行の半分の高さ)
+    let y_text = y_box + 4 + (lineHeight / 2); 
+    
+    node.textLines.forEach(line => {
+        ctx.fillText(line, node.x, y_text);
+        y_text += lineHeight; // 次の行へ
+    });
   });
 }
-
 /* ---------- debug helper ---------- */
 window._debug = {
     getCurrentData: ()=> currentData, 
