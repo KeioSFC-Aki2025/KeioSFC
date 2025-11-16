@@ -5,17 +5,123 @@
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>KeioXML</title>
 <style>
-:root{--bg:#FFF8FB;--card:#fff;--muted:#666;--accent:#4B9CFF;--radius:12px;--shadow:0 6px 18px rgba(52,40,80,0.06)}
-body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP",Meiryo,sans-serif;background:var(--bg);color:#222}
-.app{max-width:1100px;margin:28px auto;padding:18px}
-.card{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:12px;margin-bottom:12px}
+:root {
+  /* モダンでプロフェッショナルなカラーパレット */
+  --color-primary: #3B82F6;       /* アクセントカラー (モダンなブルー) */
+  --color-primary-hover: #2563EB;
+  --color-primary-light: #EFF6FF; /* 薄いブルー */
+  --color-bg: #F3F4F6;            /* クリーンなライトグレー背景 */
+  --color-card: #FFFFFF;
+  --color-text: #1F2937;
+  --color-muted: #6B7280;
+  --color-border: #E5E7EB;
+  --color-success-light: #D1FAE5; /* 成功時の薄い緑 */
+
+  /* 既存変数へのマッピング（互換性維持） */
+  --bg: var(--color-bg);
+  --card: var(--color-card);
+  --muted: var(--color-muted);
+  --accent: var(--color-primary);
+
+  /* 角丸を少しシャープに */
+  --radius: 8px;
+  /* 洗練されたシャドウ */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans JP", Meiryo, sans-serif;
+  background: var(--bg);
+  color: var(--color-text);
+  line-height: 1.6; /* 可読性向上のため行間を設定 */
+}
+
+.app{
+  max-width:1300px; /* 少し幅を広げる */
+  margin:40px auto;
+  padding:20px;
+}
+
+.card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:24px; /* パディングを増やす */
+  margin-bottom:24px; /* マージンを増やす */
+  border: 1px solid var(--color-border); /* 境界線を追加 */
+}
 .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .small{font-size:13px;padding:6px 8px;border-radius:8px}
-.btn{cursor:pointer;border:0;padding:8px 12px;border-radius:10px;background:linear-gradient(180deg,#FFEEF6,#FFDFF0);box-shadow:0 2px 6px rgba(0,0,0,0.06)}
-.mode-btn{padding:6px 10px;border-radius:10px;border:1px solid rgba(0,0,0,0.06);background:linear-gradient(180deg,#F6F6F8,#EFEFF2);cursor:pointer}
-.mode-btn.mode-on{background:linear-gradient(180deg,#DDEEFF,#A8D0FF);font-weight:700}
-.tokens{min-height:260px;padding:12px;border-radius:12px;background:linear-gradient(180deg,#fff,#fff9fb);border:1px dashed rgba(0,0,0,0.06);font-size:18px;line-height:2}
-.token{display:inline-block;padding:6px 10px;border-radius:10px;margin:4px;cursor:pointer;background:#fff;border:1px solid rgba(0,0,0,0.03);position:relative;transition: background .2s, box-shadow .2s, border .2s;}
+.btn {
+  cursor: pointer;
+  border: 1px solid var(--color-border);
+  padding: 8px 16px; /* パディング調整 */
+  border-radius: var(--radius);
+  /* フラットなデザインに変更 */
+  background: var(--color-card);
+  color: var(--color-text);
+  box-shadow: var(--shadow-sm);
+  transition: background-color 0.2s;
+  font-weight: 500;
+  text-align: center;
+  display: inline-block;
+}
+.btn:hover {
+  background-color: #f9fafb;
+}
+
+.mode-btn {
+  padding: 8px 12px;
+  border-radius: var(--radius);
+  /* グラデーションを廃止し、シンプルなスタイルへ */
+  border: 1px solid var(--color-border);
+  background: var(--color-card);
+  color: var(--color-text);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.mode-btn:hover {
+    background: var(--color-bg);
+}
+.mode-btn.mode-on {
+  /* アクティブ状態を明確に強調 */
+  background: var(--color-primary);
+  color: #fff;
+  border-color: var(--color-primary);
+  font-weight: 600;
+}
+.mode-btn.mode-on:hover {
+    background: var(--color-primary-hover);
+}
+
+/* HTML側でインラインスタイルが使われている部分への対応 */
+/* style="background:#eef7ff;" を持つ要素を上書き */
+label[for="fileInput"], label[for="posCsv"] {
+    background: none !important;
+}
+.tokens{
+  min-height:300px;
+  padding:16px;
+  border-radius:var(--radius);
+  background: var(--color-card); /* 白で統一 */
+  border: 1px solid var(--color-border); /* 実線に変更 */
+  font-size:16px; /* フォントサイズ調整 */
+  line-height: 2.5; /* 行間を広げる */
+}
+.token{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius: 4px; /* 角丸調整 */
+  margin:4px 2px;
+  cursor:pointer;
+  background:#fff;
+  border:1px solid var(--color-border); /* 境界線を明確に */
+  position:relative;
+  transition: background .2s, box-shadow .2s, border .2s;
+}
 .token .word {
     white-space: nowrap; 
     display: inline-block;
@@ -24,8 +130,32 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 .token[data-newsplit="true"] { border: 2px solid #E53935; }
 .token[data-merged="true"] { border: 2px solid #1E88E5; }
 .attr-popup{position:fixed;z-index:99999;background:#fff;border:1px solid rgba(0,0,0,0.07);box-shadow:0 8px 24px rgba(0,0,0,0.12);border-radius:12px;padding:8px;font-size:13px;min-width:180px}
-.boundary{display:inline-block;width:14px;height:28px;vertical-align:middle;margin:0 6px; position:relative; cursor:pointer;}
-.boundary:hover::before{content:''; position:absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); width: 4px; height: 20px; background: #FF4D4D; border-radius: 2px;}
+.boundary{
+    display:inline-block;
+    width: 20px; /* 幅調整 */
+    height:28px;
+    vertical-align:middle;
+    margin:0; /* マージン調整 */
+    position:relative;
+    cursor:pointer;
+}
+/* ホバー時に結合アイコン（＋）を表示 */
+.boundary:hover::before{
+    content: '+';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%,-50%);
+    font-size: 16px;
+    font-weight: bold;
+    color: var(--color-primary);
+    background: var(--color-primary-light);
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    text-align: center;
+    line-height: 20px;
+}
 
 .upright-arc-group {
     pointer-events: auto; /* SVG全体が無効化されているため、クリック対象を明示的に有効化 */
@@ -99,16 +229,16 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 
 /* (14) 編集中の文のスタイル */
 #tokens.ud-mode-active .sentence-container.ud-editing {
-    background-color: #E3F2FD;
-    padding: 12px;
-    border-radius: 12px;
+    background-color: var(--color-primary-light); /* 新しい薄いブルー */
+    padding: 16px;
+    border-radius: var(--radius);
     margin-bottom: 24px;
-    border: 1px solid #BBDEFB;
+    border: 1px solid var(--color-primary); /* 明確な境界線 */
 }
 
 /* (12) 完了した文の背景色 */
 #tokens.ud-mode-active .sentence-container.ud-complete {
-    background-color: #E8F5E9; /* 薄緑色 */
+    background-color: var(--color-success-light); /* 新しい薄い緑色 */
 }
 
 .ud-edit-btn {
@@ -157,16 +287,16 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 
 
 .sentence-header {
-    background-color: #4CAF50;
-    color: white;
-    padding: 8px 12px;
-    border-radius: 8px;
-    margin-bottom: 12px;
+    background-color: #f9fafb; /* 薄いグレー */
+    color: var(--color-text);
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    margin-bottom: 16px;
     display: flex;
-    gap: 16px;
+    gap: 24px; /* ギャップ調整 */
     align-items: center;
-    /* flex-wrap: wrap; を削除 */
     font-size: 14px;
+    border: 1px solid var(--color-border);
 }
 .sentence-attr {
     display: flex;
@@ -178,11 +308,11 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
     opacity: 0.9;
 }
 .sentence-attr-input {
-    background-color: rgba(255, 255, 255, 0.2);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
+    background-color: var(--color-card);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
     border-radius: 4px;
-    padding: 4px 6px;
+    padding: 4px 8px;
     font-family: inherit;
     font-size: 14px;
     width: 60px;
@@ -190,9 +320,27 @@ body{margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Noto Sans JP"
 .status{font-size:13px;color:var(--muted);margin-top:8px}
 
 
-.control-group { border: 1px solid #eee; padding: 12px; border-radius: var(--radius); flex: 1; min-width: 220px; display: flex; flex-direction: column;}
-.control-group h3 { margin-top: 0; font-size: 15px; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 12px; color: var(--muted);}
-.control-group .controls-content { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+/* コントロールコンテナのギャップも調整 (HTMLのインラインスタイルを上書き) */
+#controlsContainer {
+    gap: 24px !important;
+}
+
+.control-group {
+  /* border, padding を削除し、親カードの余白を利用 */
+  flex: 1;
+  min-width: 250px; /* 少し広げる */
+  display: flex;
+  flex-direction: column;
+}
+.control-group h3 {
+  margin-top: 0;
+  font-size: 16px;
+  font-weight: 600; /* 強調 */
+  /* border-bottom を削除 */
+  padding-bottom: 4px;
+  margin-bottom: 12px;
+  color: var(--color-text); /* 色を濃く */
+}.control-group .controls-content { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 
 /* UD編集ボタンを右寄せにするためのコンテナ */
 .ud-controls-container {
@@ -441,6 +589,7 @@ let outsideClickHandler = null;
     'orphan', 'goeswith', 'reparandum', 'punct', 'root', 'dep'
   ];
   
+  const uprightPosColorCache = new Map();
 
   const splitIndicator = document.createElement('div');
   splitIndicator.style.position = 'fixed';
@@ -773,21 +922,28 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
   【重要】以下の renderTokens 関数を、既存の renderTokens 関数と完全に置き換えてください。
 */
   function renderTokens() {
-    // ▼▼▼ 変更: Uprightモード用の分岐と、Flatモードの属性UI処理 ▼▼▼
-    if (window.__udModeActive && window.__udLayoutUpright) {
-        renderTokensUpright();
-        return;
-    }
-    
-    // --- 以下、Flatモード描画ロジック ---
+    // ▼▼▼ 変更: 属性リストの管理をモード分岐の前に行う ▼▼▼
     const propsListEl = $('udDisplayPropsList');
 
-    // ★ FlatモードでもUD編集中は属性UIを構築
+    // UD編集中は属性UIを構築 (Flat/Upright共通)
+    // UDモード中は常に表示するが、編集中でなければ構築しない（編集中に構築される）
     if (window.__udModeActive && currentEditingSentenceIdentifier !== null) {
         if (propsListEl.innerHTML === '') { // 初回のみ構築
             const availableAttrs = new Set(['textContent']);
             uprightPosColorCache.clear();
-            const wsInSentence = selectByLocalName(xmlDoc.documentElement, 'w'); // 全文からスキャン
+
+            // 編集中の文のコンテキストを取得する
+            let contextElement = xmlDoc.documentElement;
+            if (currentEditingSentenceIdentifier !== 'root') {
+                const sElements = selectByLocalName(xmlDoc.documentElement, 's');
+                const index = parseInt(currentEditingSentenceIdentifier);
+                if (sElements && sElements.length > index) {
+                    contextElement = sElements[index];
+                }
+            }
+            
+            // ★変更: 編集中の文の単語から属性を収集する (効率化)
+            const wsInSentence = selectByLocalName(contextElement, 'w');
             
             wsInSentence.forEach(wNode => {
                 Array.from(wNode.attributes).forEach(attr => availableAttrs.add(attr.name));
@@ -810,11 +966,28 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
             });
         }
     } else if (window.__udModeActive && currentEditingSentenceIdentifier === null) {
-        // 編集終了時はクリア
-        propsListEl.innerHTML = '';
-        uprightPosColorCache.clear();
+        // 編集終了時はクリア (stopUDEditingでもクリアしているが、安全のため)
+         if (propsListEl.innerHTML !== '') {
+             propsListEl.innerHTML = '';
+             uprightPosColorCache.clear();
+        }
+    } else if (!window.__udModeActive) {
+        // UDモード自体がOFFになった場合もクリア
+        if (propsListEl.innerHTML !== '') {
+             propsListEl.innerHTML = '';
+             uprightPosColorCache.clear();
+        }
+    }
+    // ▲▲▲ 属性リスト管理ここまで ▲▲▲
+
+
+    // ▼▼▼ モード分岐 ▼▼▼
+    if (window.__udModeActive && window.__udLayoutUpright) {
+        renderTokensUpright();
+        return;
     }
     
+    // --- 以下、Flatモード描画ロジック ---
 
     tokenIdToNode.clear();
     tokensEl.innerHTML = '';
@@ -1103,11 +1276,307 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
     
 }
 
-// (以下、残りのJavaScriptコードは変更なしですが、念のため全て含めています)
 
-  // ▼▼▼ 追加: UDヘルパー関数群 ▼▼▼
+/**
+   * Upright (ツリー) モードの描画関数 (動的レイアウト対応・修正版)
+   */
+  function renderTokensUpright() {
+      tokensEl.innerHTML = '';
+      tokensEl.classList.add('ud-mode-active');
+      
+      let globalTokenIndex = 0;
+      tokenIdToNode.clear();
 
- // ▼▼▼ 追加: 行分類ヘルパー関数 ▼▼▼
+      const sElements = selectByLocalName(xmlDoc.documentElement, 's');
+      const contexts = (sElements.length > 0)
+          ? sElements.map((el, idx) => ({ element: el, identifier: String(idx) }))
+          : [{ element: xmlDoc.documentElement, identifier: 'root' }];
+
+      // ▼▼▼ 動的レイアウト用の定数 ▼▼▼
+      const X_SPACING = 120;
+      const Y_OFFSET = 50;
+      const X_OFFSET = 60;
+      // ノード間の垂直方向の最小マージン（矢印やラベルのスペース確保）
+      const VERTICAL_MARGIN = 60; 
+
+      // renderTokensで構築済みの属性リストを参照
+      const propsListEl = $('udDisplayPropsList');
+      // 現在チェックされている属性を取得
+      const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
+      if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
+
+
+      contexts.forEach(context => {
+          const sentenceContainer = document.createElement('div');
+          sentenceContainer.className = 'sentence-container';
+          sentenceContainer.dataset.identifier = context.identifier;
+          
+          const isEditingThis = currentEditingSentenceIdentifier === context.identifier;
+
+          if (isEditingThis) {
+               sentenceContainer.classList.add('ud-editing');
+          }
+          
+          // --- ヘッダーと編集ボタン (変更なし) ---
+          const header = document.createElement('div');
+          header.className = 'sentence-header';
+          const titleSpan = document.createElement('span');
+          titleSpan.textContent = (context.identifier !== 'root') ? `文 ${parseInt(context.identifier) + 1}` : '文 1';
+          header.appendChild(titleSpan);
+          
+          const udControlsContainer = document.createElement('div');
+          udControlsContainer.style.marginLeft = 'auto';
+          
+          const editBtn = document.createElement('button');
+          editBtn.className = 'btn small';
+          if (isEditingThis) {
+              editBtn.textContent = '編集終了';
+              editBtn.addEventListener('click', (e) => { e.stopPropagation(); stopUDEditing(); });
+          } else {
+              editBtn.textContent = '編集';
+              editBtn.disabled = (currentEditingSentenceIdentifier !== null);
+              editBtn.addEventListener('click', (e) => { e.stopPropagation(); startUDEditing(context.identifier); });
+          }
+          udControlsContainer.appendChild(editBtn);
+          header.appendChild(udControlsContainer);
+          
+          sentenceContainer.appendChild(header);
+          // --- ヘッダーと編集ボタンここまで ---
+
+          const tokensWrapper = document.createElement('div');
+          tokensWrapper.className = 'tokens-wrapper upright-mode';
+
+          // ★重要: 高さ測定の前にドキュメント(tokensEl)にアタッチする
+          sentenceContainer.appendChild(tokensWrapper);
+          tokensEl.appendChild(sentenceContainer);
+          
+          const wsInSentence = selectByLocalName(context.element, 'w');
+          const wordIdToNodeMap = new Map();
+          const nodeObjects = [];
+
+          if (wsInSentence.length === 0) {
+               tokensWrapper.innerHTML = `<p style="padding: 20px; text-align: center; color: #999;">トークンがありません。</p>`;
+          } else {
+              
+              // ▼▼▼ 1. ノードマップ構築、DOM生成、仮配置、高さ測定 ▼▼▼
+              wsInSentence.forEach((wNode, index) => {
+                  const wordId = wNode.getAttribute('wordID');
+                  const tokenId = globalTokenIndex++;
+                  tokenIdToNode.set(String(tokenId), wNode);
+                  const udFrom = wNode.getAttribute('udFrom') || null;
+
+                  // DOM要素(s)の生成
+                  const s = document.createElement('span');
+                  s.className = 'token';
+                  s.dataset.tokenId = String(tokenId);
+                  s.dataset.wordId = wordId;
+                  
+                  // 自己参照エラーチェック
+                  if (wordId !== '0' && udFrom && udFrom === wordId) {
+                      s.classList.add('ud-error-self-reference');
+                  }
+				  
+                  // POS色付け (Flat/Upright共通化)
+                  const pos = wNode.getAttribute('pos') || 'UNKNOWN';
+                  // 編集開始時にキャッシュがクリアされているため、ここで再設定
+                  if (isEditingThis) {
+                      if (!uprightPosColorCache.has(pos)) {
+                          uprightPosColorCache.set(pos, getLightColor(pos));
+                      }
+                  }
+                  // 色の適用
+                  if (uprightPosColorCache.has(pos)) {
+                     s.style.backgroundColor = uprightPosColorCache.get(pos);
+                  } else {
+                     // キャッシュがない場合（編集中でない文など）のフォールバック
+                     s.style.backgroundColor = getLightColor(pos);
+                  }
+
+                  s.style.border = "1px solid #ccc";
+                  s.style.padding = "4px 8px";
+                  s.style.borderRadius = "6px";
+                  s.style.textAlign = "left";
+                  
+                  // 属性表示 (HTML生成)
+                  const lines = [];
+                  
+                  // チェックされた属性に基づいて表示内容を決定
+                  // Uprightモードでは、編集中かどうかにかかわらず、チェックされた属性を表示する
+                  // ただし、編集中でない場合はシンプルに表示する
+                  if (isEditingThis) {
+                      // 編集中: 属性名と値を表示
+                      checkedAttrs.forEach(attrName => {
+                          let value = '';
+                          if (attrName === 'textContent') {
+                              value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
+                              lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+                          } else {
+                              value = wNode.getAttribute(attrName) || '';
+                              // 値がある場合のみ表示
+                              if (value) {
+                                    lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(attrName)}: ${escapeHtml(value)}</span>`);
+                              }
+                          }
+                      });
+                  } else {
+                      // 編集中でない場合: 基本情報のみ
+                       const value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
+                       lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+                       // 必要ならラベルも表示
+                       const label = wNode.getAttribute('udLabel') || '';
+                       if (label) {
+                            lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(label)}</span>`);
+                       }
+                  }
+
+
+                  s.innerHTML = lines.join('<br>');
+
+                  if (wordId === '0') s.classList.add('ud-root');
+                  
+                  // クリックハンドラ設定
+                  s.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      handleUDTokenClick(s, wNode, ev, context.identifier);
+                  });
+
+                  // 仮配置 (高さを測定するため)
+                  s.style.position = 'absolute';
+                  const x = (index * X_SPACING) + X_OFFSET;
+                  s.style.left = x + 'px'; // X座標は確定
+
+                  // 計測中は非表示にする
+                  s.style.visibility = 'hidden'; 
+                  tokensWrapper.appendChild(s); // ★すでにアタッチされているコンテナに追加
+                  
+                  const nodeObj = {
+                      wNode: wNode,
+                      tokenId: String(tokenId),
+                      wordId: wordId,
+                      parentId: udFrom,
+                      children: [],
+                      level: -1,
+                      x: x,
+                      height: s.offsetHeight, // ★高さを計測 (ドキュメントに追加されているため確実)
+                      element: s
+                  };
+                  wordIdToNodeMap.set(wordId, nodeObj);
+                  nodeObjects.push(nodeObj);
+              });
+              // ▲▲▲ 測定ここまで ▲▲▲
+
+              // 2. 親子関係の構築 (変更なし)
+              nodeObjects.forEach(node => {
+                  if (node.parentId && node.parentId !== node.wordId) {
+                      const parent = wordIdToNodeMap.get(node.parentId);
+                      if (parent) parent.children.push(node);
+                  }
+              });
+
+              // 3. 深度 (level) 計算 (BFS) (変更なし)
+              let maxDepth = 0;
+              const queue = [];
+              // 起点ノードを探す
+              nodeObjects.forEach(node => {
+                  const isSelfReference = node.parentId === node.wordId;
+                  if (!node.parentId || !wordIdToNodeMap.has(node.parentId) || isSelfReference) {
+                      node.level = 0; queue.push(node);
+                  } else {
+                      node.level = -1; // 未訪問
+                  }
+              });
+              let head = 0;
+              while (head < queue.length) {
+                  const current = queue[head++];
+                  maxDepth = Math.max(maxDepth, current.level);
+                  current.children.forEach(child => {
+                      if (child === current) return; 
+                      if (child.level === -1) {
+                          child.level = current.level + 1;
+                          queue.push(child);
+                      }
+                  });
+              }
+              // 未訪問ノードの処理
+              let unreachedDepth = maxDepth;
+              nodeObjects.forEach(node => {
+                  if (node.level === -1) {
+                      console.warn(`UD構造に未到達ノード（おそらく循環参照）があります: wordID=${node.wordId}`);
+                      if (unreachedDepth === maxDepth) { unreachedDepth++; maxDepth = unreachedDepth; }
+                      node.level = unreachedDepth;
+                  }
+              });
+              // --- BFS計算ここまで ---
+
+              
+              // ▼▼▼ 4. 動的Y軸調整ロジック ▼▼▼
+
+              // 4-A. レベルごとの最大高さの計算
+              const levelMaxHeights = new Array(maxDepth + 1).fill(0);
+
+              nodeObjects.forEach(nodeObj => {
+                  if (nodeObj.level !== -1) {
+                      // 計測済みの高さを使用
+                      levelMaxHeights[nodeObj.level] = Math.max(levelMaxHeights[nodeObj.level], nodeObj.height);
+                  }
+              });
+
+              // 4-B. レベルごとのY座標の計算 (累積和)
+              const levelYCoordinates = new Array(maxDepth + 1).fill(Y_OFFSET);
+              let currentY = Y_OFFSET;
+              
+              // 方向に応じて累積計算の順序を変える
+              if (window.__udUprightDirectionTopDown) {
+                  // TopDown (親＞子): Level 0 から順に計算
+                  for (let i = 0; i <= maxDepth; i++) {
+                      levelYCoordinates[i] = currentY;
+                      // 次のレベルのY座標 = 現在のY座標 + このレベルの最大高さ + マージン
+                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                  }
+              } else {
+                  // BottomUp (子＞親): Level maxDepth から逆順に計算
+                  for (let i = maxDepth; i >= 0; i--) {
+                      levelYCoordinates[i] = currentY;
+                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                  }
+              }
+              // ▲▲▲ 動的Y軸調整ロジックここまで ▲▲▲
+
+
+              // --- 5. DOM最終配置 ---
+              let totalWidth = 0;
+              nodeObjects.forEach(nodeObj => {
+                  totalWidth = Math.max(totalWidth, nodeObj.x + X_SPACING);
+
+                  if (nodeObj.element && nodeObj.level !== -1) {
+                      // 計算済みのY座標を使用
+                      const y = levelYCoordinates[nodeObj.level];
+                      
+                      // 最終的な位置を設定し、表示する
+                      nodeObj.element.style.top = y + 'px';
+                      nodeObj.element.style.visibility = 'visible'; 
+                  }
+              });
+
+              // 6. ラッパーのサイズ設定
+              // currentYは最後にVERTICAL_MARGINが余分に足されているので引く。少し余裕を持たせる。
+              const totalHeight = currentY - VERTICAL_MARGIN + Y_OFFSET/2; 
+              
+              tokensWrapper.style.minHeight = totalHeight + 'px';
+              tokensWrapper.style.minWidth = totalWidth + 'px';
+
+             // 7. 矢印の描画 (DOM配置後)
+              setTimeout(() => {
+                  // drawUprightArcsは別途定義が必要です (既存コードに含まれている前提)
+                  if (typeof drawUprightArcs === 'function') {
+                     drawUprightArcs(tokensWrapper, wordIdToNodeMap, context.identifier);
+                  }
+              }, 0);
+          }
+          
+          // sentenceContainer/tokensElへの追加は実施済み
+      });
+  }
     /**
      * トークン要素を視覚的な行ごとに分類するヘルパー関数
      */
@@ -2108,14 +2577,28 @@ function handleHoverOut(el,node){ document.querySelectorAll('.token').forEach(t=
     const editorTop = (Math.min(window.innerHeight - 300, rect.bottom + 6) + window.scrollY);
     editor.style.left = `${editorLeft}px`;
     editor.style.top = `${editorTop}px`;
-    editor.style.background='linear-gradient(180deg,#FFF0F7,#FFF)'; 
-	editor.style.border='1px solid rgba(221,170,192,0.5)';
-    editor.style.boxShadow='0 5px 15px rgba(214,51,108,0.1), 0 15px 35px rgba(214,51,108,0.15)';
-	editor.style.borderRadius='18px'; editor.style.padding='12px'; editor.style.minWidth='320px'; editor.style.zIndex=99999; editor.className='kawaii-editor';
+    // editor.style.background='...';
+    editor.style.background = 'var(--color-card)'; // 白背景に変更
+
+    // editor.style.border='...';
+    editor.style.border = '1px solid var(--color-border)';
+
+    // editor.style.boxShadow='...';
+    editor.style.boxShadow = 'var(--shadow-lg)'; // モダンで深いシャドウ
+
+    // editor.style.borderRadius='18px'; editor.style.padding='12px';
+    editor.style.borderRadius = '12px'; // 角丸調整
+    editor.style.padding = '20px'; // パディング増加
+	
+	editor.style.minWidth='320px'; editor.style.zIndex=99999; editor.className='kawaii-editor';
 	
 	
 	const title = document.createElement('div');
-    title.textContent='属性編集'; title.style.fontWeight='900'; title.style.marginBottom='8px'; title.style.color='#D6336C'; title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title);
+    title.textContent='属性編集'; title.style.fontWeight='900'; title.style.marginBottom='8px'; 
+// title.style.color='#D6336C';
+    title.style.color = 'var(--color-primary)'; // プライマリカラー
+	
+title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title);
 
     
     const attrs = getAttrs(xmlNode);
@@ -2152,7 +2635,8 @@ function handleHoverOut(el,node){ document.querySelectorAll('.token').forEach(t=
     textContentLabel.textContent = '原文文字列';
     textContentLabel.style.width = '86px';
     textContentLabel.style.fontWeight = '700';
-    textContentLabel.style.color = '#D6336C'; // タイトル色に合わせる
+    // textContentLabel.style.color = '#D6336C';
+    textContentLabel.style.color = 'var(--color-primary)';
 
     const textContentInput = document.createElement('input');
     // 初期値はトリムして設定
@@ -2160,7 +2644,9 @@ function handleHoverOut(el,node){ document.querySelectorAll('.token').forEach(t=
     textContentInput.style.flex = '1';
     textContentInput.style.padding = '6px';
     textContentInput.style.borderRadius = '8px';
-    textContentInput.style.border = '1px solid rgba(214,51,108,0.5)'; // 強調
+    //textContentInput.style.border = '1px solid rgba(214,51,108,0.5)'; // 強調
+	textContentInput.style.border = '1px solid var(--color-primary)';
+	
 
     textContentRow.appendChild(textContentLabel);
     textContentRow.appendChild(textContentInput);
@@ -2237,7 +2723,12 @@ copyBtn.addEventListener('click', () => {
         rightControls.appendChild(pasteBtn);
     }
     const cancel=document.createElement('button'); cancel.textContent='キャンセル'; cancel.className='btn small'; cancel.addEventListener('click', ()=>{ closeAttrEditor(); });
-    const ok=document.createElement('button'); ok.textContent='決定'; ok.className='btn small attr-ok-btn'; ok.style.background='#FFDFF0';
+    const ok=document.createElement('button'); ok.textContent='決定'; ok.className='btn small attr-ok-btn'; 
+// ok.style.background='#FFDFF0';
+    ok.style.background = 'var(--color-primary)'; // 決定ボタンをプライマリーカラーに
+    ok.style.color = '#FFFFFF';
+    ok.style.border = 'none';
+	
     ok.addEventListener('click', ()=>{
       const newAttrsFromInputs = {};
       Object.keys(inputs).forEach(k => { newAttrsFromInputs[k] = inputs[k].value; });
@@ -2597,15 +3088,13 @@ document.addEventListener('keydown', function(e){
   });
   
 
- // ... (既存の toggle-visibility-btn ロジック) ...
-
- // ▼▼▼ 変更: Uprightモード描画（常時ツリー表示） ▼▼▼
+ // ▼▼▼ 変更: Uprightモード描画（常時ツリー表示） ▼▼▼
 
   // Uprightモードで使われるPOSごとの色をキャッシュするマップ
-  let uprightPosColorCache = new Map();
+  // let uprightPosColorCache = new Map(); // この重複宣言を削除します
 
   /**
-   * Upright (ツリー) モードの描画関数 (常時ツリー表示 / 編集時のみ詳細表示)
+   * Upright (ツリー) モードの描画関数 (常時ツリー表示 / 編集時のみ詳細表示 / 動的レイアウト対応版)
    */
   function renderTokensUpright() {
       tokensEl.innerHTML = '';
@@ -2619,10 +3108,13 @@ document.addEventListener('keydown', function(e){
           ? sElements.map((el, idx) => ({ element: el, identifier: String(idx) }))
           : [{ element: xmlDoc.documentElement, identifier: 'root' }];
 
+      // ▼▼▼ 変更: Y_SPACINGを廃止し、VERTICAL_MARGINを導入 ▼▼▼
       const X_SPACING = 120;
-      const Y_SPACING = 140;
+      // const Y_SPACING = 140; // 廃止
       const Y_OFFSET = 50;
       const X_OFFSET = 60;
+      const VERTICAL_MARGIN = 60; // ノード間の垂直方向の最小マージン（矢印やラベルのスペース確保）
+      // ▲▲▲ 変更完了 ▲▲▲
 
       const propsListEl = $('udDisplayPropsList');
 
@@ -2637,18 +3129,15 @@ document.addEventListener('keydown', function(e){
                sentenceContainer.classList.add('ud-editing');
           }
           
-          // --- ヘッダーと編集ボタン (変更あり) ---
+          // --- ヘッダーと編集ボタン (変更なし) ---
           const header = document.createElement('div');
           header.className = 'sentence-header';
-          // ▼▼▼ 変更: textContentを設定する前に、子要素としてspanを追加 ▼▼▼
           const titleSpan = document.createElement('span');
           titleSpan.textContent = (context.identifier !== 'root') ? `文 ${parseInt(context.identifier) + 1}` : '文 1';
           header.appendChild(titleSpan);
           
-
-          // ▼▼▼ 変更: ボタンコンテナのロジックをここに移動し、headerに追加 ▼▼▼
           const udControlsContainer = document.createElement('div');
-          udControlsContainer.style.marginLeft = 'auto'; // 右寄せに変更
+          udControlsContainer.style.marginLeft = 'auto';
           
           const editBtn = document.createElement('button');
           editBtn.className = 'btn small';
@@ -2661,10 +3150,9 @@ document.addEventListener('keydown', function(e){
               editBtn.addEventListener('click', (e) => { e.stopPropagation(); startUDEditing(context.identifier); });
           }
           udControlsContainer.appendChild(editBtn);
-          header.appendChild(udControlsContainer); // ★ header に追加
+          header.appendChild(udControlsContainer);
           
-          
-          sentenceContainer.appendChild(header); // ★ 構築済みのheaderを追加
+          sentenceContainer.appendChild(header);
           // --- ヘッダーと編集ボタンここまで ---
 
           const tokensWrapper = document.createElement('div');
@@ -2674,15 +3162,14 @@ document.addEventListener('keydown', function(e){
           const wordIdToNodeMap = new Map();
           const nodeObjects = [];
 
-          // ▼▼▼ 変更: 「編集ボタンを押して...」を削除し、常にツリーを描画 ▼▼▼
           if (wsInSentence.length === 0) {
                tokensWrapper.innerHTML = `<p style="padding: 20px; text-align: center; color: #999;">トークンがありません。</p>`;
           } else {
               
-              // --- ★ 要求③: 属性チェックボックスの生成 (isEditingThis が true の場合のみ) ---
+              // --- 属性チェックボックスの生成 (変更なし) ---
               if (isEditingThis && propsListEl.innerHTML === '') {
                   const availableAttrs = new Set(['textContent']);
-                  uprightPosColorCache.clear(); // 新しい文の編集開始時に色キャッシュをクリア
+                  uprightPosColorCache.clear(); 
                   
                   wsInSentence.forEach(wNode => {
                       Array.from(wNode.attributes).forEach(attr => availableAttrs.add(attr.name));
@@ -2708,44 +3195,116 @@ document.addEventListener('keydown', function(e){
               }
               // --- 属性チェックボックス生成ここまで ---
 
-              // --- 1. ノードマップと子参照の構築 ---
+              // ★ 表示する属性のリストを取得
+              const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
+              if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
+
+
+              // ▼▼▼ 1. ノードマップ構築、DOM生成、仮配置、高さ測定 ▼▼▼
+              // 高さを測定するために先にDOMを生成し配置する
               wsInSentence.forEach((wNode, index) => {
                   const wordId = wNode.getAttribute('wordID');
                   const tokenId = globalTokenIndex++;
                   tokenIdToNode.set(String(tokenId), wNode);
+                  const udFrom = wNode.getAttribute('udFrom') || null;
+
+                  // DOM要素(s)の生成 (既存ロジックを統合)
+                  const s = document.createElement('span');
+                  s.className = 'token';
+                  s.dataset.tokenId = String(tokenId);
+                  s.dataset.wordId = wordId;
+                  
+                  // 自己参照エラーチェック
+                  if (wordId !== '0' && udFrom && udFrom === wordId) {
+                      s.classList.add('ud-error-self-reference');
+                  }
+				  
+                  // POS色付け
+                  const pos = wNode.getAttribute('pos') || 'UNKNOWN';
+                  if (!uprightPosColorCache.has(pos)) {
+                      uprightPosColorCache.set(pos, getLightColor(pos));
+                  }
+                  s.style.backgroundColor = uprightPosColorCache.get(pos);
+                  s.style.border = "1px solid #ccc";
+                  s.style.padding = "4px 8px";
+                  s.style.borderRadius = "6px";
+                  s.style.textAlign = "left";
+                  
+                  // 属性表示 (HTML生成)
+                  const lines = [];
+                  if (isEditingThis) {
+                      // 編集中の文：詳細表示
+                      checkedAttrs.forEach(attrName => {
+                          let value = '';
+                          if (attrName === 'textContent') {
+                              value = (wNode.textContent || '').trim() || '□';
+                              // ROOT表示対応
+                              if (wordId === '0') value = 'ROOT';
+                              lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+                          } else {
+                              value = wNode.getAttribute(attrName) || '';
+                              lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(attrName)}: ${escapeHtml(value)}</span>`);
+                          }
+                      });
+                  } else {
+                      // 編集中でない文：シンプル表示
+                      const value = (wNode.textContent || '').trim() || '□';
+                      if (wordId === '0') {
+                           lines.push(`<span style="font-weight:bold; color: #000;">ROOT</span>`);
+                      } else {
+                           lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+                      }
+                  }
+                  s.innerHTML = lines.join('<br>');
+
+                  if (wordId === '0') s.classList.add('ud-root');
+                  
+                  // クリックハンドラ設定
+                  s.addEventListener('click', (ev) => {
+                      ev.stopPropagation();
+                      handleUDTokenClick(s, wNode, ev, context.identifier);
+                  });
+
+                  // ★仮配置 (高さを測定するため)
+                  s.style.position = 'absolute';
+                  const x = (index * X_SPACING) + X_OFFSET;
+                  s.style.left = x + 'px'; // X座標は確定
+
+                  // 計測中は非表示にする（レイアウトのちらつき防止）
+                  s.style.visibility = 'hidden'; 
+                  tokensWrapper.appendChild(s);
                   
                   const nodeObj = {
                       wNode: wNode,
                       tokenId: String(tokenId),
                       wordId: wordId,
-                      parentId: wNode.getAttribute('udFrom') || null,
+                      parentId: udFrom,
                       children: [],
                       level: -1,
-                      x: (index * X_SPACING) + X_OFFSET,
-                      element: null
+                      x: x,
+                      height: s.offsetHeight, // ★高さを計測
+                      element: s
                   };
                   wordIdToNodeMap.set(wordId, nodeObj);
                   nodeObjects.push(nodeObj);
               });
+              // ▲▲▲ 変更完了 ▲▲▲
 
+              // 親子関係の構築 (変更なし)
               nodeObjects.forEach(node => {
-                  // ▼▼▼ 変更: 自己参照の場合は親子関係として扱わない ▼▼▼
                   if (node.parentId && node.parentId !== node.wordId) {
                       const parent = wordIdToNodeMap.get(node.parentId);
                       if (parent) parent.children.push(node);
                   }
               });
 
-              // --- 2. 深度 (Y座標) 計算 (BFS) ---
+              // --- 2. 深度 (level) 計算 (BFS) ---
               let maxDepth = 0;
               const queue = [];
               
-              // 起点ノードを探す
+              // 起点ノードを探す (変更なし)
               nodeObjects.forEach(node => {
-                  // ▼▼▼ 変更: 自己参照も起点として扱う ▼▼▼
                   const isSelfReference = node.parentId === node.wordId;
-
-                  // 親がいない、親が文脈外、または自己参照の場合を起点とする
                   if (!node.parentId || !wordIdToNodeMap.has(node.parentId) || isSelfReference) {
                       node.level = 0; 
                       queue.push(node);
@@ -2759,26 +3318,20 @@ document.addEventListener('keydown', function(e){
                   const current = queue[head++];
                   maxDepth = Math.max(maxDepth, current.level);
                   
-                  // 子ノードの深さを 親 + 1 で決定
                   current.children.forEach(child => {
-                      // Safety check (children構築時に除外済みだが念のため)
                       if (child === current) return; 
-
-                      if (child.level === -1) { // 未訪問
+                      if (child.level === -1) {
                           child.level = current.level + 1;
                           queue.push(child);
                       }
-                      // 訪問済みの場合（DAG構造や循環参照）は、ここではレベルを更新しない（最初の訪問時の深さを優先）
                   });
               }
               
-              // サイクルなどで未訪問のノードがあれば、最大深度の下に配置
-              // ▼▼▼ 修正: 未訪問ノードが個別の深さにならないように修正 ▼▼▼
+              // 未訪問ノードの処理 (変更なし)
               let unreachedDepth = maxDepth;
               nodeObjects.forEach(node => {
                   if (node.level === -1) {
                       console.warn(`UD構造に未到達ノード（おそらく循環参照）があります: wordID=${node.wordId}`);
-                      // 初回のみ深さを更新
                       if (unreachedDepth === maxDepth) {
                           unreachedDepth++;
                           maxDepth = unreachedDepth;
@@ -2786,114 +3339,70 @@ document.addEventListener('keydown', function(e){
                       node.level = unreachedDepth;
                   }
               });
-              // ▲▲▲ 修正完了 ▲▲▲
               // --- BFS計算ここまで ---
 
-              // --- 3. DOM配置 ---
-              // ★ 表示する属性のリストを取得 (編集中でなくても色付けだけは行う)
-              const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
-              // もし何も選択されていなければ、textContentを強制的に表示
-              if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
+              
+              // ▼▼▼ 3. 動的Y軸調整ロジック ▼▼▼
 
-              // ▼▼▼ 変更: 方向に基づいてY座標を計算する関数を定義 ▼▼▼
-              let calculateY;
-              if (window.__udUprightDirectionTopDown) {
-                  // 親＞子 (下向き/TopDown): level 0 が一番上
-                  calculateY = (level) => (level * Y_SPACING) + Y_OFFSET;
-              } else {
-                  // 子＞親 (上向き/BottomUp): level 0 が一番下 (maxDepthの位置)
-                  calculateY = (level) => ((maxDepth - level) * Y_SPACING) + Y_OFFSET;
-              }
-              // ▲▲▲ 変更完了 ▲▲▲
+              // 3-A. レベルごとの最大高さの計算
+              const levelMaxHeights = new Array(maxDepth + 1).fill(0);
 
-              let totalWidth = 0;
               nodeObjects.forEach(nodeObj => {
-                  const y = calculateY(nodeObj.level);
-                  const x = nodeObj.x;
-				  
-                  totalWidth = Math.max(totalWidth, x + X_SPACING);
-
-                  const s = document.createElement('span');
-                  s.className = 'token';
-                  s.dataset.tokenId = nodeObj.tokenId;
-                  s.dataset.wordId = nodeObj.wordId;
-                  
-                  // 自己参照エラーチェック (Upright)
-                  // nodeObj.parentIdはudFromから取得済み。
-                  // wordIDが0 (ROOT) 以外で、parentIdが存在し、parentIdが自身のwordIdと同じ場合
-                  if (nodeObj.wordId !== '0' && nodeObj.parentId && nodeObj.parentId === nodeObj.wordId) {
-                      s.classList.add('ud-error-self-reference');
+                  if (nodeObj.level !== -1) {
+                      // 計測済みの高さを使用
+                      levelMaxHeights[nodeObj.level] = Math.max(levelMaxHeights[nodeObj.level], nodeObj.height);
                   }
-				  
-                  // ★ 要求②: POSに応じた背景色 (常に適用)
-                  const pos = nodeObj.wNode.getAttribute('pos') || 'UNKNOWN';
-                  if (!uprightPosColorCache.has(pos)) {
-                      uprightPosColorCache.set(pos, getLightColor(pos));
-                  }
-                  s.style.backgroundColor = uprightPosColorCache.get(pos);
-                  s.style.border = "1px solid #ccc";
-                  s.style.padding = "4px 8px";
-                  s.style.borderRadius = "6px";
-                  s.style.textAlign = "left";
-                  
-                  // ★ 要求③: ノード内部に属性を表示 (isEditingThis で表示を切り替え)
-                  const lines = [];
-                  
-                  if (isEditingThis) {
-                      // 編集中の文では、チェックボックスに基づいた詳細表示
-                      checkedAttrs.forEach(attrName => {
-                          let value = '';
-                          if (attrName === 'textContent') {
-                              value = (nodeObj.wNode.textContent || '').trim() || '□';
-                              // ROOT表示対応
-                              if (nodeObj.wordId === '0') value = 'ROOT';
-                              lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
-                          } else {
-                              value = nodeObj.wNode.getAttribute(attrName) || '';
-                              lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(attrName)}: ${escapeHtml(value)}</span>`);
-                          }
-                      });
-                  } else {
-                      // 編集中でない文は、textContentのみ表示 (シンプル表示)
-                      const value = (nodeObj.wNode.textContent || '').trim() || '□';
-                      if (nodeObj.wordId === '0') {
-                           lines.push(`<span style="font-weight:bold; color: #000;">ROOT</span>`);
-                      } else {
-                           lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
-                      }
-                  }
-                  s.innerHTML = lines.join('<br>');
-
-                  if (nodeObj.wordId === '0') s.classList.add('ud-root');
-                  
-                  s.addEventListener('click', (ev) => {
-                      ev.stopPropagation();
-                      // ★ 変更: context.identifier (文ID) を渡す
-                      handleUDTokenClick(s, nodeObj.wNode, ev, context.identifier);
-                  });
-                  
-                  s.style.position = 'absolute';
-                  s.style.left = x + 'px';
-                  s.style.top = y + 'px';
-                  // s.style.transform = 'translateX(-50%)'; // CSSで適用済み
-
-                  tokensWrapper.appendChild(s);
-                  nodeObj.element = s;
               });
 
-              // 4. ラッパーのサイズ設定
-              const totalHeight = (maxDepth + 1) * Y_SPACING + Y_OFFSET;
+              // 3-B. レベルごとのY座標の計算 (累積和)
+              const levelYCoordinates = new Array(maxDepth + 1).fill(Y_OFFSET);
+              let currentY = Y_OFFSET;
+              
+              // 方向に応じて累積計算の順序を変える
+              if (window.__udUprightDirectionTopDown) {
+                  // TopDown (親＞子): Level 0 から順に計算
+                  for (let i = 0; i <= maxDepth; i++) {
+                      levelYCoordinates[i] = currentY;
+                      // 次のレベルのY座標 = 現在のY座標 + このレベルの最大高さ + マージン
+                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                  }
+              } else {
+                  // BottomUp (子＞親): Level maxDepth から逆順に計算
+                  for (let i = maxDepth; i >= 0; i--) {
+                      levelYCoordinates[i] = currentY;
+                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                  }
+              }
+              // ▲▲▲ 動的Y軸調整ロジックここまで ▲▲▲
+
+
+              // --- 4. DOM最終配置 ---
+              let totalWidth = 0;
+              nodeObjects.forEach(nodeObj => {
+                  totalWidth = Math.max(totalWidth, nodeObj.x + X_SPACING);
+
+                  if (nodeObj.element && nodeObj.level !== -1) {
+                      // 計算済みのY座標を使用
+                      const y = levelYCoordinates[nodeObj.level];
+                      
+                      // 最終的な位置を設定し、表示する
+                      // X座標は設定済み
+                      nodeObj.element.style.top = y + 'px';
+                      nodeObj.element.style.visibility = 'visible'; 
+                  }
+              });
+
+              // 5. ラッパーのサイズ設定
+              // currentYは最後にVERTICAL_MARGINが余分に足されているので引く。少し余裕を持たせる。
+              const totalHeight = currentY - VERTICAL_MARGIN + Y_OFFSET/2; 
+              
               // 高さと幅は最小値を設定（スクロール対応）
               tokensWrapper.style.minHeight = totalHeight + 'px';
               tokensWrapper.style.minWidth = totalWidth + 'px';
 
-             // 5. 矢印の描画 (DOM配置後)
+             // 6. 矢印の描画 (DOM配置後)
               setTimeout(() => {
-                  
-                  // ▼▼▼ 変更: context.identifier を渡す ▼▼▼
                   drawUprightArcs(tokensWrapper, wordIdToNodeMap, context.identifier);
-                  // ▲▲▲ 変更 ▲▲▲
-                  
               }, 0);
           }
           
@@ -2902,7 +3411,8 @@ document.addEventListener('keydown', function(e){
           tokensEl.appendChild(sentenceContainer);
       });
       
-      setStatus('Upright モード描画完了 (常時表示)');
+      // ステータス表示も更新
+      setStatus('Upright モード描画完了 (動的レイアウト適用)');
   }
 
   //** * (Upright) 線を描画する (座標・矢印・クリックバグ修正)
