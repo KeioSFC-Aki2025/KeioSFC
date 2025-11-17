@@ -445,7 +445,6 @@
         <div><input id="fileInput" type="file" accept=".xml,text/xml" /></div>
         <div>
           <button id="clearDataBtn">データをクリア（デフォルトに戻す）</button>
-          <button id="customizeBtn" style="display:none;">取り込んだデータに合わせてカスタマイズ</button>
         </div>
         <div id="fileError" class="error" style="display:none;"></div>
       </div>
@@ -602,9 +601,7 @@
      - UI復元機能(rebuildForms, clearDataBtn)
 */
 /* ---------- デフォルトサンプルデータ（埋め込み） ---------- */
-const defaultData = ` 
-  
-  <document filename="Task01ID00001.txt">
+const defaultData = `   <document filename="Task01ID00001.txt">
     <s sentId="1" Task="1" textID="1" personID="2" personAge="18" language="Japanese" personFirstLang="日" personSecondLang="英">
         <w wordId="1" pos="DET" lemma="とある" tag="連体詞" udType="det" udFrom="2" udTo="" original="とある">toaru</w>
         <w wordId="2" pos="NOUN" lemma="島" tag="名詞-普通名詞-一般" udType="nmod" udFrom="4" udTo="1/3" original="島">shima</w>
@@ -11422,21 +11419,6 @@ let isUDViewActive = false; // ★ V7.3 追加
 
 // ★ 追加: 動的UIのための状態
 let detectedAttributes = new Set();
-let isCustomized = false;
-// ★ 変更: デフォルトのフォームHTMLを保持する変数を宣言 (初期化は DOMContentLoaded で行う)
-let defaultKeywordForm = "";
-let defaultLMatrixForm = "";
-let defaultRMatrixForm = "";
-let defaultKeyForm_ud = "";   // ★ 追加
-let defaultHMatrixForm = ""; // ★ 追加
-let defaultDMatrixForm = ""; // ★ 追加
-// ★ 変更: デフォルトの品詞関連の属性（日本語UI用）
-// ★ 変更: 隣接性検索用と係り受け検索用でデフォルト属性を分離
-const defaultWAttributes_Adj = ['pos','pos1','pos2','pos3','conjClass','conjForm','root', 'udType'];
-// ★ V7.7: udType を係り受け検索のデフォルト属性に追加
-const defaultWAttributes_Dep = ['pos','pos1','pos2','pos3','conjClass','conjForm','root', 'udType'];
-// ★ 変更: デフォルトUIで使う属性リスト (isCustomized = false の時)
-let defaultWAttributes = defaultWAttributes_Adj; 
 // ★ V7.4: posColors を動的に生成するため let に変更し、空にする
 let posColors = {};
 let attributeExamples = {}; // 属性ごとのサンプルテキストを保持
@@ -11504,62 +11486,28 @@ function parseSentencesFromCurrentData(){
   }
 }
 
-// ★ 変更: enablePosSubfields はデフォルトUI (isCustomized=false) の時だけ機能させる
-function enablePosSubfields(prefix){
-  if (isCustomized) return; // カスタムUI時は無効
-  const posEl = $(prefix + 'pos');
-  if(!posEl) return;
-  const val = trimStr(posEl.value);
-  ['pos1','pos2','pos3'].forEach(n => {
-    const el = $(prefix + n);
-    if(!el) return;
-    el.disabled = (val === "");
-    if(val === "") el.value = "";
-  });
-}
+
 /* ---------- 初期イベント登録 ---------- */
 document.addEventListener('DOMContentLoaded', ()=>{
- // ★ 変更: DOM構築後のHTML保存処理
-  try {
-    // ★ 変更: V8.0 - id="key_tbody" から取得し、デフォルトフォームを生成
-    const kwTable = $('key_table');
-    if (kwTable && kwTable.tBodies && kwTable.tBodies.length > 0) {
-        // デフォルトフォーム(隣接性)を生成
-        let keywordHTML = `<tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="例：カエッ" /></td></tr>`;
-        
-        // ★ 変更: V8.0 - defaultWAttributes_Adj を使う
-        defaultWAttributes_Adj.forEach(attr => {
-            let placeholder = "";
-            if (attr === 'pos') placeholder = "例：名詞";
-            if (attr === 'pos1') placeholder = "例：固有名詞（※品詞によって利用可否が変わります）";
-            if (attr === 'pos2') placeholder = "例：人名（※品詞によって利用可否が変わります）";
-            if (attr === 'pos3') placeholder = "例：名（※品詞によって利用可否が変わります）";
-            if (attr === 'root') placeholder = "例：帰る";
-            if (attr === 'udType') placeholder = "例：nsubj"; // ★ この行を追加
-            const disabled = (attr === 'pos1' || attr === 'pos2' || attr === 'pos3') ? 'disabled' : '';
-            keywordHTML += `<tr><td class="label">${attr}</td><td><input id="${attr}" type="text" placeholder="${placeholder}" ${disabled} /></td></tr>`;
-        });
-        $('key_tbody').innerHTML = keywordHTML;
-        defaultKeywordForm = keywordHTML; // これがデフォルト定義
 
-    } else {
-         console.warn("key_table or key_tbody not found. Default form not saved.");
-         defaultKeywordForm = ""; // フォールバック
-    }
-    
-    
-    defaultLMatrixForm = "";
-    defaultRMatrixForm = "";
-    defaultKeyForm_ud = "";   
-    defaultHMatrixForm = ""; 
-    defaultDMatrixForm = ""; 
-
-  } catch (e) {
-    console.error("デフォルトフォームの保存に失敗:", e);
-  }
+  // ★ 変更: 初期ロード時の処理。defaultDataをスキャンしてUIを構築する。
+  const initialParsed = parseSentencesFromCurrentData();
   
-  // ★ 削除: タブ関連のリスナーはすべて不要
+  if (!initialParsed.error) {
+      // 1. POSカラー生成と属性スキャン (scanAndGenerateColors内で行う)
+      scanAndGenerateColors(initialParsed.sentences);
+      // 2. スキャンした属性でUIを構築
+      rebuildUIFromDetectedAttributes();
+  } else {
+      // 初期化失敗時の処理
+      $('errorMsg').textContent = `初期データの読み込みに失敗: ${initialParsed.error}`;
+      $('errorMsg').style.display = 'block';
+      currentDynamicHeaders = defaultDynamicHeaders; // フォールバックとして定義されたヘッダーを使用
+      rebuildForms([]); // 空のフォーム
+      renderTable();
+  }
 
+  
   /* Upload button */
   // ★ 変更: V8.0 - showUploadBtn_ud は存在しないため、リスナー1つでよい
   $('showUploadBtn').addEventListener('click', ()=> {
@@ -11569,36 +11517,40 @@ document.addEventListener('DOMContentLoaded', ()=>{
   $('fileInput').addEventListener('change', handleFileUpload);
   
   $('clearDataBtn').addEventListener('click', ()=> {
+    // 1. データソースと状態のリセット
     currentData = defaultData;
     uploadFileName = "keioSFC";
     isFileUploaded = false;
-    isCustomized = false;
-    detectedAttributes.clear();
-    rebuildForms(null); // ★ 変更: rebuildForms(null) はキーノードのみをリセット
     
+    // 2. defaultDataを元に動的にUIを再構築
     const initialParsed = parseSentencesFromCurrentData();
     if (!initialParsed.error) {
+        // POSカラー生成と属性スキャン
         scanAndGenerateColors(initialParsed.sentences);
+        // UI再構築
+        rebuildUIFromDetectedAttributes();
+    } else {
+        // エラー時は属性クリアとヘッダーリセット
+        detectedAttributes.clear();
+        currentDynamicHeaders = defaultDynamicHeaders;
+        rebuildForms([]); 
+        renderTable();
     }
     
-    currentDynamicHeaders = defaultDynamicHeaders;
+    // 3. UI状態のリセット (ファイル関連)
     $('fileInput').value = "";
     $('fileError').style.display='none';
     $('errorMsg').style.display='none';
-    $('customizeBtn').style.display = 'none';
-    hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0;
+  
     $('uploadFieldset').style.display='none';
     $('showUploadBtn').style.display='inline-block';
     
-    // ★ 追加: V8.0 - clearAll を呼んで動的ボックスも消す
+    // 4. 全条件と結果をクリア
     clearAll(); 
     // renderTableは clearAll 内部で呼ばれる
   });
 
-  $('customizeBtn').addEventListener('click', scanAttributesAndRebuildUI);
-
-  // ★ 削除: L/R/H/D の Show/Hide/ClearAll ボタンのリスナーはすべて不要 (V8.0 で動的生成)
-
+ 
   /* 文書情報表示 */
   // ★ 変更: V8.0 - _ud 版のリスナーは不要
   $('showDocBtn').addEventListener('click', ()=> {
@@ -11641,49 +11593,7 @@ document.addEventListener('DOMContentLoaded', ()=>{
     }
   });
   
-  /* pos enabling */
-  document.body.addEventListener('input', e => {
-      // ★ 変更: V8.0 - id="pos" のみ
-      if (e.target.matches('#pos')) {
-          enablePosSubfields(''); // prefixなし
-      }
-  });
-
-  /* showArticle button handler */
-  $('showArticleBtn').addEventListener('click', ()=> {
-    if(selectedHitNo === null) return;
-    const range = $('articleRange').value;
-    showArticleDetailByHitNo(selectedHitNo, range);
-  });
-  /* articleRange change -> auto update */
-  $('articleRange').addEventListener('change', ()=> {
-    if($('showArticleBtn').style.display !== 'none' && selectedHitNo !== null){
-      $('showArticleBtn').click();
-    }
-  });
-  /* click meta: center selected hit */
-  $('sentenceMeta').addEventListener('click', ()=> {
-    if(selectedHitNo === null) return;
-    const sorted = getSortedRows();
-    const posInSorted = sorted.findIndex(r => r.no === selectedHitNo);
-    if(posInSorted === -1) return;
-    const pageSize = parseInt($('pageSize').value,10);
-    let desiredStart = posInSorted - Math.floor(pageSize/2);
-    const maxStart = Math.max(0, sorted.length - pageSize);
-    if(desiredStart < 0) desiredStart = 0;
-    if(desiredStart > maxStart) desiredStart = maxStart;
-    currentStartIndex = desiredStart;
-    renderTable();
-  });
   
-  enableAllPosSubfields(); 
-
-  const initialParsed = parseSentencesFromCurrentData();
-  if (!initialParsed.error) {
-      scanAndGenerateColors(initialParsed.sentences);
-  }
-  
-  renderTable();
 
  $('udToggleBtn').addEventListener('click', toggleUDView);
   
@@ -11740,11 +11650,14 @@ function showSearchArea(type) {
             // --- L/R: 垂直テーブル (列追加) 方式 ---
             isDep = false;
             
+           
             // ★ L/R: ラッパーに「単一のテーブル」を生成
-            let attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Adj;
-            let surfacePlaceholder = isCustomized ? (attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "") : "例：カエッ";
+            // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+            let attributes = Array.from(detectedAttributes).sort();
+            let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
             
             let tableHTML = `<table class="lr-table" id="${type}-table"><tbody>`;
+			
             // 1. 列ヘッダー行 (L1, R1)
             tableHTML += `<tr><th class="label"></th><td class="col-header">${type}1</td></tr>`;
             // 2. 原文文字列行
@@ -11752,14 +11665,9 @@ function showSearchArea(type) {
             // 3. 属性行
             attributes.forEach(attr => {
                 if (attr === 'surface') return;
-                let placeholder = "";
-                if (isCustomized) {
-                    placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
-                } else {
-                    if (attr === 'pos') placeholder = "例：名詞";
-                    if (attr === 'root') placeholder = "例：帰る";
-                    if (attr === 'udType') placeholder = "例：nsubj"; // ★ この行を追加
-                }
+                
+                let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+
                 tableHTML += `<tr><th class="label">${attr}</th><td><input id="${type}1_${attr}" type="text" placeholder="${placeholder}" /></td></tr>`;
             });
             // 4. 削除ボタン行
@@ -11790,19 +11698,6 @@ function showSearchArea(type) {
             // ★ 「▲ 親ノード...」ボタンを非表示にする
             triggerBtn.style.display = 'none';
 
-            if (!$('key_udType')) { 
-                const keyTbody = $('key_tbody');
-                if (!isCustomized && !defaultWAttributes_Dep.includes('udType')) {
-                    defaultWAttributes_Dep.push('udType');
-                }
-                const newRow = keyTbody.insertRow();
-                newRow.id = "key_udType_row"; 
-                newRow.innerHTML = `<td class="label">関係 (udType)</td><td><input id="key_udType" type="text" placeholder="例: nsubj" /></td>`;
-                if (defaultKeywordForm.indexOf('key_udType') === -1) {
-                    defaultKeywordForm += newRow.outerHTML;
-                }
-            }
-            
             newLabel = '▲ 親ノードを追加'; // H-table-1 の「行追加ボタン」のラベル
 
         } else if (type === 'D') {
@@ -11946,7 +11841,8 @@ function showSearchArea(type) {
         // ★★★ 修正ここまで ★★★
 
         // 2. 属性リストの取得
-        let attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Dep;
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
         
         // 3. チェーンのテーブル
         let tableHTML = `<table class="lr-table" id="${type}-table-${chainIndex}" style="width: auto; margin-left: auto; margin-right: auto;">`;
@@ -12029,9 +11925,9 @@ function showSearchArea(type) {
 // ★ 変更: H/D 行削除時にIDとラベルを振り直すヘルパー関数
     function renumberHDRows(tbody, type, chainIndex, oldChainIndex = -1) { // ★ chainIndex と oldChainIndex を追加
         const rows = Array.from(tbody.querySelectorAll('tr'));
-        const attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Dep;
-        
-        // oldChainIndex が渡された場合 (renumberChains からの呼び出し)、
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        const attributes = Array.from(detectedAttributes).sort();
+		
         // 内部の input ID もすべて振り直す必要がある
         const forceIdUpdate = (oldChainIndex !== -1 && oldChainIndex !== chainIndex);
         
@@ -12088,15 +11984,9 @@ function showSearchArea(type) {
 	
 // isCustomized フラグに応じて、H/D の「行」のHTMLを生成する (H/D 専用)
     function createDynamicFieldsetHTML(type, level, chainIndex) { // ★ chainIndex を追加
-        let attributes, surfacePlaceholder;
-        
-        if (isCustomized) {
-            attributes = Array.from(detectedAttributes);
-            surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
-        } else {
-            attributes = defaultWAttributes_Dep;
-            surfacePlaceholder = ""; 
-        }
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
+        let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
 
         // ★ ID体系を変更 (e.g., D1-1-surface)
         let html = '';
@@ -12104,13 +11994,9 @@ function showSearchArea(type) {
         html += `<td><input id="${type}${chainIndex}-${level}-surface" type="text" placeholder="${surfacePlaceholder}" /></td>`; // 原文
         
         html += attributes.filter(attr => attr !== 'surface').map(attr => {
-            let placeholder = "";
-            if (isCustomized) { /* ... (中略) ... */ } 
-            else {
-                if (attr === 'pos') placeholder = "例：名詞";
-                if (attr === 'root') placeholder = "例：帰る";
-                if (attr === 'udType') placeholder = "例：nsubj";
-            }
+            // ★ 変更: 常に attributeExamples を使用
+            let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+			
             // ★ ID体系を変更
             return `<td><input id="${type}${chainIndex}-${level}-${attr}" type="text" placeholder="${placeholder}" /></td>`
         }).join('');
@@ -12133,12 +12019,10 @@ function clearAll(){
 
   // 3. キーノード フォーム クリア
   // ★ 変更: V8.0 - rebuildForms(null) がキーノードをリセットする
-  rebuildForms(null); 
+  rebuildForms(Array.from(detectedAttributes).sort());
 
   // 4. デフォルトUIの場合のみ、pos連動を再有効化
-  if (!isCustomized) {
-      enableAllPosSubfields();
-  }
+  
   
   // ★ 削除: V8.0 - activeSearchMode のリセットは不要
 
@@ -12164,9 +12048,7 @@ function clearAll(){
   }
   
   // 6. ヘッダーのクリア
-  if (!isCustomized) {
-      currentDynamicHeaders = defaultDynamicHeaders;
-  }
+  
   renderTable();
 }
 
@@ -12181,8 +12063,10 @@ function clearAll(){
         // 既存の列数 (th が1, td が 1...N) から新しいレベルを計算
         const newLevel = rows[0].cells.length; // th(0), L1(1). New level is 2.
         
-        let attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Adj;
-        let surfacePlaceholder = isCustomized ? (attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "") : "例：カエッ";
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
+        // ★ 変更: 常に attributeExamples を使用
+        let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
 
         // 1. 列ヘッダーセル (L2, R2...) を追加
         const headerCell = rows[0].insertCell(-1);
@@ -12200,14 +12084,9 @@ function clearAll(){
             // rows[2] が 1番目の属性行
             const row = rows[2 + attrIndex];
             if (row) {
-                let placeholder = "";
-                if (isCustomized) {
-                    placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
-                } else {
-                    if (attr === 'pos') placeholder = "例：名詞";
-                    if (attr === 'root') placeholder = "例：帰る";
-                    if (attr === 'udType') placeholder = "例：nsubj"; // ★ この行を追加
-                }
+                // ★ 変更: 常に attributeExamples を使用 (isCustomized分岐を削除)
+                let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+
                 const cell = row.insertCell(-1);
                 cell.innerHTML = `<input id="${type}${newLevel}_${attr}" type="text" placeholder="${placeholder}" />`;
             }
@@ -12245,8 +12124,10 @@ function clearAll(){
                 }
             }
             
-            // ★ 削除後、残った列のインデックスを振り直す
             // (例: L1, L2, L3 で L2 を削除 -> L3 を L2 に)
+            // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート (ループ外で定義)
+            let attributes = Array.from(detectedAttributes).sort();
+
             for (let c = level; c < rows[0].cells.length; c++) { // c は cell index (1-based)
                 // ヘッダー行 (L3 -> L2)
                 rows[0].cells[c].textContent = `${type}${c}`;
@@ -12255,13 +12136,12 @@ function clearAll(){
                 rows[1].cells[c].querySelector('input').id = `${type}${c}_surface`;
                 // 属性行
                 let attrIndex = 0;
-                let attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Adj;
+                // let attributes = ... (ループ外に移動済み)
                 attributes.forEach(attr => {
                     if (attr === 'surface') return;
                     rows[2 + attrIndex].cells[c].querySelector('input').id = `${type}${c}_${attr}`;
                     attrIndex++;
                 });
-                // 削除ボタン行
                 const btn = rows[rows.length - 1].cells[c].querySelector('.remove-col-btn');
                 if (btn) btn.dataset.level = c;
             }
@@ -12269,49 +12149,23 @@ function clearAll(){
     }
 	
     
+
 /* ---------- ★ V7.2 追加: UI動的構築 ---------- */
-function scanAttributesAndRebuildUI() {
-    isCustomized = true;
-    const parsed = parseSentencesFromCurrentData();
-    if (parsed.error) {
-        $('fileError').textContent = `カスタマイズ失敗: ${parsed.error}`;
-        $('fileError').style.display = 'block';
-        isCustomized = false;
-        return;
-    }
-    if (parsed.sentences.length === 0) {
-        $('fileError').textContent = "カスタマイズ失敗: 有効な <s> タグが見つかりません。";
-        $('fileError').style.display = 'block';
-        isCustomized = false;
-        return;
-    }
-
-    // 属性をスキャン
-    detectedAttributes.clear();
-    const sentences = parsed.sentences;
-    for (const s of sentences) {
-        const words = s.getElementsByTagName('w');
-        for (const w of words) {
-            for (const attr of w.attributes) {
-                detectedAttributes.add(attr.name);
-            }
-        }
-    }
-
+// ★ 新設: detectedAttributes を使ってUIを再構築するヘルパー関数
+// (scanAttributesAndRebuildUI は不要になりました)
+function rebuildUIFromDetectedAttributes() {
     const sortedAttributes = Array.from(detectedAttributes).sort();
     
     // フォームを再構築
     rebuildForms(sortedAttributes);
 
-    // 検索結果テーブルのヘッダーも更新（結果はクリア）
-    hits = [];
-    hasSearched = false;
-    currentStartIndex = 0;
-    selectedHitNo = null;
+    // 検索結果テーブルのヘッダーも更新
     currentDynamicHeaders = sortedAttributes.map(attrName => {
         return { label: attrName, key: attrName };
     });
-    renderTable(); // 空のテーブルをカスタムヘッダーで描画
+    
+    // テーブルを再描画 (結果はクリアしない)
+    renderTable();
 }
 
 function rebuildForms(attributes) {
@@ -12319,24 +12173,20 @@ function rebuildForms(attributes) {
     const keywordTbody = $('key_tbody');
     if (!keywordTbody) return; // 早期リターン
 
-    if (attributes === null) {
-        // デフォルトに戻す
-        keywordTbody.innerHTML = defaultKeywordForm;
-    } else {
-        // カスタムUIを構築
-        let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : '';
-        let keywordHTML = `<tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="${surfacePlaceholder}" /></td></tr>`;
-        attributes.forEach(attr => {
-            let attrPlaceholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : '';
-            keywordHTML += `<tr><td class="label">${attr}</td><td><input id="${attr}" type="text" placeholder="${attrPlaceholder}" /></td></tr>`;
-        });
-        keywordTbody.innerHTML = keywordHTML;
-    }
+    // ★ 変更: 常に動的UIを構築する (attributes=null の分岐やデフォルトフォームは不要)
+    if (!attributes) attributes = []; // 安全対策
+
+    // UIを構築
+    let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : '';
+    let keywordHTML = `<tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="${surfacePlaceholder}" /></td></tr>`;
+    attributes.forEach(attr => {
+        let attrPlaceholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : '';
+        // disabled属性は不要
+        keywordHTML += `<tr><td class="label">${attr}</td><td><input id="${attr}" type="text" placeholder="${attrPlaceholder}" /></td></tr>`;
+    });
+    keywordTbody.innerHTML = keywordHTML;
     
-    // デフォルトに戻した場合のみ、pos連動を有効化
-    if (attributes === null) {
-        enableAllPosSubfields();
-    }
+    // 削除: pos連動有効化は不要
     
     // ★ 追加: V8.0 - 動的な L/R/H/D ボックスもすべてクリア
     clearDynamicBoxes();
@@ -12468,7 +12318,8 @@ function injectPosStyles(colors) {
 // センテンスをスキャンし、posColorsを生成・注入
 function scanAndGenerateColors(sentences) {
     posColors = {}; // グローバルをリセット
-    attributeExamples = {}; // ★ 追加: 凡例データもリセット
+    attributeExamples = {}; // 凡例データもリセット
+    detectedAttributes.clear(); // ★ 追加: 属性リストもリセット
     const posSet = new Set();
     
     sentences.forEach(s => {
@@ -12477,8 +12328,9 @@ function scanAndGenerateColors(sentences) {
             const pos = w.getAttribute('pos') || 'その他';
             posSet.add(pos);
 
-            // ★ 追加: 属性のサンプルテキストを収集
             Array.from(w.attributes).forEach(attr => {
+                detectedAttributes.add(attr.name); // ★ 追加
+
                 if (!attributeExamples[attr.name] && attr.value.trim() !== "") {
                     attributeExamples[attr.name] = attr.value.trim();
                 }
@@ -12512,10 +12364,7 @@ function scanAndGenerateColors(sentences) {
 }
 
 /* ---------- 条件収集 / マッチング ---------- */
-function enableAllPosSubfields(){
-    if (isCustomized) return;
-    ['', 'L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'].forEach(p=>enablePosSubfields(p)); 
-}
+
 function handleFileUpload(e){
   const file = e.target.files[0];
   $('fileError').style.display='none'; $('fileError').textContent = '';
@@ -12550,17 +12399,15 @@ function handleFileUpload(e){
 
       // 成功した場合の処理
       isFileUploaded = true;
-      isCustomized = false; // ★ 追加: アップロード直後は非カスタマイズ状態
-      rebuildForms(null); // ★ 追加: フォームをデフォルトに戻す
-      $('customizeBtn').style.display = 'inline-block'; // ★ 追加: カスタマイズボタンを表示
       
-      // ★ V7.4: アップロードされたデータをスキャンしてPOSカラーを生成
-      // (parsed はこのスコープで利用可能)
       scanAndGenerateColors(parsed.sentences);
+      rebuildUIFromDetectedAttributes();
       
       uploadFileName = (file.name || "uploaded").replace(/\.[^/.]+$/, "");
-      hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0; renderTable();
+      hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0; 
+      // renderTable(); // rebuildUIFromDetectedAttributes 内で実行済み
     };
+	
     textReader.onerror = function() {
       $('fileError').textContent = "ファイルのテキスト読み込みに失敗しました。";
       $('fileError').style.display = 'block';
@@ -12588,20 +12435,15 @@ function collectConditions(){
       if($(k)) s_cond[k] = trimStr($(k).value);
   });
 
-  // 2. 属性リストの決定 (隣接性用と係り受け用を個別に用意)
-  let adj_attributes, dep_attributes;
-  if (isCustomized) {
-      adj_attributes = Array.from(detectedAttributes);
-      dep_attributes = Array.from(detectedAttributes);
-  } else {
-      adj_attributes = defaultWAttributes_Adj;
-      dep_attributes = defaultWAttributes_Dep;
-  }
+  // 2. 属性リストの決定
+  // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+  const attributes = Array.from(detectedAttributes).sort();
+  // 削除: adj_attributes, dep_attributes の定義は不要
   
-  // 3. キーノード条件 (両方の属性リストをマージして収集)
+  // 3. キーノード条件
   const key_cond = {};
-  // ★ isCustomized=false の場合、両方のデフォルト属性リストをマージ
-  const key_attributes = isCustomized ? adj_attributes : Array.from(new Set([...adj_attributes, ...dep_attributes]));
+  // ★ 変更: 常に attributes を使用
+  const key_attributes = attributes;
   
   key_cond['surface'] = trimStr($('surface') ? $('surface').value : "");
   key_attributes.forEach(attr => {
@@ -12618,13 +12460,13 @@ function collectConditions(){
   const r_conds = []; // R1, R2... を収集
   const h_conds = []; // H1, H2... を収集
   const d_conds = []; // D1, D2... を収集
-  // 4. Lワード収集 (adj_attributes を使用)
+  // 4. Lワード収集
   const l_table = $('L-table');
   if (l_table) {
       const rows = l_table.tBodies[0].rows;
       if (rows.length > 0) {
           const numCols = rows[0].cells.length - 1; // -1 for <th>
-          const adj_attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Adj;
+          // 削除: ローカルの adj_attributes 定義は不要
 
           for (let c = 1; c <= numCols; c++) { // c は列インデックス (1-based)
               const tmp = {};
@@ -12632,7 +12474,8 @@ function collectConditions(){
               tmp['surface'] = trimStr(rows[1].cells[c].querySelector('input').value);
               
               let attrIndex = 0;
-              adj_attributes.forEach(attr => {
+              // ★ 変更: attributes を使用
+              attributes.forEach(attr => {
                   if (attr === 'surface') return;
                   // row[2] (3行目) からが属性
                   const row = rows[2 + attrIndex];
@@ -12647,13 +12490,13 @@ function collectConditions(){
       }
   }
 
-  // 5. Rワード収集 (adj_attributes を使用)
+  // 5. Rワード収集
   const r_table = $('R-table');
   if (r_table) {
       const rows = r_table.tBodies[0].rows;
       if (rows.length > 0) {
           const numCols = rows[0].cells.length - 1; // -1 for <th>
-          const adj_attributes = isCustomized ? Array.from(detectedAttributes) : defaultWAttributes_Adj;
+          // 削除: ローカルの adj_attributes 定義は不要
 
           for (let c = 1; c <= numCols; c++) { // c は列インデックス (1-based)
               const tmp = {};
@@ -12661,7 +12504,8 @@ function collectConditions(){
               tmp['surface'] = trimStr(rows[1].cells[c].querySelector('input').value);
               
               let attrIndex = 0;
-              adj_attributes.forEach(attr => {
+              // ★ 変更: attributes を使用
+              attributes.forEach(attr => {
                   if (attr === 'surface') return;
                   // row[2] (3行目) からが属性
                   const row = rows[2 + attrIndex];
@@ -12674,23 +12518,11 @@ function collectConditions(){
           }
       }
   }
-  l_conds.reverse(); // [L1, L2, L3] -> [L3, L2, L1]
+  // 削除: 重複していた l_conds.reverse() を削除
 
-  // 5. Rワード収集 (adj_attributes を使用)
-  let k_r = 1;
-  while(true) {
-      const box = $(`R-box-${k_r}`);
-      if (!box) break;
-      const tmp = {};
-      tmp['surface'] = trimStr($(`R${k_r}_surface`) ? $(`R${k_r}_surface`).value : "");
-      adj_attributes.forEach(attr => {
-          if($(`R${k_r}_${attr}`)) tmp[attr] = trimStr($(`R${k_r}_${attr}`).value);
-      });
-      r_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null); // [R1, R2, R3]
-      k_r++;
-  }
+  // 削除: 古いUI用のRワード収集ロジック (whileループ) を削除
 
-  // 6. Hノード収集 (dep_attributes を使用)
+  // 6. Hノード収集
   // ★ H は複数チェーン (chainIndex=1, 2, 3...)
   let h_chain_idx = 1;
   while(true) {
@@ -12707,7 +12539,8 @@ function collectConditions(){
           
           const tmp = {};
           tmp['surface'] = trimStr($(`H${h_chain_idx}-${level}-surface`) ? $(`H${h_chain_idx}-${level}-surface`).value : ""); 
-          dep_attributes.forEach(attr => {
+          // ★ 変更: attributes を使用
+          attributes.forEach(attr => {
               if($(`H${h_chain_idx}-${level}-${attr}`)) tmp[attr] = trimStr($(`H${h_chain_idx}-${level}-${attr}`).value);
           });
           current_chain_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null);
@@ -12719,7 +12552,7 @@ function collectConditions(){
       h_chain_idx++;
   }
 
-  // 7. Dノード収集 (dep_attributes を使用)
+  // 7. Dノード収集
   // ★ D は複数チェーン (chainIndex=1, 2, 3...)
   let d_chain_idx = 1;
   while(true) {
@@ -12735,7 +12568,8 @@ function collectConditions(){
           const tmp = {};
           // ★ ID体系を変更 (e.g., D1-1-surface)
           tmp['surface'] = trimStr($(`D${d_chain_idx}-${level}-surface`) ? $(`D${d_chain_idx}-${level}-surface`).value : "");
-          dep_attributes.forEach(attr => {
+          // ★ 変更: attributes を使用
+          attributes.forEach(attr => {
               if($(`D${d_chain_idx}-${level}-${attr}`)) tmp[attr] = trimStr($(`D${d_chain_idx}-${level}-${attr}`).value);
           });
           current_chain_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null);
@@ -12755,52 +12589,25 @@ function collectConditions(){
   };
 }
 
-// 日本語品詞名 -> XMLの英語タグ への対応表
-const posJpToEn = {
-  "名詞": "NOUN", "固有名詞": "PROPN", "代名詞": "PRON", "動詞": "VERB",
-  "形容詞": "ADJ", "副詞": "ADV", "連体詞": "DET", "接続詞": "CCONJ",
-  "助詞": "ADP", "助動詞": "AUX", "感動詞": "INTJ", "記号": "PUNCT",
-  "接頭辞": "NOUN", "数詞": "NUM", "補助記号": "PUNCT", "形状詞": "ADJ",
-};
 
-// ★ 変更: wordMatchesExact (動的UI対応)
+
 function wordMatchesExact(w, cond){
   if(!w) return false;
 
-  if (isCustomized) {
-      // --- カスタマイズUIの場合 ---
-      // cond には 'surface' と検出された全属性が含まれる
-      for (const attrName in cond) {
-          if (!cond[attrName]) continue; // 条件指定なし
+  for (const attrName in cond) {
+      if (!cond[attrName]) continue; // 条件指定なし
 
-          if (attrName === 'surface') {
-              if (w.textContent.trim() !== cond.surface) return false;
-          } else if (defaultWAttributes.includes(attrName) || detectedAttributes.has(attrName)) {
-              // 'pos'などのデフォルト属性も、カスタム時は属性としてそのまま比較
-              if (getWAttr(w, attrName) !== cond[attrName]) return false;
-          }
-          // (文書情報キー(Taskなど)はここではチェックしない)
+      if (attrName === 'surface') {
+          if (w.textContent.trim() !== cond.surface) return false;
+      } else {
+          if (getWAttr(w, attrName) !== cond[attrName]) return false;
       }
-  } else {
-      // --- デフォルトUIの場合 ---
-      const attrNames = ['pos','pos1','pos2','pos3','conjClass','conjForm','root'];
-      for(const name of attrNames) {
-          if (cond[name]) {
-              let condValue = cond[name];
-              let xmlValue = getWAttr(w, name);
-
-              // デフォルト時のみ、'pos'の日本語変換を行う
-              if (name === 'pos' && posJpToEn[condValue]) {
-                  condValue = posJpToEn[condValue];
-              }
-              if (xmlValue !== condValue) return false;
-          }
-      }
-      if(cond.surface && w.textContent.trim() !== cond.surface) return false;
   }
   
   return true;
 }
+
+
 
 function sentenceMatchesExact(s, cond){
   const sKeys = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
@@ -12809,16 +12616,13 @@ function sentenceMatchesExact(s, cond){
 }
 
 function keywordAllEmpty(){
-  let keys;
-  if (isCustomized) {
-      keys = ['surface', ...Array.from(detectedAttributes)];
-  } else {
-      // ★ 変更: V8.0 - デフォルトは adjacency + 'udType' (あれば)
-      keys = [...defaultWAttributes_Adj, 'surface'];
-      if ($('key_udType')) {
-          // 'key_udType' は defaultWAttributes_Dep に含まれるが、
-          // Adjacency モードから H を押したケースをカバーするため、明示的に追加
-          keys.push('udType');
+  // ★ 変更: 常に detectedAttributes を使用
+  let keys = ['surface', ...Array.from(detectedAttributes)];
+
+  // H/D検索が有効化された場合、'udType'がキーノードに追加される可能性があるためチェック
+  if ($('key_udType')) {
+      if (!keys.includes('udType')) {
+        keys.push('udType');
       }
   }
   // ★ 変更: V8.0 - prefix なし
@@ -13947,7 +13751,6 @@ window._debug = {
 </body>
 
 </html>
-
 
 
 
