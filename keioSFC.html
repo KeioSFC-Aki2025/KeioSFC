@@ -13286,9 +13286,19 @@ function buildCondString(){
     ['L', 'R', 'H', 'D'].forEach(type => {
         const k = 1; // L1, R1, H1, D1 のみ
         let v = "";
-        const surfaceEl = $(`${type}${k}_surface`);
-        // 'root' は isCustomized=false の時のみ存在する可能性がある
-        const rootEl = $(`${type}${k}_root`); 
+        
+        // ▼ 修正後 ▼
+        // H/D のID体系 (H1-1-surface) と L/R のID体系 (L1_surface) を両方試す
+        let surfaceEl;
+        let rootEl;
+        
+        if (type === 'H' || type === 'D') {
+            surfaceEl = $(`${type}1-1-surface`); // H1-1-surface, D1-1-surface
+            rootEl = $(`${type}1-1-root`); // H1-1-root
+        } else {
+            surfaceEl = $(`${type}${k}_surface`); // L1_surface, R1_surface
+            rootEl = $(`${type}${k}_root`); // L1_root
+        }
         
         if (surfaceEl && surfaceEl.value) v = trimStr(surfaceEl.value);
         else if (rootEl && rootEl.value) v = trimStr(rootEl.value);
@@ -13734,6 +13744,7 @@ window._debug = {
 </body>
 
 </html>
+
 
 
 
