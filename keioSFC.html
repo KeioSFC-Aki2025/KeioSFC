@@ -13273,13 +13273,9 @@ function sanitizeFilename(s){ return (s||"").replace(/[\/\\?%*:|"<>]/g, '_'); }
 function buildCondString(){
     let parts = [];
     
-    // 1. キー条件 (代表的なものをピックアップ)
-    let keyKeys;
-    if (isCustomized) {
-        keyKeys = ['surface', 'pos', 'wordId', 'lemma']; // カスタム時は代表的なもの
-    } else {
-        keyKeys = ['pos','root','surface', 'udType']; // デフォルト + UD
-    }
+   // 1. キー条件 (代表的なものをピックアップ)
+    let keyKeys = ['surface', 'pos', 'lemma', 'root', 'udType']; 
+
     keyKeys.forEach(k=>{
         const el = $(k); // V8.0: key_ はつかない
         const v = el ? trimStr(el.value || "") : "";
@@ -13738,6 +13734,7 @@ window._debug = {
 </body>
 
 </html>
+
 
 
 
