@@ -11430,24 +11430,23 @@ const staticHeaders = [
   {label:"キー", key:"key"},
   {label:"後文脈", key:"next"}
 ];
-const defaultDynamicHeaders = [
+
+// ★ 新設: 文書情報ヘッダーを定義 (<s>タグ由来)
+const docInfoHeaders = [
   {label:"個人ID", key:"personID"},
   {label:"年齢", key:"personAge"},
   {label:"使用言語", key:"language"},
   {label:"第一言語", key:"personFirstLang"},
-  {label:"第二言語", key:"personSecondLang"},
-  {label:"品詞", key:"pos"},
-  {label:"品詞細分類1", key:"pos1"},
-  {label:"品詞細分類2", key:"pos2"},
-  {label:"品詞細分類3", key:"pos3"},
-  {label:"活用型", key:"conjClass"},
-  {label:"活用形", key:"conjForm"},
-  {label:"原形", key:"root"},
-  {label:"読み", key:"reading"}
+  {label:"第二言語", key:"personSecondLang"}
 ];
-let currentDynamicHeaders = defaultDynamicHeaders;
+
+
+// wタグ由来の動的ヘッダーを保持する変数 (初期値は空)
+let currentDynamicWHeaders = [];
+
+// 静的ヘッダー + 文書情報 + 動的Wヘッダー を結合
 function getCurrentHeaders() {
-  return staticHeaders.concat(currentDynamicHeaders);
+  return staticHeaders.concat(docInfoHeaders).concat(currentDynamicWHeaders);
 }
 const $ = id => document.getElementById(id);
 function trimStr(s){ return (s===null||s===undefined) ? "" : String(s).trim(); }
@@ -11502,11 +11501,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
       // 初期化失敗時の処理
       $('errorMsg').textContent = `初期データの読み込みに失敗: ${initialParsed.error}`;
       $('errorMsg').style.display = 'block';
-      currentDynamicHeaders = defaultDynamicHeaders; // フォールバックとして定義されたヘッダーを使用
+      currentDynamicWHeaders = []; // ★ 変更: Wヘッダーを空にする
       rebuildForms([]); // 空のフォーム
       renderTable();
   }
-
   
   /* Upload button */
   // ★ 変更: V8.0 - showUploadBtn_ud は存在しないため、リスナー1つでよい
@@ -11529,10 +11527,10 @@ document.addEventListener('DOMContentLoaded', ()=>{
         scanAndGenerateColors(initialParsed.sentences);
         // UI再構築
         rebuildUIFromDetectedAttributes();
-    } else {
+   } else {
         // エラー時は属性クリアとヘッダーリセット
         detectedAttributes.clear();
-        currentDynamicHeaders = defaultDynamicHeaders;
+        currentDynamicWHeaders = []; 
         rebuildForms([]); 
         renderTable();
     }
@@ -12149,24 +12147,23 @@ function clearAll(){
     }
 	
     
-
 /* ---------- ★ V7.2 追加: UI動的構築 ---------- */
 // ★ 新設: detectedAttributes を使ってUIを再構築するヘルパー関数
-// (scanAttributesAndRebuildUI は不要になりました)
 function rebuildUIFromDetectedAttributes() {
     const sortedAttributes = Array.from(detectedAttributes).sort();
     
     // フォームを再構築
     rebuildForms(sortedAttributes);
 
-    // 検索結果テーブルのヘッダーも更新
-    currentDynamicHeaders = sortedAttributes.map(attrName => {
+    // ★ 変更: 検索結果テーブルのWタグヘッダー(currentDynamicWHeaders)を更新
+    currentDynamicWHeaders = sortedAttributes.map(attrName => {
         return { label: attrName, key: attrName };
     });
     
     // テーブルを再描画 (結果はクリアしない)
     renderTable();
 }
+
 
 function rebuildForms(attributes) {
     // ★ 変更: V8.0 - 中央のキーノード (key_tbody) のみ管理
@@ -12666,8 +12663,7 @@ function runSearchWithProgress(conditions){
   // ★ 変更: V8.1 - H/D条件がひとつでも null でない (＝指定されている) かどうか
   const hasDependencyCond = h_conds.some(c => c !== null) || d_conds.some(c => c !== null);
   
-  // uploadedFileAttrNames は「検索にヒットしたwタグ」から属性を集める
-  let uploadedFileAttrNames = new Set();  
+   
   const generateDisplayText = (details, separator) => {
     return details.map(d => d.isMatched ? `(${d.text})` : d.text).join(separator);
   };
@@ -12891,13 +12887,12 @@ function runSearchWithProgress(conditions){
         const prevRaw = beforeWords.map((x, idxBw) => (Lset.has(idxBw) || (hasDependencyCond && Hset.has(x.getAttribute('wordId')))) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
         const nextRaw = afterWords.map((x, idxAw) => (Rset.has(i + 1 + idxAw) || (hasDependencyCond && Dset.has(x.getAttribute('wordId')))) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
         
+        // isFileUploaded に依存せず、detectedAttributes に基づいて全属性を格納
         const hit_w_attrs = {};
-        if (isFileUploaded) {
-            Array.from(w.attributes).forEach(attr => {
-                hit_w_attrs[attr.name] = attr.value;
-                uploadedFileAttrNames.add(attr.name);
-            });
-        }
+        detectedAttributes.forEach(attrName => {
+             hit_w_attrs[attrName] = getWAttr(w, attrName);
+        });
+
 
         // ヒットデータを格納
         hits.push({
@@ -12907,19 +12902,12 @@ function runSearchWithProgress(conditions){
           prev: prevData,
           key: keyData,
           next: nextData,
+          // sタグ由来の属性 (文書情報) は維持
           personID: trimStr(s.getAttribute('personID')),
           personAge: trimStr(s.getAttribute('personAge')),
           language: trimStr(s.getAttribute('language')),
           personFirstLang: trimStr(s.getAttribute('personFirstLang')),
           personSecondLang: trimStr(s.getAttribute('personSecondLang')),
-          pos: getWAttr(w,'pos'),
-          pos1: getWAttr(w,'pos1'),
-          pos2: getWAttr(w,'pos2'),
-          pos3: getWAttr(w,'pos3'),
-          conjClass: getWAttr(w,'conjClass'),
-          conjForm: getWAttr(w,'conjForm'),
-          root: getWAttr(w,'root'),
-          reading: (getWAttr(w,'pronunciation')||getWAttr(w,'reading')),
           rawPrev: prevRaw, rawKey: w.outerHTML, rawNext: nextRaw, rawSentence: sentenceXML,
           keyIndex: i,
           sentenceNodeIndex: idx,
@@ -12940,15 +12928,8 @@ function runSearchWithProgress(conditions){
     if(idx < totalSent) { setTimeout(processChunk,0); }
     else {
       // 検索完了
-      if (isFileUploaded) {
-          currentDynamicHeaders = Array.from(uploadedFileAttrNames).sort().map(attrName => {
-              return { label: attrName, key: attrName };
-          });
-      } else {
-          currentDynamicHeaders = defaultDynamicHeaders;
-      }
       
-      hasSearched=true; $('progressBar').style.width='100%'; $('progressText').textContent='検索完了 (100% 完了)'; setTimeout(()=>{$('progressWrap').style.display='none'; $('progressText').style.display='none';},500); currentStartIndex=0; renderTable();
+      hasSearched=true;	$('progressBar').style.width='100%'; $('progressText').textContent='検索完了 (100% 完了)'; setTimeout(()=>{$('progressWrap').style.display='none'; $('progressText').style.display='none';},500); currentStartIndex=0; renderTable();
     }
   }
   setTimeout(processChunk,0);
@@ -12959,13 +12940,15 @@ function getSortedRows(){
   const headers = getCurrentHeaders();
   if(sortCol !== null){
     const key = headers[sortCol].key;
-    const isStatic = staticHeaders.find(sh => sh.key === key);
+    // このキーが動的Wヘッダーに含まれるかチェック
+    const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === key);
+    
     
     rows.sort((a,b) => {
       let valA, valB;
 
-      // ★ 変更: isFileUploaded フラグのみで判断 (isCustomized は不要)
-      if (isFileUploaded && !isStatic) {
+      // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+      if (isDynamicW) {
           valA = a.w_attrs[key];
           valB = b.w_attrs[key];
       } else {
@@ -13018,9 +13001,11 @@ function renderTable(){
       const td = document.createElement('td');
       
       let val;
-      const isStatic = staticHeaders.find(sh => sh.key === h.key);
-      // ★ 変更: isFileUploaded フラグのみで判断
-      if (isFileUploaded && !isStatic) {
+      // このキーが動的Wヘッダーに含まれるかチェック
+      const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === h.key);
+
+      // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+      if (isDynamicW) {
           val = r.w_attrs[h.key];
       } else {
           val = r[h.key];
@@ -13332,9 +13317,11 @@ function downloadCSV(encoding){
   const rows = hits.map(r => {
     const visible = headers.map(h => {
         let val;
-        const isStatic = staticHeaders.find(sh => sh.key === h.key);
-        // ★ 変更: isFileUploaded フラグのみで判断
-        if (isFileUploaded && !isStatic) {
+        // このキーが動的Wヘッダーに含まれるかチェック
+        const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === h.key);
+
+        // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+        if (isDynamicW) {
             val = r.w_attrs[h.key];
         } else {
             val = r[h.key];
@@ -13751,6 +13738,7 @@ window._debug = {
 </body>
 
 </html>
+
 
 
 
