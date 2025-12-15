@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <title>形態素検索 — Version 6.6 (UI改良)</title>
+  <title>KeioSFC コーパス検索</title>
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
     /* 全体スタイル（Version 6 系の色調を維持） */
@@ -15,10 +15,15 @@
     .form { border-collapse:collapse; width:100%; }
     .form td { padding:6px; vertical-align:middle; }
     .form .label { padding-right:8px; text-align:left; white-space:nowrap; width:auto; }
-    input[type="text"], input[type="file"] { width:100%; max-width:380px; padding:6px; border:1px solid #9fcf9f; border-radius:6px; background:#f6fff6; box-sizing:border-box; }
+    /* ★ 変更: input[type="text"] の width を 100% に統一 */
+    input[type="text"] { width:100%; padding:6px; border:1px solid #9fcf9f; border-radius:6px; background:#f6fff6; box-sizing:border-box; }
+    input[type="file"] { width:100%; max-width:380px; padding:6px; border:1px solid #9fcf9f; border-radius:6px; background:#f6fff6; box-sizing:border-box; }
     .controls { display:flex; gap:8px; align-items:center; margin:10px 0; flex-wrap:wrap; }
     button { background:#95d5b2; border:none; padding:8px 12px; border-radius:8px; cursor:pointer; font-weight:700; }
     button:hover { background:#74c69d; color:white; }
+    /* ★ 追加: カスタマイズボタンのスタイル */
+    #customizeBtn { background: #d4a373; }
+    #customizeBtn:hover { background: #bc6c25; color: white; }
     .hit-count { color:#d00000; font-weight:700; margin:8px 0; display:none; }
     .error { color:#d00000; font-weight:700; margin:8px 0; display:none; }
     .search-grid { display:flex; gap:12px; align-items:flex-start; flex-wrap:wrap; }
@@ -27,6 +32,23 @@
     table.output th, table.output td { border:1px solid #c7e7c7; padding:6px; text-align:left; vertical-align:middle; }
     table.output th { background:#dff3df; cursor:pointer; }
     table.output td { background:transparent; }
+    
+    /* V7.1 追加: 二段表示用スタイル */
+    .context-upper {
+        margin-bottom: 4px;
+        /* 上段はスペース区切りなので、必要に応じて折り返しを許可 */
+        white-space: normal; 
+    }
+    .context-lower {
+        font-size: 0.9em;
+        color: #555; /* 下段は少し薄く表示 */
+    }
+    /* キーワードのクリック領域をセル全体に広げる */
+    .key-cell-container {
+        display: block;
+        cursor: pointer;
+    }
+
     .pager { margin:10px 0; display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
     .small { font-size:0.9em; color:#666; }
     .progress-wrap { width:100%; background:#eee; border-radius:8px; overflow:hidden; height:18px; border:1px solid #cfc; margin-top:8px; display:none; }
@@ -46,237 +68,460 @@
     /* 単語ホバー色（薄め） */
     .word { display:inline-block; padding:2px 4px; margin:0 1px; border-radius:4px; transition: background 0.12s, border 0.12s; position:relative; border: 2px dashed transparent; }
     .word.punct { margin-left:0; margin-right:0; padding:0 2px; }
-    .名詞.hover, .名詞:hover { background: moccasin; border: 2px dashed rgba(255,140,0,0.45); }
-    .接頭詞.hover, .接頭詞:hover { background: lavender; border: 2px dashed rgba(128,0,128,0.25); }
-    .動詞.hover, .動詞:hover { background: lightblue; border: 2px dashed rgba(0,102,204,0.25); }
-    .形容詞.hover, .形容詞:hover { background: lightpink; border: 2px dashed rgba(220,20,60,0.18); }
-    .副詞.hover, .副詞:hover { background: palegreen; border: 2px dashed rgba(34,139,34,0.18); }
-    .連体詞.hover, .連体詞:hover { background: mistyrose; border: 2px dashed rgba(150,75,0,0.14); }
-    .接続詞.hover, .接続詞:hover { background: lightcyan; border: 2px dashed rgba(0,128,128,0.18); }
-    .助詞.hover, .助詞:hover { background: lemonchiffon; border: 2px dashed rgba(218,165,32,0.25); }
-    .助動詞.hover, .助動詞:hover { background: honeydew; border: 2px dashed rgba(0,100,0,0.14); }
-    .感動詞.hover, .感動詞:hover { background: peachpuff; border: 2px dashed rgba(255,140,0,0.18); }
-    .記号.hover, .記号:hover { background: gainsboro; border: 2px dashed rgba(120,120,120,0.18); }
-    .フィラー.hover, .フィラー:hover { background: lightyellow; border: 2px dashed rgba(128,128,0,0.18); }
-    .その他.hover, .その他:hover { background: whitesmoke; border: 2px dashed rgba(0,0,0,0.12); }
+
     .word.key-selected { box-shadow: 0 0 0 0 inset; }
     .selected-row td { background-color: #eaf7ec !important; }
     .meta-box { border:1px solid #cfc; border-radius:6px; padding:8px; background:#fbfff9; display:inline-block; cursor:pointer; }
     .article-header { font-weight:700; color:#1f6f3a; margin-bottom:6px; }
-    .keyword-fieldset { border:3px solid #2d6a4f; } /* 太い枠（キーワード条件） */
+    .keyword-fieldset { border:3px solid #2d6a4f; width: 340px; box-sizing: border-box; }
     .matrix-table { width:100%; border-collapse:collapse; margin-top:6px; }
     .matrix-table th, .matrix-table td { border:1px solid #dfefe0; padding:6px; text-align:center; }
     .matrix-table th { background:#f2fff2; font-weight:700; }
     @media (max-width:700px){ .form .label { width:40%; } }
+    
+    /* ★ 追加: タブスタイル */
+    .tab-btn {
+      padding: 8px 12px;
+      border: 1px solid #ddd;
+      border-bottom: 2px solid #9fcf9f;
+      border-radius: 6px 6px 0 0;
+      background: #f0f0f0;
+      font-weight: 700;
+      cursor: pointer;
+      color: #333;
+      margin-bottom: -2px; 
+    }
+    .tab-btn:hover {
+      background: #e9e9e9;
+    }
+    .tab-btn.active {
+      background: #f5fff5; 
+      border: 2px solid #9fcf9f;
+      border-bottom: 2px solid #f5fff5; 
+      color: #1f6f3a;
+    }
+
+    
+    #udToggleBtn.active {
+      background: #57a070;
+      color: white;
+      font-weight: bold;
+    }
+    #udCanvas {
+      /* キャンバス自体がクリックイベントを拾わないように */
+      pointer-events: none;
+    }
+	
+
+  /* ★ 新UI用: 5セルグリッドレイアウト */
+    .search-grid-container {
+      display: grid;
+      grid-template-areas:
+        ". up up up ."
+        ". left center right ."
+        ". down down down .";
+      
+      grid-template-columns: 1fr auto 340px auto 1fr;
+      grid-gap: 12px;
+      align-items: center; /* ★ 変更: H/Dのため、デフォルトを中央揃えに変更 */
+    }
+    .grid-cell { padding: 10px; }
+    .grid-cell.up { grid-area: up; text-align: center; align-self: center; }
+    .grid-cell.down { grid-area: down; text-align: center; align-self: center; }
+    /* (ファイル上部の .grid-cell.left / .right の定義を修正) */
+    .grid-cell.left { 
+      grid-area: left; 
+      display: flex;
+      /* LはHTMLの順序（ボタン→Wrapper）を逆転させ、Wrapperが左、ボタンが右（中央寄り）に来るようにする */
+      flex-direction: row-reverse;
+      gap: 8px;
+      align-self: center; 
+      /* ボタンと表を垂直方向に中央揃え */
+      align-items: center;
+    }
+    .grid-cell.right { 
+      grid-area: right; 
+      display: flex;
+      /* Rは通常の横並びで、ボタンが左（中央寄り）、Wrapperが右に来るようにする */
+      flex-direction: row;
+      gap: 8px;
+      align-self: center; 
+      /* ボタンと表を垂直方向に中央揃え */
+      align-items: center;
+    }
+    .grid-cell.center { 
+      grid-area: center; 
+      align-self: center; 
+    }
+    
+    /* ★ 新UI用: L/R/H/D の動的コンテナ */
+   .dynamic-container {
+      display: flex;
+      /* flex-direction: column; */ /* ★ 削除 (各方向のスタイルで指定) */
+      gap: 10px;
+      align-items: flex-start; /* ★ 追加: アイテムを上揃えにし、高さを可変にする */
+    }
+
+/* ★ H/Dラッパー(flex)内のテーブルを中央揃えにし、フィールドセット風にする */
+#H-area-wrapper, #D-area-wrapper {
+  justify-content: center;
+  /* flex-direction と align-items は JS側で設定 */
+  
+  /* ★ keyword-fieldset のスタイルを適用 */
+  background: #fff;
+  border: 3px solid #2d6a4f; /* ★ 太枠に変更 */
+  padding: 12px;
+  border-radius: 8px;
+  box-sizing: border-box; /* padding を含めて計算 */
+  /* H/Dボタンとのマージン */
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+/* H/Dラッパー内のテーブルの枠線を削除 (二重枠線防止) */
+#H-area-wrapper .lr-table,
+#D-area-wrapper .lr-table {
+    border: none;
+    background: none;
+    overflow: visible;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* L/Rを中央ボックス内に収めたため、外側セルの役割を無効化 */
+
+
+
+    /* ★ 追加: H (親) は縦・逆順 */
+    .grid-cell.up .dynamic-container {
+      flex-direction: column-reverse;
+      align-items: stretch; /* ★ 左右幅をコンテナに合わせる */
+    }
+    /* ★ 追加: D (子) は縦・順方向 (デフォルト通り) */
+    .grid-cell.down .dynamic-container {
+      flex-direction: column;
+      align-items: stretch; /* ★ 左右幅をコンテナに合わせる */
+    }
+
+    
+    .dynamic-search-box-controls { margin-top: 6px; display:flex; gap: 6px; flex-wrap: wrap; justify-content: center; 
+	}
+    .dynamic-search-box-controls .add-btn {
+      background: #95d5b2;
+      font-size: 0.9em;
+      padding: 4px 8px;
+    }
+    .dynamic-search-box-controls .remove-btn {
+      background: #f1a3a3;
+      font-size: 0.9em;
+      padding: 4px 8px;
+    }
+    
+	.dynamic-search-box-controls .remove-btn {
+      background: #f1a3a3;
+      font-size: 0.9em;
+      padding: 4px 8px;
+    }
+    
+   
+
+    /* ★ 新規追加: H/D 検索用のヘッダー (コンテナの外) */
+    .dep-header-row {
+      display: flex;
+      flex-direction: row;
+      gap: 6px; /* input間のgapと合わせる */
+      margin-bottom: 4px;
+      padding-left: 40px; /* H1/H2ラベル分のオフセット */
+      box-sizing: border-box;
+      width: 100%;
+    }
+    .dep-header-row .dep-header-label {
+      font-size: 0.9em;
+      color: #1f6f3a;
+      font-weight: bold;
+      text-align: left;
+      /* ★ 変更: (input 32px) + (td padding 3*2px) = 38px */
+      height: 38px; 
+      /* 垂直方向の中央揃え (行の高さと合わせる) */
+      line-height: 38px;
+      box-sizing: border-box;
+    }
+
+    /* ★ 新規追加: H/D では .dynamic-search-box を使わない設定 */
+    .grid-cell.up .dynamic-search-box,
+    .grid-cell.down .dynamic-search-box {
+      border: none;
+      padding: 0;
+      background: none;
+      width: 100%;
+      min-width: 0; /* 最小幅をリセット */
+    }
+    .grid-cell.left .add-more-btn,
+    .grid-cell.right .add-more-btn,
+    .grid-cell.up .add-more-btn,
+    .grid-cell.down .add-more-btn {
+      display: none;
+    }
+    
+    /* ★ 新規追加: H/D ボックス用の入力行 (H1, H2...) */
+    .dep-input-row {
+      display: flex;
+      flex-direction: row;
+      align-items: center;
+      gap: 6px;
+      width: auto; 
+      padding: 2px 0; /* 行間のアキ */
+    }
+    .dep-input-row .dep-row-legend {
+      font-weight: bold;
+      color: #1f6f3a;
+      width: 30px; /* 固定幅 */
+      text-align: right;
+      padding-right: 4px;
+      font-size: 0.95em;
+      flex-shrink: 0;
+    }
+    .dep-input-row input[type="text"] {
+      flex: 1 1 0; /* 均等幅 */
+      min-width: 60px; /* 最小幅 */
+    }
+    /* H/D 用の削除ボタン */
+    .dep-input-row .remove-btn {
+      background: #f1a3a3;
+      font-size: 0.9em;
+      padding: 4px 8px;
+      flex-shrink: 0; /* 縮まない */
+    }
+    /* H/D では「さらに追加」ボタンを非表示 (画像Bにない) */
+    .grid-cell.up .add-more-btn,
+    .grid-cell.down .add-more-btn {
+      display: none;
+    }
+	
+    //* ★ 追加: H/D 用の「横」ヘッダーCSSを .dep-header-row として再定義 */
+    .dep-header-row {
+      display: flex;
+      flex-direction: row;
+      gap: 6px; /* input間のgapと合わせる */
+      margin-bottom: 4px;
+      padding-left: 40px; /* H1/H2ラベル分のオフセット */
+      box-sizing: border-box;
+      width: auto; /* ★ 変更: 100% から auto へ */
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .dep-header-row .dep-header-label {
+      font-size: 0.9em;
+      color: #1f6f3a;
+      font-weight: bold;
+      text-align: left;
+      flex: 1 1 0; /* 均等幅 */
+      min-width: 60px; /* 最小幅 */
+    }
+
+       
+    
+    /* ★ 新規追加: H/D の .dynamic-search-box の幅とラベル非表示 */
+    .grid-cell.up .dynamic-search-box,
+    .grid-cell.down .dynamic-search-box {
+      width: 120px; /* H/Dは入力欄だけなので幅を狭くする */
+    }
+    .grid-cell.up .dynamic-search-box .label,
+    .grid-cell.down .dynamic-search-box .label {
+      display: none; /* JSでも非表示にするが、CSSでも強制 */
+    }
+    
+    /* ★ 新UI用: トリガーボタン */
+    .trigger-btn {
+      background: #e0e0e0;
+      padding: 10px 15px;
+      font-weight: bold;
+      color: #555;
+    }
+    .trigger-btn:hover { background: #ccc; }
+	
+    /* ★ 追加: L/R 縦書きトリガーボタン */
+    .trigger-btn-vertical {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      padding: 15px 10px;
+      height: 200px; /* 高さを指定 */
+    }
+
+/* ★ 追加: L/R 動的テーブル用の新スタイル */
+    .lr-table {
+      border-collapse: collapse;
+      /* ★ キーワード欄のスタイルに合わせる */
+      border: 3px solid #2d6a4f;
+      background: #fff;
+      padding: 6px; /* ★ 枠線との余白を追加 */
+      box-sizing: border-box; /* ★ パディングを幅に含める */
+      /* ★ 以下の2行は変更なし */
+      border-radius: 8px;
+      overflow: hidden; /* border-radiusを効かせる */
+    }
+    .lr-table th, .lr-table td {
+      border: 1px solid #cfe9d1;
+      padding: 3px;
+      vertical-align: middle;
+      height: 38px; /* 入力欄の高さと揃える */
+      box-sizing: border-box;
+    }
+    /* 縦ヘッダー (一番左の列) */
+    .lr-table th.label {
+      font-size: 0.9em;
+      color: #1f6f3a;
+      font-weight: bold;
+      text-align: left;
+      padding: 0 8px;
+      white-space: nowrap;
+    }
+    /* データセル (入力欄) */
+    .lr-table td {
+      width: 4em; /* 列の最小幅 (漢字四文字分+余白程度) */
+    }
+    .lr-table input[type="text"] {
+      width: 100%;
+    }
+    /* 列ヘッダー (L1, L2...) */
+    .lr-table td.col-header {
+      font-weight: bold;
+      color: #1f6f3a;
+      padding: 0 4px;
+      text-align: center;
+      font-size: 0.95em;
+      height: 20px; /* legend相当 */
+    }
+    /* 列フッター (削除ボタン) */
+    .lr-table td.col-controls {
+      text-align: center;
+      height: 34px; /* controls相当 */
+      padding: 3px;
+    }
+    .lr-table .remove-col-btn {
+      background: #f1a3a3;
+      font-size: 0.9em;
+      padding: 4px 8px;
+      /* width: 100%; の行を削除 */
+    }
+	
+	/* ★ 追加: キーワードボックス(中央)の幅と配置を調整 */
+    #key_table {
+      width: auto; /* テーブルが親(fieldset)いっぱいに広がるのを防ぐ */
+    }
+    #key_table .label {
+      text-align: right; /* ラベルを右揃えに */
+      width: 1%; /* ラベル列が自動で縮小するように */
+      white-space: nowrap; /* ラベルが改行しないように */
+    }
+    #key_table input[type="text"] {
+      width: 120px; /* 入力欄の幅を120pxに固定 */
+    }
   </style>
-  <!-- encoding-japanese for SJIS -->
+  
+  <style id="dynamicPosStyles"></style>
   <script src="https://cdn.jsdelivr.net/npm/encoding-japanese@2.0.0/encoding.min.js"></script>
 </head>
 <body>
-  <h1>形態素検索（Version 7）</h1>
-  <!-- TOP AREA: everything up to CSV download -->
-  <div class="top-area">
-  <h2>☞　検索条件入力</h2>
-    <!-- トグルボタン: L/R/文書情報 と アップロード（同一行） -->
-    <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px;">
-      <button id="showLBtn">Lワード条件を表示</button>
-      <button id="showRBtn">Rワード条件を表示</button>
-      <button id="showDocBtn">文書情報による検索条件を追加</button>
-      <button id="showUploadBtn">自分のデータをアップロード</button>
+  <h1>KeioSFC: X-Search (Version 2)</h1>
+  
+  <div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap: wrap;">
+      <button id="showUploadBtn" onclick="$('uploadFieldset').style.display='block'; this.style.display='none';">自分のデータをアップロード</button>
     </div>
-    <!-- upload fieldset: hidden until user presses button -->
+	<div style="display:flex; gap:8px; align-items:center; margin-bottom:8px; flex-wrap: wrap;">
+	      <button id="showDocBtn" onclick="$('docFieldset').style.display='block'; this.style.display='none';">文書情報による検索条件を追加</button>
+   </div>
+
+	
+	
+  <div class="top-area">
+    <h2>☞　検索条件入力</h2>
+
+    
+
     <fieldset id="uploadFieldset" style="display:none;">
       <legend>データ選択（デフォルトは埋め込み。XML をアップロードするとそれを使用）</legend>
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
-        <div>
-          <input id="fileInput" type="file" accept=".xml,text/xml" />
-        </div>
+        <div><input id="fileInput" type="file" accept=".xml,text/xml" /></div>
         <div>
           <button id="clearDataBtn">データをクリア（デフォルトに戻す）</button>
         </div>
         <div id="fileError" class="error" style="display:none;"></div>
       </div>
     </fieldset>
-    <!-- L blocks (hidden until showLBtn pressed). Behavior changed: showLBtn shows the whole LFieldset + matrix -->
-    <fieldset id="LFieldset" style="display:none;">
-      <legend>Lワード条件（L5 → L4 → L3 → L2 → L1）</legend>
-      <div style="display:flex; gap:8px; align-items:center; margin-bottom:6px;">
-        <button id="hideLBtn">Lを非表示（検索条件は保持）</button>
-        <button id="clearLallBtn">全Lを削除（クリアかつ非表示）</button>
-        <span class="small">Lk はキーから k 語前の単語を指定します（位置的完全一致）。</span>
-      </div>
-      <div id="Lmatrix" style="display:block;">
-        <table class="matrix-table">
-          <thead><tr><th>条件</th><th>L5</th><th>L4</th><th>L3</th><th>L2</th><th>L1</th></tr></thead>
-          <tbody>
-            <tr><td class="label">品詞</td>
-              <td><input id="L5_pos" type="text" placeholder="例：名詞" /></td>
-              <td><input id="L4_pos" type="text" /></td>
-              <td><input id="L3_pos" type="text" /></td>
-              <td><input id="L2_pos" type="text" /></td>
-              <td><input id="L1_pos" type="text" /></td>
-            </tr>
-            <tr><td class="label">品詞細分類1</td>
-              <td><input id="L5_pos1" type="text" placeholder="例：固有名詞" disabled /></td>
-              <td><input id="L4_pos1" type="text" disabled /></td>
-              <td><input id="L3_pos1" type="text" disabled /></td>
-              <td><input id="L2_pos1" type="text" disabled /></td>
-              <td><input id="L1_pos1" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">品詞細分類2</td>
-              <td><input id="L5_pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td>
-              <td><input id="L4_pos2" type="text" disabled /></td>
-              <td><input id="L3_pos2" type="text" disabled /></td>
-              <td><input id="L2_pos2" type="text" disabled /></td>
-              <td><input id="L1_pos2" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">品詞細分類3</td>
-              <td><input id="L5_pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td>
-              <td><input id="L4_pos3" type="text" disabled /></td>
-              <td><input id="L3_pos3" type="text" disabled /></td>
-              <td><input id="L2_pos3" type="text" disabled /></td>
-              <td><input id="L1_pos3" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">活用型</td>
-              <td><input id="L5_conjClass" type="text" placeholder="例：五段・サ行" 　 /></td>
-              <td><input id="L4_conjClass" type="text" /></td>
-              <td><input id="L3_conjClass" type="text" /></td>
-              <td><input id="L2_conjClass" type="text" /></td>
-              <td><input id="L1_conjClass" type="text" /></td>
-            </tr>
-            <tr><td class="label">活用形</td>
-              <td><input id="L5_conjForm" type="text" placeholder="例：連用形" /></td>
-              <td><input id="L4_conjForm" type="text" /></td>
-              <td><input id="L3_conjForm" type="text" /></td>
-              <td><input id="L2_conjForm" type="text" /></td>
-              <td><input id="L1_conjForm" type="text" /></td>
-            </tr>
-            <tr><td class="label">原形</td>
-              <td><input id="L5_root" type="text" placeholder="例：帰る" 　/></td>
-              <td><input id="L4_root" type="text" /></td>
-              <td><input id="L3_root" type="text" /></td>
-              <td><input id="L2_root" type="text" /></td>
-              <td><input id="L1_root" type="text" /></td>
-            </tr>
-            <tr><td class="label">表層形</td>
-              <td><input id="L5_surface" type="text" placeholder="例：カエッ" /></td>
-              <td><input id="L4_surface" type="text" /></td>
-              <td><input id="L3_surface" type="text" /></td>
-              <td><input id="L2_surface" type="text" /></td>
-              <td><input id="L1_surface" type="text" /></td>
-            </tr>
-          </tbody>
-        </table>
+    
+    <fieldset id="docFieldset" style="display:none; min-width:240px; margin-bottom: 12px;">
+      <legend>文書情報による検索</legend>
+      <table class="form">
+        <tr><td class="label">タスク番号</td><td><input id="Task" type="text" placeholder="例：91" /></td></tr>
+        <tr><td class="label">作文番号</td><td><input id="textID" type="text" placeholder="例：1" /></td></tr>
+        <tr><td class="label">個人ID</td><td><input id="personID" type="text" placeholder="例：1" /></td></tr>
+        <tr><td class="label">年齢</td><td><input id="personAge" type="text" placeholder="例：18" /></td></tr>
+        <tr><td class="label">使用言語</td><td><input id="language" type="text" placeholder="例：日" /></td></tr>
+        <tr><td class="label">第一言語</td><td><input id="personFirstLang" type="text" placeholder="例：日" /></td></tr>
+        <tr><td class="label">第二言語</td><td><input id="personSecondLang" type="text" placeholder="例：英" /></td></tr>
+      </table>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button id="clearDocBtn">クリア</button>
+        <button id="removeDocBtn" onclick="$('docFieldset').style.display = 'none'; $('showDocBtn').style.display = 'inline-block';">条件の削除</button>
       </div>
     </fieldset>
-    <!-- キーワード条件 と 文書情報を横並びに表示するコンテナ -->
-    <div style="display:flex; gap:12px; align-items:flex-start; margin-bottom:12px; flex-wrap:wrap;">
-      <!-- キーワード条件（左） -->
-      <fieldset class="keyword-fieldset" style="min-width:320px;">
-        <legend>キーワード条件</legend>
-        <table class="form">
-          <tr><td class="label">品詞</td><td><input id="pos" type="text" placeholder="例：名詞" /></td></tr>
-          <tr><td class="label">品詞細分類１</td><td><input id="pos1" type="text" placeholder="例：固有名詞（※品詞によって利用可否が変わります）" disabled /></td></tr>
-          <tr><td class="label">品詞細分類２</td><td><input id="pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td></tr>
-          <tr><td class="label">品詞細分類３</td><td><input id="pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td></tr>
-          <tr><td class="label">活用型</td><td><input id="conjClass" type="text" placeholder="例：五段・サ行" /></td></tr>
-          <tr><td class="label">活用形</td><td><input id="conjForm" type="text" placeholder="例：連用形" /></td></tr>
-          <tr><td class="label">原形</td><td><input id="root" type="text" placeholder="例：帰る" /></td></tr>
-          <tr><td class="label">表層形</td><td><input id="surface" type="text" placeholder="例：カエッ" /></td></tr>
-        </table>
-      </fieldset>
-      <!-- 文書情報（右）: initially hidden until showDocBtn pressed -->
-      <fieldset id="docFieldset" style="display:none; min-width:240px;">
-        <legend>文書情報による検索</legend>
-        <table class="form">
-          <tr><td class="label">タスク番号</td><td><input id="Task" type="text" placeholder="例：91" /></td></tr>
-          <tr><td class="label">作文番号</td><td><input id="textID" type="text" placeholder="例：1" /></td></tr>
-          <tr><td class="label">個人ID</td><td><input id="personID" type="text" placeholder="例：1" /></td></tr>
-          <tr><td class="label">年齢</td><td><input id="personAge" type="text" placeholder="例：18" /></td></tr>
-          <tr><td class="label">使用言語</td><td><input id="language" type="text" placeholder="例：日" /></td></tr>
-          <tr><td class="label">第一言語</td><td><input id="personFirstLang" type="text" placeholder="例：日" /></td></tr>
-          <tr><td class="label">第二言語</td><td><input id="personSecondLang" type="text" placeholder="例：英" /></td></tr>
-        </table>
-        <div style="display:flex; gap:8px; margin-top:10px;">
-          <button id="clearDocBtn">クリア</button>
-          <button id="removeDocBtn">条件の削除</button>
+
+    
+      <div class="search-grid-container">
+      
+      <div class="grid-cell up">
+        <button id="H-add-chain-btn" 
+                class="trigger-btn" 
+                style="display: none; margin-top: 10px; background-color: #d4a373;" 
+                onclick="createDependencyChain('H')">
+          さらに別の親関係を指定する
+        </button>
+		<div id="H-area-wrapper" style="display: none; ...">
         </div>
-      </fieldset>
+        <button id="triggerH" class="trigger-btn" onclick="showSearchArea('H')">親ノード検索を指定</button>
+        
+      </div>
+
+      <div class="grid-cell left">
+        <button id="triggerL" class="trigger-btn trigger-btn-vertical" onclick="showSearchArea('L')">Ｌワード検索を指定</button>
+        <div id="L-area-wrapper" style="display: none; gap: 8px;"></div>
+      </div>
+
+      <div class="grid-cell center">
+        <fieldset class="keyword-fieldset">
+          <legend>キーワード / キーノード条件</legend>
+          <table class="form" id="key_table">
+            <tbody id="key_tbody"></tbody>
+          </table>
+          
+        </fieldset>
+      </div>
+      
+      <div class="grid-cell right">
+        <button id="triggerR" class="trigger-btn trigger-btn-vertical" onclick="showSearchArea('R')">Ｒワード検索を指定</button>
+        <div id="R-area-wrapper" style="display: none; gap: 8px;"></div>
+      </div>
+      
+      <div class="grid-cell down">
+        <button id="triggerD" class="trigger-btn" onclick="showSearchArea('D')">子ノード検索を指定</button>
+        <div id="D-area-wrapper" style="display: none; ...">
+        </div>
+        <button id="D-add-chain-btn" 
+                class="trigger-btn" 
+                style="display: none; margin-top: 10px; background-color: #d4a373;" 
+                onclick="createDependencyChain('D')">
+          さらに別の子関係を指定する
+        </button>
+      </div>
     </div>
-    <!-- R blocks -->
-    <fieldset id="RFieldset" style="display:none;">
-      <legend>Rワード条件（R1 → R2 → R3 → R4 → R5）</legend>
-      <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-        <button id="hideRBtn">Rを非表示（検索条件は保持）</button>
-        <button id="clearRallBtn">全Rを削除（クリアかつ非表示）</button>
-        <span class="small">Rk はキーから k 語後の単語を指定します（位置的完全一致）。</span>
-      </div>
-      <div id="Rmatrix" style="display:block;">
-        <table class="matrix-table">
-          <thead><tr><th>条件</th><th>R1</th><th>R2</th><th>R3</th><th>R4</th><th>R5</th></tr></thead>
-          <tbody>
-          <tr><td class="label">品詞</td>
-              <td><input id="R1_pos" type="text" placeholder="例：名詞"　/></td>
-              <td><input id="R2_pos" type="text" /></td>
-              <td><input id="R3_pos" type="text" /></td>
-              <td><input id="R4_pos" type="text" /></td>
-              <td><input id="R5_pos" type="text" /></td>
-            </tr>
-            <tr><td class="label">品詞細分類1</td>
-              <td><input id="R1_pos1" type="text" placeholder="例：固有名詞（※品詞によって利用可否が変わります）" disabled /></td>
-              <td><input id="R2_pos1" type="text" disabled /></td>
-              <td><input id="R3_pos1" type="text" disabled /></td>
-              <td><input id="R4_pos1" type="text" disabled /></td>
-              <td><input id="R5_pos1" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">品詞細分類2</td>
-              <td><input id="R1_pos2" type="text" placeholder="例：人名（※品詞によって利用可否が変わります）" disabled /></td>
-              <td><input id="R2_pos2" type="text" disabled /></td>
-              <td><input id="R3_pos2" type="text" disabled /></td>
-              <td><input id="R4_pos2" type="text" disabled /></td>
-              <td><input id="R5_pos2" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">品詞細分類3</td>
-              <td><input id="R1_pos3" type="text" placeholder="例：名（※品詞によって利用可否が変わります）" disabled /></td>
-              <td><input id="R2_pos3" type="text" disabled /></td>
-              <td><input id="R3_pos3" type="text" disabled /></td>
-              <td><input id="R4_pos3" type="text" disabled /></td>
-              <td><input id="R5_pos3" type="text" disabled /></td>
-            </tr>
-            <tr><td class="label">活用型</td>
-              <td><input id="R1_conjClass" type="text" placeholder="例：五段・サ行"　/></td>
-              <td><input id="R2_conjClass" type="text" /></td>
-              <td><input id="R3_conjClass" type="text" /></td>
-              <td><input id="R4_conjClass" type="text" /></td>
-              <td><input id="R5_conjClass" type="text" /></td>
-            </tr>
-            <tr><td class="label">活用形</td>
-              <td><input id="R1_conjForm" type="text" placeholder="例：連用形"/></td>
-              <td><input id="R2_conjForm" type="text" /></td>
-              <td><input id="R3_conjForm" type="text" /></td>
-              <td><input id="R4_conjForm" type="text" /></td>
-              <td><input id="R5_conjForm" type="text" /></td>
-            </tr>
-            <tr><td class="label">原形</td>
-              <td><input id="R1_root" type="text" placeholder="例：帰る" /></td>
-              <td><input id="R2_root" type="text" /></td>
-              <td><input id="R3_root" type="text" /></td>
-              <td><input id="R4_root" type="text" /></td>
-              <td><input id="R5_root" type="text" /></td>
-            </tr>
-            <tr><td class="label">表層形</td>
-              <td><input id="R1_surface" type="text" placeholder="例：カエッ" /></td>
-              <td><input id="R2_surface" type="text" /></td>
-              <td><input id="R3_surface" type="text" /></td>
-              <td><input id="R4_surface" type="text" /></td>
-              <td><input id="R5_surface" type="text" /></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </fieldset>
-    <!-- controls -->
-    <div class="controls" style="margin-top:10px;">
+
+  
+      
+      
+     
+
+    </div> <div class="controls" style="margin-top:10px;">
       <button id="searchBtn">検索</button>
       <button id="clearBtn">全条件クリア</button>
       表示件数:
@@ -295,29 +540,40 @@
       </select>
       <button id="downloadBtn">CSVダウンロード</button>
     </div>
-    <!-- progress / messages -->
     <div id="progressArea">
       <div id="progressText" class="progress-text"></div>
       <div class="progress-wrap" id="progressWrap"><div class="progress-bar" id="progressBar"></div></div>
     </div>
     <div id="errorMsg" class="error"></div>
     <div id="hitCount" class="hit-count"></div>
-  </div> <!-- end .top-area -->
-　<h2><b>☞　検索結果</b></h2>
+    </div> <h2><b>☞ 検索結果</b></h2>
     <div class="pager" id="pagerTop"></div>
     <div id="tableContainer"></div>
     <div class="pager" id="pagerBottom"></div>
-  <!-- POST AREA: 表の後 (薄紫トーン) -->
-  
   <div class="post-area">
-  <h2>☞　詳細な分析</h2>
-    <!-- detail box -->
+  <h2>☞ 詳細な分析</h2>
     <div class="detail-box" id="sentenceDetail" style="display:none;">
-      <div class="detail-header">文詳細表示</div>
+      <div class="detail-header">
+        文詳細表示
+        <button id="udToggleBtn" style="margin-left: 15px; font-size: 0.8em; padding: 4px 8px; background: #b7e4c7;">UD表示 OFF</button>
+        
+        <span id="udOptions" style="display:none; margin-left: 10px; font-size: 0.9em; vertical-align: middle;">
+          ノード表示:
+          <input type="checkbox" id="udOpt_original" class="udOpt" value="original" checked> <label for="udOpt_original" style="cursor:pointer;">表層形</label>
+          <input type="checkbox" id="udOpt_text" class="udOpt" value="textContent" style="margin-left: 5px;"> <label for="udOpt_text" style="cursor:pointer;">読み</label>
+          <input type="checkbox" id="udOpt_root" class="udOpt" value="root" style="margin-left: 5px;"> <label for="udOpt_root" style="cursor:pointer;">原形</label>
+          <input type="checkbox" id="udOpt_pos" class="udOpt" value="pos" style="margin-left: 5px;"> <label for="udOpt_pos" style="cursor:pointer;">品詞</label>
+        </span>
+        </div>
       <div class="sentence-meta meta-box" id="sentenceMeta" style="display:none;" title="クリックで表の表示位置を変更します"></div>
+      
+      <div id="udCanvasContainer" style="display:none; position: relative; border: 1px solid #ddd; background: #fdfdfd; margin-top: 10px; overflow-x: auto; overflow-y: hidden;">
+        <canvas id="udCanvas" height="100"></canvas>
+        <div id="udError" style="color: red; padding: 10px; display: none; text-align: center;"></div>
+      </div>
+      
       <div class="sentence-area" id="sentenceArea"></div>
     </div>
-    <!-- article controls (outside the detail box) -->
     <div style="margin-top:8px;">
       <button id="showArticleBtn" style="display:none;">文章全体を表示</button>
       <label id="articleRangeLabel" style="display:none;margin-left:8px;">前後:
@@ -331,25 +587,21 @@
         </select>
       </label>
     </div>
-    <!-- independent article box -->
     <div class="article-box" id="articleBox" style="display:none;">
       <div class="article-header">文章詳細表示</div>
       <div id="articleContent"></div>
     </div>
-    <!-- tooltip -->
     <div class="tooltip" id="tooltip"></div>
-  </div> <!-- end .post-area -->
-<script>
-/* Version 6.6
-   - Keep Version 6.5 features
-   - UI changes requested:
-     (1) docFieldset: when shown, hide showDocBtn; add clearDocBtn and removeDocBtn behavior
-     (2) showUploadBtn placed next to showDocBtn
-     (3) color-coded top/post areas (handled in CSS)
+  </div> <script>
+/* Version 7.2
+   - V7.1: 検索結果の二段表示
+   - V7.2: 検索インターフェイスの動的構築機能
+     - XMLアップロード後、「カスタマイズ」ボタンでUIを再構築
+     - 検索ロジック(collectConditions, wordMatchesExact)を動的UIに対応
+     - UI復元機能(rebuildForms, clearDataBtn)
 */
 /* ---------- デフォルトサンプルデータ（埋め込み） ---------- */
-const defaultData = `
-
+const defaultData = ` 
   <document filename="Task01ID00001.txt">
     <s sentId="1" Task="1" textID="1" personID="2" personAge="18" language="Japanese" personFirstLang="日" personSecondLang="英">
         <w wordId="1" pos="DET" lemma="とある" tag="連体詞" udType="det" udFrom="2" udTo="" original="とある">toaru</w>
@@ -14062,11 +14314,11 @@ const defaultData = `
         <w wordId="26" pos="AUX" lemma="た" tag="助動詞" udType="aux" udFrom="23" udTo="" original="た">ta</w>
         <w wordId="27" pos="PUNCT" lemma="。" tag="補助記号-句点" udType="punct" udFrom="23" udTo="" original="。">.</w>
     </s>
-  </document>
-`;
+  </document>`;
 /* ---------- 状態とユーティリティ ---------- */
 let currentData = defaultData;
 let uploadFileName = "keioSFC";
+let isFileUploaded = false;
 let hits = [];
 let parsedSentences = [];
 let currentStartIndex = 0;
@@ -14075,42 +14327,39 @@ let sortAsc = true;
 let hasSearched = false;
 let searchAbort = false;
 let selectedHitNo = null;
-const posColors = {
-  "名詞": {bg:"moccasin", border:"rgba(255,140,0,0.55)"},
-  "接頭詞": {bg:"lavender", border:"rgba(128,0,128,0.35)"},
-  "動詞": {bg:"lightblue", border:"rgba(0,102,204,0.35)"},
-  "形容詞": {bg:"lightpink", border:"rgba(220,20,60,0.25)"},
-  "副詞": {bg:"palegreen", border:"rgba(34,139,34,0.25)"},
-  "連体詞": {bg:"mistyrose", border:"rgba(150,75,0,0.22)"},
-  "接続詞": {bg:"lightcyan", border:"rgba(0,128,128,0.25)"},
-  "助詞": {bg:"lemonchiffon", border:"rgba(218,165,32,0.35)"},
-  "助動詞": {bg:"honeydew", border:"rgba(0,100,0,0.2)"},
-  "感動詞": {bg:"peachpuff", border:"rgba(255,140,0,0.25)"},
-  "記号": {bg:"gainsboro", border:"rgba(120,120,120,0.25)"},
-  "フィラー": {bg:"lightyellow", border:"rgba(128,128,0,0.25)"},
-  "その他": {bg:"whitesmoke", border:"rgba(0,0,0,0.12)"}
-};
-const headers = [
+let isUDViewActive = false; // ★ V7.3 追加
+
+// ★ 追加: 動的UIのための状態
+let detectedAttributes = new Set();
+// ★ V7.4: posColors を動的に生成するため let に変更し、空にする
+let posColors = {};
+let attributeExamples = {}; // 属性ごとのサンプルテキストを保持
+const staticHeaders = [
   {label:"通し番号", key:"no"},
   {label:"タスク番号", key:"Task"},
   {label:"作文番号", key:"textID"},
   {label:"前文脈", key:"prev"},
   {label:"キー", key:"key"},
-  {label:"後文脈", key:"next"},
+  {label:"後文脈", key:"next"}
+];
+
+// ★ 新設: 文書情報ヘッダーを定義 (<s>タグ由来)
+const docInfoHeaders = [
   {label:"個人ID", key:"personID"},
   {label:"年齢", key:"personAge"},
   {label:"使用言語", key:"language"},
   {label:"第一言語", key:"personFirstLang"},
-  {label:"第二言語", key:"personSecondLang"},
-  {label:"品詞", key:"pos"},
-  {label:"品詞細分類1", key:"pos1"},
-  {label:"品詞細分類2", key:"pos2"},
-  {label:"品詞細分類3", key:"pos3"},
-  {label:"活用型", key:"conjClass"},
-  {label:"活用形", key:"conjForm"},
-  {label:"原形", key:"root"},
-  {label:"読み", key:"reading"}
+  {label:"第二言語", key:"personSecondLang"}
 ];
+
+
+// wタグ由来の動的ヘッダーを保持する変数 (初期値は空)
+let currentDynamicWHeaders = [];
+
+// 静的ヘッダー + 文書情報 + 動的Wヘッダー を結合
+function getCurrentHeaders() {
+  return staticHeaders.concat(docInfoHeaders).concat(currentDynamicWHeaders);
+}
 const $ = id => document.getElementById(id);
 function trimStr(s){ return (s===null||s===undefined) ? "" : String(s).trim(); }
 function getWAttr(w,a){ return trimStr(w.getAttribute(a)); }
@@ -14118,101 +14367,130 @@ function getWAttr(w,a){ return trimStr(w.getAttribute(a)); }
 function parseSentencesFromCurrentData(){
   try {
     const parser = new DOMParser();
-    const xml = parser.parseFromString(`<root>${currentData}</root>`,"application/xml");
-    if(xml.getElementsByTagName("parsererror").length > 0) return {error:"データの XML パースに失敗しました。", sentences:[]};
+    const trimmedData = currentData.trim();
+    if (trimmedData === "") {
+        return {error:null, sentences:[]};
+    }
+    let xml;
+    xml = parser.parseFromString(trimmedData,"application/xml");
+    let parserError = xml.getElementsByTagName("parsererror");
+    if(parserError.length > 0) {
+        if (trimmedData.startsWith('<?xml')) {
+            const errorDetails = parserError[0].textContent || "";
+            const cleanedDetails = errorDetails.replace(/error on line.*:/i, '').trim();
+            return {error:`XMLパースエラー（整形式XMLですが構造が不正です）。詳細: ${cleanedDetails}`, sentences:[]};
+        }
+        const wrappedXml = parser.parseFromString(`<root>${trimmedData}</root>`,"application/xml");
+        const wrappedError = wrappedXml.getElementsByTagName("parsererror");
+        if (wrappedError.length === 0) {
+            xml = wrappedXml;
+        } else {
+            const errorDetails = wrappedError[0].textContent || parserError[0].textContent || "";
+            const cleanedDetails = errorDetails.replace(/error on line.*:/i, '').trim();
+            return {error:`データの XML パースに失敗しました。データ形式（タグの構造など）を確認してください。詳細: ${cleanedDetails}`, sentences:[]};
+        }
+    }
     const sentences = Array.from(xml.getElementsByTagName("s"));
     return {error:null, sentences};
   } catch(e){
-    return {error:"不明なエラー（パース）", sentences:[]};
+    return {error:`不明なエラー（パース）: ${e.message}`, sentences:[]};
   }
 }
-function enablePosSubfields(prefix){
-  const posEl = $(prefix + 'pos');
-  if(!posEl) return;
-  const val = trimStr(posEl.value);
-  ['pos1','pos2','pos3'].forEach(n => {
-    const el = $(prefix + n);
-    if(!el) return;
-    el.disabled = (val === "");
-    if(val === "") el.value = "";
-  });
-}
+
+
 /* ---------- 初期イベント登録 ---------- */
 document.addEventListener('DOMContentLoaded', ()=>{
-  /* Upload button: show upload fieldset when clicked */
+
+  // ★ 変更: 初期ロード時の処理。defaultDataをスキャンしてUIを構築する。
+  const initialParsed = parseSentencesFromCurrentData();
+  
+  if (!initialParsed.error) {
+      // 1. POSカラー生成と属性スキャン (scanAndGenerateColors内で行う)
+      scanAndGenerateColors(initialParsed.sentences);
+      // 2. スキャンした属性でUIを構築
+      rebuildUIFromDetectedAttributes();
+  } else {
+      // 初期化失敗時の処理
+      $('errorMsg').textContent = `初期データの読み込みに失敗: ${initialParsed.error}`;
+      $('errorMsg').style.display = 'block';
+      currentDynamicWHeaders = []; // ★ 変更: Wヘッダーを空にする
+      rebuildForms([]); // 空のフォーム
+      renderTable();
+  }
+  
+  /* Upload button */
+  // ★ 変更: V8.0 - showUploadBtn_ud は存在しないため、リスナー1つでよい
   $('showUploadBtn').addEventListener('click', ()=> {
     $('uploadFieldset').style.display = 'block';
     $('showUploadBtn').style.display = 'none';
   });
   $('fileInput').addEventListener('change', handleFileUpload);
+  
   $('clearDataBtn').addEventListener('click', ()=> {
+    // 1. データソースと状態のリセット
     currentData = defaultData;
     uploadFileName = "keioSFC";
+    isFileUploaded = false;
+    
+    // 2. defaultDataを元に動的にUIを再構築
+    const initialParsed = parseSentencesFromCurrentData();
+    if (!initialParsed.error) {
+        // POSカラー生成と属性スキャン
+        scanAndGenerateColors(initialParsed.sentences);
+        // UI再構築
+        rebuildUIFromDetectedAttributes();
+   } else {
+        // エラー時は属性クリアとヘッダーリセット
+        detectedAttributes.clear();
+        currentDynamicWHeaders = []; 
+        rebuildForms([]); 
+        renderTable();
+    }
+    
+    // 3. UI状態のリセット (ファイル関連)
     $('fileInput').value = "";
     $('fileError').style.display='none';
-    hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0;
-    // hide the data fieldset and bring back the single button (as requested)
+    $('errorMsg').style.display='none';
+  
     $('uploadFieldset').style.display='none';
     $('showUploadBtn').style.display='inline-block';
-    renderTable();
+    
+    // 4. 全条件と結果をクリア
+    clearAll(); 
+    // renderTableは clearAll 内部で呼ばれる
   });
-  /* L: show (one-step) */
-  $('showLBtn').addEventListener('click', ()=> {
-    $('LFieldset').style.display = 'block';
-    $('Lmatrix').style.display = 'block';
-    $('showLBtn').style.display = 'none';
-  });
-  $('hideLBtn').addEventListener('click', ()=> {
-    $('LFieldset').style.display = 'none';
-    $('showLBtn').style.display = 'inline-block';
-  });
-  $('clearLallBtn').addEventListener('click', ()=> {
-    ['L5_','L4_','L3_','L2_','L1_'].forEach(pref=>{
-      ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'].forEach(k=>{ if($(pref+k)) $(pref+k).value=''; });
-    });
-    enableAllPosSubfields();
-    $('LFieldset').style.display='none';
-    $('showLBtn').style.display='inline-block';
-  });
-  /* R: show (one-step) */
-  $('showRBtn').addEventListener('click', ()=> {
-    $('RFieldset').style.display = 'block';
-    $('Rmatrix').style.display = 'block';
-    $('showRBtn').style.display = 'none';
-  });
-  $('hideRBtn').addEventListener('click', ()=> {
-    $('RFieldset').style.display = 'none';
-    $('showRBtn').style.display = 'inline-block';
-  });
-  $('clearRallBtn').addEventListener('click', ()=> {
-    ['R1_','R2_','R3_','R4_','R5_'].forEach(pref=>{
-      ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'].forEach(k=>{ if($(pref+k)) $(pref+k).value=''; });
-    });
-    enableAllPosSubfields();
-    $('RFieldset').style.display='none';
-    $('showRBtn').style.display='inline-block';
-  });
-  /* 文書情報表示: when pressed, show fieldset and hide the button; docFieldset has its own clear/remove controls */
+
+ 
+  /* 文書情報表示 */
+  // ★ 変更: V8.0 - _ud 版のリスナーは不要
   $('showDocBtn').addEventListener('click', ()=> {
     $('docFieldset').style.display = 'block';
     $('showDocBtn').style.display = 'none';
   });
-  // docFieldset buttons
   $('clearDocBtn').addEventListener('click', ()=> {
     ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(id => { if($(id)) $(id).value = ""; });
   });
+  // ★ 変更: removeDocBtn のロジックを onclick 属性から移動
   $('removeDocBtn').addEventListener('click', ()=> {
-    ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(id => { if($(id)) $(id).value = ""; });
-    $('docFieldset').style.display = 'none';
-    $('showDocBtn').style.display = 'inline-block';
+      ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'].forEach(id => { if($(id)) $(id).value = ""; });
+      $('docFieldset').style.display = 'none';
+      $('showDocBtn').style.display = 'inline-block';
   });
+
   /* search / clear / download / page size / encoding */
   $('searchBtn').addEventListener('click', onSearchClick);
   $('clearBtn').addEventListener('click', clearAll);
   $('downloadBtn').addEventListener('click', ()=> downloadCSV($('encoding').value));
   $('pageSize').addEventListener('change', ()=> { clampStartIndex(); renderTable(); });
-  /* Enter triggers search for all text inputs */
-  document.querySelectorAll('input[type="text"]').forEach(inp => inp.addEventListener('keydown', e => { if(e.key === 'Enter'){ e.preventDefault(); onSearchClick(); }}));
+  
+  /* Enter triggers search */
+  document.addEventListener('keydown', e => {
+      if(e.key === 'Enter' && e.target.tagName === 'INPUT' && e.target.type === 'text'){
+          e.preventDefault();
+          onSearchClick();
+      }
+  });
+
   /* tooltip follow */
   document.addEventListener('mousemove', e => {
     const tt = $('tooltip');
@@ -14224,141 +14502,1064 @@ document.addEventListener('DOMContentLoaded', ()=>{
       tt.style.left = x + 'px'; tt.style.top = y + 'px';
     }
   });
-  /* pos enabling for many prefixes (list includes all L/R and keyword) */
-  const prefixes = ['', 'L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'];
-  prefixes.forEach(p => { if($(p+'pos')) $(p+'pos').addEventListener('input', ()=> enablePosSubfields(p)); });
-  /* showArticle button handler (moved outside) */
-  $('showArticleBtn').addEventListener('click', ()=> {
-    if(selectedHitNo === null) return;
-    const range = $('articleRange').value;
-    showArticleDetailByHitNo(selectedHitNo, range);
+  
+  
+
+ $('udToggleBtn').addEventListener('click', toggleUDView);
+  
+  // ★ 追加: UD表示オプションのチェックボックスが変更されたらUDツリーを再描画
+  document.querySelectorAll('.udOpt').forEach(cb => {
+      cb.addEventListener('change', () => {
+          if (isUDViewActive && selectedHitNo !== null) {
+              const hitIdx = hits.findIndex(h => h.no === selectedHitNo);
+              if (hitIdx !== -1) {
+                  drawUDTree(hits[hitIdx]); // ★ ツリーを再描画
+              }
+          }
+      });
   });
-  /* articleRange change -> auto update */
-  $('articleRange').addEventListener('change', ()=> {
-    if($('showArticleBtn').style.display !== 'none' && selectedHitNo !== null){
-      $('showArticleBtn').click();
-    }
-  });
-  /* click meta: center selected hit so it becomes the middle row (pageSize/2) */
-  $('sentenceMeta').addEventListener('click', ()=> {
-    if(selectedHitNo === null) return;
-    const sorted = getSortedRows();
-    const posInSorted = sorted.findIndex(r => r.no === selectedHitNo);
-    if(posInSorted === -1) return;
-    const pageSize = parseInt($('pageSize').value,10);
-    let desiredStart = posInSorted - Math.floor(pageSize/2);
-    const maxStart = Math.max(0, sorted.length - pageSize);
-    if(desiredStart < 0) desiredStart = 0;
-    if(desiredStart > maxStart) desiredStart = maxStart;
-    currentStartIndex = desiredStart;
-    renderTable();
-  });
-  enableAllPosSubfields();
-  renderTable();
 });
+/* ---------- ★ V8.0 (新UI) 動的検索ボックス生成 ---------- */
+
+
+
+
+
+
+
+
+
+
+
+
+function showSearchArea(type) {
+        const gridCell = document.querySelector(`.grid-cell.${type === 'H' ? 'up' : (type === 'D' ? 'down' : (type === 'L' ? 'left' : 'right'))}`);
+        if (!gridCell) return;
+        
+        const triggerBtn = $(`trigger${type}`);
+        const wrapperId = `${type}-area-wrapper`;
+        let newLabel = "";
+        let isDep = false; // H/D (係り受け) かどうか
+
+        // ★ 1. ラッパーを表示
+        const wrapper = $(wrapperId);
+        
+        // ★★★ 修正: H/D のみ flex スタイルを適用する ★★★
+        if (type === 'H' || type === 'D') {
+            // (インラインフレックス + 縦積み + 中央揃え)
+            wrapper.style.display = 'inline-flex';
+            wrapper.style.flexDirection = 'column';
+            wrapper.style.alignItems = 'center';
+        } else {
+            // L/R は通常のブロック要素として表示 (インラインフレックスは不要)
+            wrapper.style.display = 'block'; 
+        }
+		
+        // ★ 2. タイプに応じてヘッダー生成とボタン設定
+        if (type === 'L' || type === 'R') {
+            // --- L/R: 垂直テーブル (列追加) 方式 ---
+            isDep = false;
+            
+           
+            // ★ L/R: ラッパーに「単一のテーブル」を生成
+            // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+            let attributes = Array.from(detectedAttributes).sort();
+            let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
+            
+            let tableHTML = `<table class="lr-table" id="${type}-table"><tbody>`;
+			
+            // 1. 列ヘッダー行 (L1, R1)
+            tableHTML += `<tr><th class="label"></th><td class="col-header">${type}1</td></tr>`;
+            // 2. 原文文字列行
+            tableHTML += `<tr><th class="label">原文文字列</th><td><input id="${type}1_surface" type="text" placeholder="${surfacePlaceholder}" /></td></tr>`;
+            // 3. 属性行
+            attributes.forEach(attr => {
+                if (attr === 'surface') return;
+                
+                let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+
+                tableHTML += `<tr><th class="label">${attr}</th><td><input id="${type}1_${attr}" type="text" placeholder="${placeholder}" /></td></tr>`;
+            });
+            // 4. 削除ボタン行
+            tableHTML += `<tr><th class="label"></th><td class="col-controls"><button type="button" class="remove-col-btn" data-level="1">削除</button></td></tr>`;
+            tableHTML += '</tbody></table>';
+            
+            $(wrapperId).innerHTML = tableHTML;
+            
+            // 5. 削除ボタンにイベントリスナーを追加 (★ removeColumn が必要)
+            $(wrapperId).querySelector('.remove-col-btn').addEventListener('click', (e) => removeColumn(type, e.target.dataset.level));
+
+            newLabel = (type === 'L') ? '◀ Ｌ列追加' : '▶ Ｒ列追加';
+            
+        } else if (type === 'H') {
+            // --- H (親): ★ 新しい複数チェーンロジック ---
+            isDep = true;
+            // ★ 最初の H チェーン (Chain 1) を作成
+            createDependencyChain('H');
+            
+            // ★ 「さらに別の親関係を指定する」ボタンを表示
+            const addChainBtn = $('H-add-chain-btn');
+            addChainBtn.style.display = 'inline-block';
+            
+            // ★ ボタンをラッパー(緑枠)の中に移動させる
+            const wrapper = $(wrapperId);
+            wrapper.appendChild(addChainBtn);
+            
+            // ★ 「▲ 親ノード...」ボタンを非表示にする
+            triggerBtn.style.display = 'none';
+
+            newLabel = '▲ 親ノードを追加'; // H-table-1 の「行追加ボタン」のラベル
+
+        } else if (type === 'D') {
+            // --- D (子): ★ 新しい複数チェーンロジック ---
+            isDep = true;
+            // ★ 最初の D チェーン (Chain 1) を作成
+            createDependencyChain('D'); 
+            
+            // ★ 「さらに別の親関係を指定する」ボタンを表示
+            const addChainBtn = $('D-add-chain-btn');
+            addChainBtn.style.display = 'inline-block';
+            
+            // ★ ボタンをラッパー(緑枠)の中に移動させる
+            const wrapper = $(wrapperId);
+            wrapper.appendChild(addChainBtn);
+            
+            // ★ 「▼ 子ノード...」ボタンを非表示にする
+            triggerBtn.style.display = 'none';
+
+            if (!$('key_udType')) { /* (キーノードへの udType 追加ロジック ... 変更なし) */ }
+            newLabel = '▼ 子ノードを追加'; // D-table-1 の「行追加ボタン」のラベル
+        }
+
+        // ★ 3. トリガーボタンのテキストとクリック動作を「追加」モードに変更
+        triggerBtn.textContent = newLabel;
+        triggerBtn.onclick = () => {
+            if (type === 'L' || type === 'R') {
+                addColumn(type);
+            } else if (type === 'H') {
+                // H: Chain 1 のテーブルに行を追加
+                const tbody = $('H-table-1').tBodies[0];
+                const existingBoxes = tbody.querySelectorAll('tr').length;
+                addSearchBox('H', existingBoxes + 1, 1); // ★ chainIndex 1
+            } else if (type === 'D') {
+                // D: Chain 1 のテーブルに行を追加
+                const tbody = $('D-table-1').tBodies[0];
+                const existingBoxes = tbody.querySelectorAll('tr').length;
+                addSearchBox('D', existingBoxes + 1, 1); // chainIndex 1
+            }
+        };
+    }
+
+    // L2, L3... や H2, H3... を動的に追加する
+    function addSearchBox(type, level, chainIndex) { // ★ chainIndex を追加
+        // ★ H/D 共に chainIndex 1, 2, 3... を使用
+        const tbody = $(`${type}-table-${chainIndex}`).tBodies[0]; // ★ ID修正
+        if (!tbody) return;
+
+        // ★ ID体系を変更 (ChainIndex を含める)
+        const boxId = `${type}-chain${chainIndex}-box${level}`;
+        if ($(boxId)) return;
+
+        const boxHTML_tds = createDynamicFieldsetHTML(type, level, chainIndex); // ★ chainIndex を渡す
+        
+        const boxRow = document.createElement('tr'); 
+        boxRow.id = boxId; // ★ ID体系を変更
+        boxRow.innerHTML = boxHTML_tds;
+        
+        if (type === 'H') {
+            tbody.prepend(boxRow); 
+        } else {
+            tbody.appendChild(boxRow); 
+        }
+        
+        boxRow.querySelector('.remove-btn').addEventListener('click', () => {
+            const tbody = boxRow.parentNode;
+            boxRow.remove(); 
+
+            const remainingRowsInTbody = tbody.querySelectorAll('tr').length;
+            if (remainingRowsInTbody.length === 0) {
+                 if (type === 'H') {
+                    clearDynamicBoxes(type);
+                 }
+                 // D の場合: 最後の1行を消しても表(Chain)は残す (Chain削除ボタンで消す)
+            } else {
+                renumberHDRows(tbody, type, chainIndex); // ★ chainIndex を渡す
+            }
+        });
+    }
+  
+ // ★ 変更: H/D のチェーン (表) を動的に作成する
+    function createDependencyChain(type) {
+        const wrapper = $(`${type}-area-wrapper`);
+        const existingChains = wrapper.querySelectorAll(`div[id^="${type}-chain-"]`).length; // ★ H/D
+        const chainIndex = existingChains + 1; // 1-based index
+
+       const chainContainer = document.createElement('div');
+        chainContainer.id = `${type}-chain-${chainIndex}`;
+        chainContainer.style = "padding: 0; margin-top: 8px; width: 100%;"; // ★ width: 100% を適用
+		
+        // 1. チェーンのヘッダー (と削除ボタン)
+        const header = document.createElement('div');
+        header.style = "display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;";
+        const legend = document.createElement('legend');
+        const legendText = (type === 'H' ? '親関係' : '子関係'); // ★ H/D
+        legend.textContent = `${legendText} (Chain ${chainIndex})`;
+        legend.style = "color:#1f6f3a; font-weight:700;";
+        header.appendChild(legend);
+        
+       if (chainIndex > 1) {
+            const hr = document.createElement('hr');
+            hr.style = "border: none; border-top: 1px dashed #9fcf9f; margin: 10px 0;";
+            chainContainer.prepend(hr); 
+        }
+
+        // ★★★ 修正 (Hの時だけ「行追加ボタン」を「上」に配置) ★★★
+        if (type === 'H') {
+            const addRowBtn_H = document.createElement('button');
+            addRowBtn_H.type = 'button';
+            addRowBtn_H.textContent = '▲ 親ノードを追加';
+            addRowBtn_H.className = 'trigger-btn'; 
+            // ★ 茶色 (backgroundColor) の指定を削除
+            addRowBtn_H.style.marginBottom = '8px'; // ★ ヘッダーとのマージン
+            addRowBtn_H.onclick = () => {
+                const tbody = $(`${type}-table-${chainIndex}`).tBodies[0];
+                const existingBoxes = tbody.querySelectorAll('tr').length;
+                addSearchBox(type, existingBoxes + 1, chainIndex);
+            };
+            chainContainer.appendChild(addRowBtn_H); // ★ ヘッダーの上（Chainコンテナ直下）に追加
+        }
+
+        // ★ すべてのチェーン (Chain 1 含む) に削除ボタンを追加
+        const removeChainBtn = document.createElement('button');
+        removeChainBtn.type = 'button';
+        removeChainBtn.textContent = `この${legendText}(Chain)を削除`; // ★ H/D
+        removeChainBtn.className = 'remove-btn remove-col-btn';
+        removeChainBtn.onclick = () => {
+            chainContainer.remove();
+            
+            const wrapper = $(`${type}-area-wrapper`);
+            const remainingChains = wrapper.querySelectorAll(`div[id^="${type}-chain-"]`).length; // ★ H/D
+            
+            if (remainingChains === 0) {
+                clearDynamicBoxes(type);
+            } else {
+                renumberChains(type); // ★ H/D
+            }
+        };
+        header.appendChild(removeChainBtn); // ★ 削除ボタンはヘッダー右側
+        chainContainer.appendChild(header);
+        // ★★★ 修正ここまで ★★★
+
+        // 2. 属性リストの取得
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
+        
+        // 3. チェーンのテーブル
+        let tableHTML = `<table class="lr-table" id="${type}-table-${chainIndex}" style="width: auto; margin-left: auto; margin-right: auto;">`;
+        tableHTML += '<thead><tr><th class="label" style="width: 40px; text-align: right; padding-right: 8px;"></th><th class="label" style="min-width: 120px; text-align: left;">原文文字列</th>';
+        attributes.forEach(attr => { if (attr !== 'surface') tableHTML += `<th class="label" style="min-width: 120px; text-align: left;">${attr}</th>`; });
+        tableHTML += '<th class="label" style="width: auto;"></th></tr></thead><tbody></tbody></table>';
+        
+        const tableWrapper = document.createElement('div');
+        tableWrapper.innerHTML = tableHTML;
+        chainContainer.appendChild(tableWrapper);
+        
+        // 4. 行追加ボタン (★ Dの時だけテーブルの下に配置)
+        if (type === 'D') {
+            const addRowBtn_D = document.createElement('button');
+            addRowBtn_D.type = 'button';
+            addRowBtn_D.textContent = '▼ 子ノードを追加';
+            addRowBtn_D.className = 'trigger-btn';
+            addRowBtn_D.style.marginTop = '8px';
+            addRowBtn_D.onclick = () => {
+                const tbody = $(`${type}-table-${chainIndex}`).tBodies[0];
+                const existingBoxes = tbody.querySelectorAll('tr').length;
+                addSearchBox(type, existingBoxes + 1, chainIndex);
+            };
+            chainContainer.appendChild(addRowBtn_D);
+        }
+        
+        // 5. ラッパーにチェーンを追加
+        wrapper.appendChild(chainContainer);
+        
+        // 6. 「さらに別...」ボタンをラッパーの末尾に移動させる
+        const addChainBtn = $(`${type}-add-chain-btn`); // ★ H/D
+        if (addChainBtn) {
+            wrapper.appendChild(addChainBtn);
+        }
+        
+        // 7. 最初の行 (H1/D1) を追加
+        addSearchBox(type, 1, chainIndex);
+    }
+
+    // ★ 変更: H/D チェーン削除時にIDを振り直すヘルパー
+    function renumberChains(type) {
+        const wrapper = $(`${type}-area-wrapper`); // ★ H/D
+        const chains = wrapper.querySelectorAll(`div[id^="${type}-chain-"]`); // ★ H/D
+        
+        chains.forEach((chain, index) => {
+            const newChainIndex = index + 1; // 1-based
+            const oldChainIndexMatch = chain.id.match(/-(\d+)$/); // ★ ID取得を一般化
+            if (!oldChainIndexMatch) return;
+            const oldChainIndex = parseInt(oldChainIndexMatch[1], 10);
+            
+            if (newChainIndex === oldChainIndex) return;
+
+            // 1. ChainコンテナのID
+            chain.id = `${type}-chain-${newChainIndex}`;
+            
+            // 2. Legend
+            const legendText = (type === 'H' ? '親関係' : '子関係'); // ★ H/D
+            chain.querySelector('legend').textContent = `${legendText} (Chain ${newChainIndex})`;
+            
+            // 3. テーブルID
+            const table = chain.querySelector(`table[id^="${type}-table-"]`); // ★ H/D
+            if (table) table.id = `${type}-table-${newChainIndex}`;
+            
+            // 4. 行追加ボタンの onclick
+            const addRowBtn = chain.querySelector('.trigger-btn');
+            if (addRowBtn) {
+                addRowBtn.onclick = () => {
+                    const tbody = $(`${type}-table-${newChainIndex}`).tBodies[0];
+                    const existingBoxes = tbody.querySelectorAll('tr').length;
+                    addSearchBox(type, existingBoxes + 1, newChainIndex);
+                };
+            }
+            
+            // 5. テーブル内の全行のIDを振り直す
+            const tbody = table.tBodies[0];
+            renumberHDRows(tbody, type, newChainIndex, oldChainIndex); // ★ type を渡す
+        });
+    }
+  
+// ★ 変更: H/D 行削除時にIDとラベルを振り直すヘルパー関数
+    function renumberHDRows(tbody, type, chainIndex, oldChainIndex = -1) { // ★ chainIndex と oldChainIndex を追加
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        const attributes = Array.from(detectedAttributes).sort();
+		
+        // 内部の input ID もすべて振り直す必要がある
+        const forceIdUpdate = (oldChainIndex !== -1 && oldChainIndex !== chainIndex);
+        
+        if (type === 'D') {
+            // D: DOMの順序 (1, 2, 3...) 通りに振り直す
+            rows.forEach((row, index) => {
+                const newLevel = index + 1;
+                const oldLevelMatch = row.id.match(/-box(\d+)$/);
+                if (!oldLevelMatch) return;
+                const oldLevel = parseInt(oldLevelMatch[1], 10);
+                
+                if (newLevel === oldLevel && !forceIdUpdate) return; // 変更不要
+
+                // ★ ID体系を変更
+                row.id = `${type}-chain${chainIndex}-box${newLevel}`;
+                row.querySelector('th.label').textContent = `${type}${newLevel}`;
+                
+                // ★★★ 修正 (typo: level -> newLevel) ★★★
+                const surfaceInput = row.querySelector(`input`); 
+                if (surfaceInput) surfaceInput.id = `${type}${chainIndex}-${newLevel}-surface`;
+
+                attributes.forEach(attr => {
+                    if (attr === 'surface') return;
+                    const input = row.querySelector(`input[id$="-${attr}"]`);
+                    if (input) input.id = `${type}${chainIndex}-${newLevel}-${attr}`; // ★★★ 修正 (typo: level -> newLevel)
+                });
+            });
+        } else if (type === 'H') {
+            // H: DOMの逆順 (N, N-1, ... 1)
+            let newLevel = rows.length; 
+            rows.forEach((row) => { 
+                const oldLevelMatch = row.id.match(/-box(\d+)$/);
+                if (!oldLevelMatch) return;
+                const oldLevel = parseInt(oldLevelMatch[1], 10);
+                
+                if (newLevel === oldLevel && !forceIdUpdate) { newLevel--; return; }
+                
+                // ★★★ 修正 (chain0 -> chainIndex) ★★★
+                row.id = `${type}-chain${chainIndex}-box${newLevel}`;
+                row.querySelector('th.label').textContent = `${type}${newLevel}`;
+                
+                const surfaceInput = row.querySelector(`input`); 
+                if (surfaceInput) surfaceInput.id = `${type}${chainIndex}-${newLevel}-surface`; // ★★★ 修正 (H0 -> type + chainIndex)
+
+                attributes.forEach(attr => {
+                    if (attr === 'surface') return;
+                    const input = row.querySelector(`input[id$="-${attr}"]`);
+                    if (input) input.id = `${type}${chainIndex}-${newLevel}-${attr}`; // ★★★ 修正 (H0 -> type + chainIndex)
+                });
+                newLevel--;
+            });
+        }
+    }
+	
+// isCustomized フラグに応じて、H/D の「行」のHTMLを生成する (H/D 専用)
+    function createDynamicFieldsetHTML(type, level, chainIndex) { // ★ chainIndex を追加
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
+        let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
+
+        // ★ ID体系を変更 (e.g., D1-1-surface)
+        let html = '';
+        html += `<th class="label" style="text-align: right; padding-right: 8px;">${type}${level}</th>`; 
+        html += `<td><input id="${type}${chainIndex}-${level}-surface" type="text" placeholder="${surfacePlaceholder}" /></td>`; // 原文
+        
+        html += attributes.filter(attr => attr !== 'surface').map(attr => {
+            // ★ 変更: 常に attributeExamples を使用
+            let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+			
+            // ★ ID体系を変更
+            return `<td><input id="${type}${chainIndex}-${level}-${attr}" type="text" placeholder="${placeholder}" /></td>`
+        }).join('');
+        
+        html += `<td class="col-controls"><button type="button" class="remove-btn remove-col-btn">削除</button></td>`;
+        return html;
+    }
+
+
+
+/* ---------- クリア ---------- */
+function clearAll(){
+  // 1. 文書情報クリア
+  const docIds = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
+  docIds.forEach(id => { if($(id)) $(id).value = ""; });
+  // (文書情報フィールドセットは閉じない)
+
+  // 2. L/R/H/D 動的ボックスをクリア
+  clearDynamicBoxes(); // ★ V8.0 新ヘルパー
+
+  // 3. キーノード フォーム クリア
+  // ★ 変更: V8.0 - rebuildForms(null) がキーノードをリセットする
+  rebuildForms(Array.from(detectedAttributes).sort());
+
+  // 4. デフォルトUIの場合のみ、pos連動を再有効化
+  
+  
+  // ★ 削除: V8.0 - activeSearchMode のリセットは不要
+
+  // 5. 検索結果・状態クリア
+  hits=[]; currentStartIndex=0; sortCol=null; sortAsc=true; hasSearched=false; searchAbort=false; selectedHitNo=null;
+  $('tableContainer').innerHTML=""; $('hitCount').style.display='none'; $('hitCount').textContent=''; $('pagerTop').innerHTML=''; $('pagerBottom').innerHTML='';
+  
+  $('errorMsg').style.display='none'; $('errorMsg').textContent='';
+  $('fileError').style.display='none'; 
+  $('progressWrap').style.display='none'; $('progressText').style.display='none'; $('sentenceDetail').style.display='none'; $('sentenceArea').innerHTML=''; $('sentenceMeta').style.display='none'; $('articleBox').style.display='none';
+  $('tooltip').style.display='none';
+  
+  isUDViewActive = false;
+  if ($('udToggleBtn')) {
+    $('udToggleBtn').textContent = 'UD表示 OFF';
+    $('udToggleBtn').classList.remove('active');
+  }
+  if ($('udCanvasContainer')) {
+    $('udCanvasContainer').style.display = 'none';
+  }
+  if ($('sentenceArea')) {
+    $('sentenceArea').style.display = 'block';
+  }
+  
+  // 6. ヘッダーのクリア
+  
+  renderTable();
+}
+
+// ★ 新設: L/R テーブルに「列」を追加する関数
+    function addColumn(type) {
+        const table = $(type + '-table');
+        if (!table) return;
+        const tbody = table.tBodies[0];
+        const rows = tbody.rows;
+        if (rows.length === 0) return;
+        
+        // 既存の列数 (th が1, td が 1...N) から新しいレベルを計算
+        const newLevel = rows[0].cells.length; // th(0), L1(1). New level is 2.
+        
+        // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+        let attributes = Array.from(detectedAttributes).sort();
+        // ★ 変更: 常に attributeExamples を使用
+        let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : "";
+
+        // 1. 列ヘッダーセル (L2, R2...) を追加
+        const headerCell = rows[0].insertCell(-1);
+        headerCell.className = 'col-header';
+        headerCell.textContent = `${type}${newLevel}`;
+
+        // 2. 原文文字列セルを追加
+        const surfaceCell = rows[1].insertCell(-1);
+        surfaceCell.innerHTML = `<input id="${type}${newLevel}_surface" type="text" placeholder="${surfacePlaceholder}" />`;
+
+        // 3. 属性セルを追加
+        let attrIndex = 0;
+        attributes.forEach(attr => {
+            if (attr === 'surface') return;
+            // rows[2] が 1番目の属性行
+            const row = rows[2 + attrIndex];
+            if (row) {
+                // ★ 変更: 常に attributeExamples を使用 (isCustomized分岐を削除)
+                let placeholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : "";
+
+                const cell = row.insertCell(-1);
+                cell.innerHTML = `<input id="${type}${newLevel}_${attr}" type="text" placeholder="${placeholder}" />`;
+            }
+            attrIndex++;
+        });
+
+        // 4. 削除ボタンセルを追加
+        const controlRow = rows[rows.length - 1];
+        const controlCell = controlRow.insertCell(-1);
+        controlCell.className = 'col-controls';
+        controlCell.innerHTML = `<button type="button" class="remove-col-btn" data-level="${newLevel}">削除</button>`;
+        
+        // 5. 新しい削除ボタンにイベントリスナーを追加
+        controlCell.querySelector('.remove-col-btn').addEventListener('click', (e) => removeColumn(type, e.target.dataset.level));
+    }
+
+    // ★ 新設: L/R テーブルから「列」を削除する関数
+    function removeColumn(type, level) {
+        level = parseInt(level, 10); // data-level は 1-based
+        const table = $(type + '-table');
+        if (!table) return;
+        const tbody = table.tBodies[0];
+        const rows = tbody.rows;
+        const numCols = rows[0].cells.length - 1; // -1 for <th>
+
+        if (level === 1 && numCols === 1) {
+            // ★ 最後の1列 (L1 or R1) を削除する場合
+            clearDynamicBoxes(type); // clearDynamicBoxes がリセット処理を行う
+        } else {
+            // ★ 途中の列を削除する場合
+            // cell index は level と一致する (cell 0 = th, cell 1 = L1)
+            for (let i = 0; i < rows.length; i++) {
+                if (rows[i].cells[level]) {
+                    rows[i].deleteCell(level);
+                }
+            }
+            
+            // (例: L1, L2, L3 で L2 を削除 -> L3 を L2 に)
+            // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート (ループ外で定義)
+            let attributes = Array.from(detectedAttributes).sort();
+
+            for (let c = level; c < rows[0].cells.length; c++) { // c は cell index (1-based)
+                // ヘッダー行 (L3 -> L2)
+                rows[0].cells[c].textContent = `${type}${c}`;
+                // 入力欄のID (L3_surface -> L2_surface)
+                // 1行目 (原文)
+                rows[1].cells[c].querySelector('input').id = `${type}${c}_surface`;
+                // 属性行
+                let attrIndex = 0;
+                // let attributes = ... (ループ外に移動済み)
+                attributes.forEach(attr => {
+                    if (attr === 'surface') return;
+                    rows[2 + attrIndex].cells[c].querySelector('input').id = `${type}${c}_${attr}`;
+                    attrIndex++;
+                });
+                const btn = rows[rows.length - 1].cells[c].querySelector('.remove-col-btn');
+                if (btn) btn.dataset.level = c;
+            }
+        }
+    }
+	
+    
+/* ---------- ★ V7.2 追加: UI動的構築 ---------- */
+// ★ 新設: detectedAttributes を使ってUIを再構築するヘルパー関数
+function rebuildUIFromDetectedAttributes() {
+    const sortedAttributes = Array.from(detectedAttributes).sort();
+    
+    // フォームを再構築
+    rebuildForms(sortedAttributes);
+
+    // ★ 変更: 検索結果テーブルのWタグヘッダー(currentDynamicWHeaders)を更新
+    currentDynamicWHeaders = sortedAttributes.map(attrName => {
+        return { label: attrName, key: attrName };
+    });
+    
+    // テーブルを再描画 (結果はクリアしない)
+    renderTable();
+}
+
+
+function rebuildForms(attributes) {
+    // ★ 変更: V8.0 - 中央のキーノード (key_tbody) のみ管理
+    const keywordTbody = $('key_tbody');
+    if (!keywordTbody) return; // 早期リターン
+
+    // ★ 変更: 常に動的UIを構築する (attributes=null の分岐やデフォルトフォームは不要)
+    if (!attributes) attributes = []; // 安全対策
+
+    // UIを構築
+    let surfacePlaceholder = attributeExamples['surface'] ? '例：' + attributeExamples['surface'] : '';
+    let keywordHTML = `<tr><td class="label">原文文字列 (表層形)</td><td><input id="surface" type="text" placeholder="${surfacePlaceholder}" /></td></tr>`;
+    attributes.forEach(attr => {
+        let attrPlaceholder = attributeExamples[attr] ? '例：' + attributeExamples[attr] : '';
+        // disabled属性は不要
+        keywordHTML += `<tr><td class="label">${attr}</td><td><input id="${attr}" type="text" placeholder="${attrPlaceholder}" /></td></tr>`;
+    });
+    keywordTbody.innerHTML = keywordHTML;
+    
+    // 削除: pos連動有効化は不要
+    
+    // ★ 追加: V8.0 - 動的な L/R/H/D ボックスもすべてクリア
+    clearDynamicBoxes();
+}
+
+function clearDynamicBoxes(typeToClear = null) {
+    // typeToClear が指定された場合 (例: 'L') はそれだけを、
+    // null の場合はすべてをクリアする
+    const types = typeToClear ? [typeToClear] : ['H', 'D', 'L', 'R'];
+    
+    types.forEach(type => {
+        const wrapper = $(`${type}-area-wrapper`); // L/R/H/D 共通のラッパー
+        if (wrapper) {
+            wrapper.innerHTML = ''; // 中身 (L/Rテーブル or H/D行) を空にする
+            wrapper.style.display = 'none'; 
+        }
+        
+        const trigger = $(`trigger${type}`);
+        if (trigger) {
+            trigger.style.display = 'inline-block';
+            
+            // ★ トリガーボタンを「指定」モードにリセット
+            let resetLabel = "";
+            if (type === 'L') resetLabel = 'Lワード検索を指定';
+            else if (type === 'R') resetLabel = 'Rワード検索を指定';
+            else if (type === 'H') resetLabel = '親ノード検索を指定';
+            else if (type === 'D') resetLabel = '子ノード検索を指定';
+            
+            trigger.textContent = resetLabel;
+            trigger.onclick = () => showSearchArea(type);
+        }
+        
+        
+        // H/D のみ、ラッパーの外にあるヘッダーを削除
+        if (type === 'H') { // ★ H
+            const addChainBtn = $('H-add-chain-btn');
+            if (addChainBtn) {
+                addChainBtn.style.display = 'none';
+                const gridCell = trigger.parentNode; 
+                if (gridCell) {
+                    gridCell.appendChild(addChainBtn);
+                }
+            }
+        }
+        
+        // ★ D の場合、「さらに別...」ボタンを非表示にし、元の位置に戻す
+        if (type === 'D') {
+            const addChainBtn = $('D-add-chain-btn');
+            // ...
+            if (addChainBtn) {
+                addChainBtn.style.display = 'none';
+                // 元の親 (.grid-cell.down) に戻す
+                const gridCell = trigger.parentNode; 
+                if (gridCell) {
+                    gridCell.appendChild(addChainBtn);
+                }
+            }
+        }
+        
+    });
+
+    // ★ 削除: アラインメントの再評価ロジックをすべて削除
+    // (CSS側で align-items: start; に固定されているため不要)
+
+
+    // ★ フルクリア (clearAll) の場合のみ、udTypeをリセット
+    if (!typeToClear) {
+        if ($('key_udType_row')) { 
+            $('key_udType_row').remove();
+        }
+    }
+}
+
+/* ---------- ★ V7.4: 動的POSカラー生成 ---------- */
+
+// HSL (Hue, Saturation, Lightness) から RGB への変換
+function hslToRgb(h, s, l){
+    let r, g, b;
+    if(s == 0){
+        r = g = b = l; // achromatic
+    } else {
+        const hue2rgb = (p, q, t) => {
+            if(t < 0) t += 1;
+            if(t > 1) t -= 1;
+            if(t < 1/6) return p + (q - p) * 6 * t;
+            if(t < 1/2) return q;
+            if(t < 2/3) return p + (q - p) * (2/3 - t) * 6;
+            return p;
+        }
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1/3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1/3);
+    }
+    return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+}
+
+// ランダムな薄い色 (RGB配列) を生成
+function getRandomPastelColor() {
+    const hue = Math.random();
+    const saturation = 0.7 + Math.random() * 0.1; // 彩度を高め (0.7-0.8)
+    const lightness = 0.85 + Math.random() * 0.1; // 明度を高く (0.85-0.95)
+    return hslToRgb(hue, saturation, lightness);
+}
+
+// posColorsオブジェクトからCSSルールを生成し、<style>タグに注入
+function injectPosStyles(colors) {
+    const styleEl = $('dynamicPosStyles');
+    if (!styleEl) return;
+    
+    let css = '';
+    for (const pos in colors) {
+        const bg = colors[pos].bg;
+        const border = colors[pos].border;
+        
+        // ★ V7.6 修正:
+        // バグ (不正な正規表現) を削除。
+        // 'pos' 属性の値 (例: "名詞", "NOUN") をそのままクラス名として使用する。
+        // (span.classList.add(pos) の仕様と一致させる)
+        
+        css += `.${pos}.hover, .${pos}:hover {\n`;
+        css += `  background: ${bg};\n`;
+        css += `  border: 2px dashed ${border};\n`;
+        css += `}\n`;
+    }
+    styleEl.textContent = css;
+}
+// センテンスをスキャンし、posColorsを生成・注入
+function scanAndGenerateColors(sentences) {
+    posColors = {}; // グローバルをリセット
+    attributeExamples = {}; // 凡例データもリセット
+    detectedAttributes.clear(); // ★ 追加: 属性リストもリセット
+    const posSet = new Set();
+    
+    sentences.forEach(s => {
+        const words = s.getElementsByTagName('w');
+        Array.from(words).forEach(w => {
+            const pos = w.getAttribute('pos') || 'その他';
+            posSet.add(pos);
+
+            Array.from(w.attributes).forEach(attr => {
+                detectedAttributes.add(attr.name); // ★ 追加
+
+                if (!attributeExamples[attr.name] && attr.value.trim() !== "") {
+                    attributeExamples[attr.name] = attr.value.trim();
+                }
+            });
+            // ★ 追加: surface (textContent) のサンプルテキストを収集
+            const surfaceText = w.textContent.trim();
+            if (!attributeExamples['surface'] && surfaceText !== "") {
+                attributeExamples['surface'] = surfaceText;
+            }
+        });
+    });
+    
+    // 'その他' があれば、固定色を先に追加
+    if (posSet.has('その他')) {
+        posColors['その他'] = {bg:"whitesmoke", border:"rgba(0,0,0,0.12)"};
+        posSet.delete('その他');
+    }
+
+    // 残りのPOSにランダム色を割り当て
+    posSet.forEach(pos => {
+        const [r, g, b] = getRandomPastelColor();
+        posColors[pos] = {
+            bg: `rgb(${r},${g},${b})`,
+            // ボーダー色は背景色より少し暗く、透明度を持たせる
+            border: `rgba(${Math.max(0, r-40)},${Math.max(0, g-40)},${Math.max(0, b-40)},0.45)`
+        };
+    });
+    
+    // 生成したCSSを注入
+    injectPosStyles(posColors);
+}
+
 /* ---------- 条件収集 / マッチング ---------- */
-function enableAllPosSubfields(){ ['', 'L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'].forEach(p=>enablePosSubfields(p)); }
+
 function handleFileUpload(e){
   const file = e.target.files[0];
   $('fileError').style.display='none'; $('fileError').textContent = '';
+  $('errorMsg').style.display='none';
   if(!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev){
-    const text = ev.target.result;
-    const parser = new DOMParser();
-    const xml = parser.parseFromString(`<root>${text}</root>`, "application/xml");
-    if(xml.getElementsByTagName("parsererror").length > 0){
-      $('fileError').textContent = "データ形式が適切ではありません。XML形式のデータをアップロードしてください";
+
+  const readerForEncoding = new FileReader();
+  readerForEncoding.onload = function(ev) {
+    const codes = new Uint8Array(ev.target.result);
+    const encoding = Encoding.detect(codes);
+    const textReader = new FileReader();
+    
+    textReader.onload = function(eText) {
+      const text = eText.target.result;
+      const previousData = currentData;
+      currentData = text;
+      const parsed = parseSentencesFromCurrentData();
+      if (parsed.error) {
+          currentData = previousData;
+          $('fileError').textContent = `ファイルの読み込みに失敗しました: ${parsed.error}`;
+          $('fileError').style.display = 'block';
+          $('fileInput').value = ""; 
+          return;
+      }
+      if (parsed.sentences.length === 0 && text.trim() !== "") {
+        currentData = previousData;
+        $('fileError').textContent = "ファイルから有効なデータ（<s>タグ）が見つかりませんでした。";
+        $('fileError').style.display = 'block';
+        $('fileInput').value = "";
+        return;
+      }
+
+      // 成功した場合の処理
+      isFileUploaded = true;
+      
+      scanAndGenerateColors(parsed.sentences);
+      rebuildUIFromDetectedAttributes();
+      
+      uploadFileName = (file.name || "uploaded").replace(/\.[^/.]+$/, "");
+      hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0; 
+      // renderTable(); // rebuildUIFromDetectedAttributes 内で実行済み
+    };
+	
+    textReader.onerror = function() {
+      $('fileError').textContent = "ファイルのテキスト読み込みに失敗しました。";
       $('fileError').style.display = 'block';
-      return;
+    };
+    try {
+        textReader.readAsText(file, encoding || 'UTF-8');
+    } catch (e) {
+        $('fileError').textContent = "ファイルの読み込み開始に失敗しました。(Encoding Error)";
+        $('fileError').style.display = 'block';
     }
-    currentData = text;
-    uploadFileName = (file.name || "uploaded").replace(/\.[^/.]+$/, "");
-    hits = []; hasSearched=false; selectedHitNo=null; currentStartIndex=0; renderTable();
   };
-  reader.readAsText(file,"UTF-8");
+  readerForEncoding.onerror = function() {
+    $('fileError').textContent = "ファイルのエンコーディング検出に失敗しました。";
+    $('fileError').style.display = 'block';
+  };
+  readerForEncoding.readAsArrayBuffer(file);
 }
+
 function collectConditions(){
-  const cond = {
-    pos: trimStr($('pos').value),
-    pos1: trimStr($('pos1').value),
-    pos2: trimStr($('pos2').value),
-    pos3: trimStr($('pos3').value),
-    conjClass: trimStr($('conjClass').value),
-    conjForm: trimStr($('conjForm').value),
-    root: trimStr($('root').value),
-    surface: trimStr($('surface').value),
-    Task: trimStr($('Task').value),
-    textID: trimStr($('textID').value),
-    personID: trimStr($('personID').value),
-    personAge: trimStr($('personAge').value),
-    language: trimStr($('language').value),
-    personFirstLang: trimStr($('personFirstLang').value),
-    personSecondLang: trimStr($('personSecondLang').value)
+  
+  // 1. 文書情報
+  const s_cond = {};
+  const docKeys = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
+  docKeys.forEach(k => {
+      if($(k)) s_cond[k] = trimStr($(k).value);
+  });
+
+  // 2. 属性リストの決定
+  // ★ 変更: 常に detectedAttributes を使用し、安定した順序でソート
+  const attributes = Array.from(detectedAttributes).sort();
+  // 削除: adj_attributes, dep_attributes の定義は不要
+  
+  // 3. キーノード条件
+  const key_cond = {};
+  // ★ 変更: 常に attributes を使用
+  const key_attributes = attributes;
+  
+  key_cond['surface'] = trimStr($('surface') ? $('surface').value : "");
+  key_attributes.forEach(attr => {
+      // $(attr) はキーノードの入力フィールド (例: $('#pos'), $('#root'))
+      if($(attr) && $(attr).value) key_cond[attr] = trimStr($(attr).value);
+  });
+  // key_udType は動的に追加されるため、個別にチェック
+  if ($('key_udType') && $('key_udType').value) {
+      key_cond['udType'] = trimStr($('key_udType').value);
+  }
+
+  // ★ 変更: L, R, H, D を独立して収集 (動的配列に変更)
+  const l_conds = []; // L1, L2... を収集
+  const r_conds = []; // R1, R2... を収集
+  const h_conds = []; // H1, H2... を収集
+  const d_conds = []; // D1, D2... を収集
+  // 4. Lワード収集
+  const l_table = $('L-table');
+  if (l_table) {
+      const rows = l_table.tBodies[0].rows;
+      if (rows.length > 0) {
+          const numCols = rows[0].cells.length - 1; // -1 for <th>
+          // 削除: ローカルの adj_attributes 定義は不要
+
+          for (let c = 1; c <= numCols; c++) { // c は列インデックス (1-based)
+              const tmp = {};
+              // row[1] (2行目) は surface
+              tmp['surface'] = trimStr(rows[1].cells[c].querySelector('input').value);
+              
+              let attrIndex = 0;
+              // ★ 変更: attributes を使用
+              attributes.forEach(attr => {
+                  if (attr === 'surface') return;
+                  // row[2] (3行目) からが属性
+                  const row = rows[2 + attrIndex];
+                  if (row && row.cells[c]) {
+                      tmp[attr] = trimStr(row.cells[c].querySelector('input').value);
+                  }
+                  attrIndex++;
+              });
+              l_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null);
+          }
+          l_conds.reverse(); // [L1, L2, L3] -> [L3, L2, L1]
+      }
+  }
+
+  // 5. Rワード収集
+  const r_table = $('R-table');
+  if (r_table) {
+      const rows = r_table.tBodies[0].rows;
+      if (rows.length > 0) {
+          const numCols = rows[0].cells.length - 1; // -1 for <th>
+          // 削除: ローカルの adj_attributes 定義は不要
+
+          for (let c = 1; c <= numCols; c++) { // c は列インデックス (1-based)
+              const tmp = {};
+              // row[1] (2行目) は surface
+              tmp['surface'] = trimStr(rows[1].cells[c].querySelector('input').value);
+              
+              let attrIndex = 0;
+              // ★ 変更: attributes を使用
+              attributes.forEach(attr => {
+                  if (attr === 'surface') return;
+                  // row[2] (3行目) からが属性
+                  const row = rows[2 + attrIndex];
+                  if (row && row.cells[c]) {
+                      tmp[attr] = trimStr(row.cells[c].querySelector('input').value);
+                  }
+                  attrIndex++;
+              });
+              r_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null); // [R1, R2, R3]
+          }
+      }
+  }
+  // 削除: 重複していた l_conds.reverse() を削除
+
+  // 削除: 古いUI用のRワード収集ロジック (whileループ) を削除
+
+  // 6. Hノード収集
+  // ★ H は複数チェーン (chainIndex=1, 2, 3...)
+  let h_chain_idx = 1;
+  while(true) {
+      const h_table = $(`H-table-${h_chain_idx}`);
+      if (!h_table) break;
+      
+      const current_chain_conds = []; // このチェーンの [H1, H2...]
+      const h_tbody = h_table.tBodies[0];
+      const h_rows = h_tbody.querySelectorAll('tr'); // DOM順 (H-N ... H-1)
+
+      h_rows.forEach((row, index) => {
+          const levelMatch = row.id.match(/-box(\d+)$/);
+          const level = levelMatch ? parseInt(levelMatch[1], 10) : 0;
+          
+          const tmp = {};
+          tmp['surface'] = trimStr($(`H${h_chain_idx}-${level}-surface`) ? $(`H${h_chain_idx}-${level}-surface`).value : ""); 
+          // ★ 変更: attributes を使用
+          attributes.forEach(attr => {
+              if($(`H${h_chain_idx}-${level}-${attr}`)) tmp[attr] = trimStr($(`H${h_chain_idx}-${level}-${attr}`).value);
+          });
+          current_chain_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null);
+      });
+      
+      // ★ h_rows は [HN...H1] の順で収集されるので、 [H1...HN] に reverse する
+      current_chain_conds.reverse();
+      h_conds.push(current_chain_conds); // [ [H1a, H2a...], [H1b, H2b...] ]
+      h_chain_idx++;
+  }
+
+  // 7. Dノード収集
+  // ★ D は複数チェーン (chainIndex=1, 2, 3...)
+  let d_chain_idx = 1;
+  while(true) {
+      const d_table = $(`D-table-${d_chain_idx}`);
+      if (!d_table) break;
+      
+      const current_chain_conds = []; // このチェーンの [D1, D2...]
+      const d_tbody = d_table.tBodies[0];
+      const d_rows = d_tbody.querySelectorAll('tr');
+
+      d_rows.forEach((row, index) => {
+          const level = index + 1; // Dは DOM順 (D1, D2...)
+          const tmp = {};
+          // ★ ID体系を変更 (e.g., D1-1-surface)
+          tmp['surface'] = trimStr($(`D${d_chain_idx}-${level}-surface`) ? $(`D${d_chain_idx}-${level}-surface`).value : "");
+          // ★ 変更: attributes を使用
+          attributes.forEach(attr => {
+              if($(`D${d_chain_idx}-${level}-${attr}`)) tmp[attr] = trimStr($(`D${d_chain_idx}-${level}-${attr}`).value);
+          });
+          current_chain_conds.push(Object.values(tmp).some(v => v !== "") ? tmp : null);
+      });
+      
+      d_conds.push(current_chain_conds); // [ [D1a, D2a...], [D1b, D2b...] ]
+      d_chain_idx++;
+  }
+  // 8. 戻り値 (4種類の条件をすべて返す)
+  return { 
+      s_cond: s_cond, 
+      key_cond: key_cond, 
+      l_conds: l_conds, // L5..L1
+      r_conds: r_conds, // R1..R5
+      h_conds: h_conds, // H5..H1
+      d_conds: d_conds  // D1..D5
   };
-  const Lconds = [];
-  for(let k=5;k>=1;k--){
-    const p = `L${k}_`;
-    const tmp = {
-      pos: trimStr($(p+'pos') ? $(p+'pos').value : ""),
-      pos1: trimStr($(p+'pos1') ? $(p+'pos1').value : ""),
-      pos2: trimStr($(p+'pos2') ? $(p+'pos2').value : ""),
-      pos3: trimStr($(p+'pos3') ? $(p+'pos3').value : ""),
-      conjClass: trimStr($(p+'conjClass') ? $(p+'conjClass').value : ""),
-      conjForm: trimStr($(p+'conjForm') ? $(p+'conjForm').value : ""),
-      root: trimStr($(p+'root') ? $(p+'root').value : ""),
-      surface: trimStr($(p+'surface') ? $(p+'surface').value : "")
-    };
-    const any = Object.values(tmp).some(v => v !== "");
-    Lconds.push(any ? tmp : null);
-  }
-  const Rconds = [];
-  for(let k=1;k<=5;k++){
-    const p = `R${k}_`;
-    const tmp = {
-      pos: trimStr($(p+'pos') ? $(p+'pos').value : ""),
-      pos1: trimStr($(p+'pos1') ? $(p+'pos1').value : ""),
-      pos2: trimStr($(p+'pos2') ? $(p+'pos2').value : ""),
-      pos3: trimStr($(p+'pos3') ? $(p+'pos3').value : ""),
-      conjClass: trimStr($(p+'conjClass') ? $(p+'conjClass').value : ""),
-      conjForm: trimStr($(p+'conjForm') ? $(p+'conjForm').value : ""),
-      root: trimStr($(p+'root') ? $(p+'root').value : ""),
-      surface: trimStr($(p+'surface') ? $(p+'surface').value : "")
-    };
-    const any = Object.values(tmp).some(v => v !== "");
-    Rconds.push(any ? tmp : null);
-  }
-  return {cond, Lconds, Rconds};
 }
-function wordMatchesExact(w,cond){
+
+
+
+function wordMatchesExact(w, cond){
   if(!w) return false;
-  const attrNames = ['pos','pos1','pos2','pos3','conjClass','conjForm','root'];
-  for(const name of attrNames) if(cond[name] && getWAttr(w,name) !== cond[name]) return false;
-  if(cond.surface && w.textContent.trim() !== cond.surface) return false;
+
+  for (const attrName in cond) {
+      if (!cond[attrName]) continue; // 条件指定なし
+
+      if (attrName === 'surface') {
+          if (w.textContent.trim() !== cond.surface) return false;
+      } else {
+          if (getWAttr(w, attrName) !== cond[attrName]) return false;
+      }
+  }
+  
   return true;
 }
+
+
+
 function sentenceMatchesExact(s, cond){
   const sKeys = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
   for(const k of sKeys) if(cond[k] && trimStr(s.getAttribute(k)) !== cond[k]) return false;
   return true;
 }
+
 function keywordAllEmpty(){
-  const keys = ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'];
-  return keys.every(id => trimStr($(id).value || "") === "");
+  // ★ 変更: 常に detectedAttributes を使用
+  let keys = ['surface', ...Array.from(detectedAttributes)];
+
+  // H/D検索が有効化された場合、'udType'がキーノードに追加される可能性があるためチェック
+  if ($('key_udType')) {
+      if (!keys.includes('udType')) {
+        keys.push('udType');
+      }
+  }
+  // ★ 変更: V8.0 - prefix なし
+  return keys.every(id => trimStr($(id) ? $(id).value : "") === "");
 }
+
 /* ---------- 検索（プログレス/中断処理） ---------- */
 function onSearchClick(){
   $('errorMsg').style.display = 'none'; $('errorMsg').textContent = '';
-  if(keywordAllEmpty()){
-    $('errorMsg').textContent = "キーワード条件を指定してください";
-    $('errorMsg').style.display = 'block';
-    return;
+  $('fileError').style.display = 'none';
+  
+  // ★ 変更: V8.0 - keywordAllEmpty は 'key_table' を見る
+  if (keywordAllEmpty()){
+      $('errorMsg').textContent = "キーワード / キーノード条件を指定してください";
+      $('errorMsg').style.display = 'block';
+      return;
   }
-  runSearchWithProgress();
+
+  // ★ 変更: V8.0 - collectConditions がモードを決定
+  const conditions = collectConditions();
+  
+  // ★ 変更: V8.0 - runSearchWithProgress に conditions を渡す
+  runSearchWithProgress(conditions);
 }
-function runSearchWithProgress(){
+
+function runSearchWithProgress(conditions){
   const parsed = parseSentencesFromCurrentData();
-  if(parsed.error){ $('fileError').textContent = parsed.error; $('fileError').style.display='block'; return; }
+  if(parsed.error){ $('errorMsg').textContent = parsed.error; $('errorMsg').style.display='block'; return; }
   parsedSentences = parsed.sentences;
   const sentences = parsed.sentences;
   const totalSent = sentences.length;
@@ -14367,86 +15568,267 @@ function runSearchWithProgress(){
   progressWrap.style.display='block'; progressBar.style.width='0%'; progressText.style.display='block'; progressText.textContent='検索中です (0% 完了)';
   const startTime = Date.now(); const timeoutMs = 10000; const targetUpdates = 100;
   const batchSize = Math.max(1, Math.ceil(totalSent / targetUpdates));
-  const {cond, Lconds, Rconds} = collectConditions();
-  let idx = 0; let serial = 0; const serializer = new XMLSerializer();
+  
+  // ★ 変更: V8.1 - L/R/H/D すべての条件を受け取る
+  const { s_cond, key_cond, l_conds, r_conds, h_conds, d_conds } = conditions;
+
+  // ★ 変更: V8.1 - H/D条件がひとつでも null でない (＝指定されている) かどうか
+  const hasDependencyCond = h_conds.some(c => c !== null) || d_conds.some(c => c !== null);
+  
+   
+  const generateDisplayText = (details, separator) => {
+    return details.map(d => d.isMatched ? `(${d.text})` : d.text).join(separator);
+  };
+  const generateOriginalText = (details) => {
+    return details.map(d => d.isMatched ? `(${d.original})` : d.original).join('');
+  };
+
+  let idx = 0; let serial = 0; const serializer = new XMLSerializer(); 
   function processChunk(){
     if(searchAbort){ progressWrap.style.display='none'; progressText.style.display='block'; progressText.textContent="ファイルが大きすぎます。検索は中断されました。"; hasSearched=false; renderTable(); return; }
     const chunkEnd = Math.min(totalSent, idx + batchSize);
+    
     for(; idx < chunkEnd; idx++){
       const s = sentences[idx];
-      if(!sentenceMatchesExact(s, cond)) continue;
+      // 1. 文書条件チェック
+      if(!sentenceMatchesExact(s, s_cond)) continue;
       const words = Array.from(s.getElementsByTagName('w'));
+      if (words.length === 0) continue;
+
+      // ★ 変更: V8.1 - 係り受け検索が必要な場合はマップを作成
+      let wordMap, childrenMap;
+      if (hasDependencyCond) {
+          wordMap = new Map();
+          words.forEach(w => {
+              const wordId = w.getAttribute('wordId');
+              if (wordId) wordMap.set(wordId, w);
+          });
+          childrenMap = new Map();
+          words.forEach(w => {
+              const headId = w.getAttribute('udFrom');
+              if (headId && headId !== "0" && headId !== w.getAttribute('wordId')) {
+                  if (!childrenMap.has(headId)) childrenMap.set(headId, []);
+                  childrenMap.get(headId).push(w);
+              }
+          });
+      }
+
+      // 2. 検索ループ (全単語をキー候補としてチェック)
       for(let i=0;i<words.length;i++){
         const w = words[i];
-        if(!wordMatchesExact(w, cond)) continue;
-        // Lchecks (L5..L1)
-        let Lok = true; const Lmatched = [];
-        for(let k=0;k<5;k++){
-          const Lcond = Lconds[k];
-          if(!Lcond) continue;
-          const offset = 5 - k; const posIndex = i - offset;
-          if(posIndex < 0){ Lok=false; break; }
-          const prevW = words[posIndex];
-          if(!wordMatchesExact(prevW,Lcond)){ Lok=false; break; }
-          Lmatched.push(posIndex);
+        
+        // 2-1. キー条件チェック
+        if(!wordMatchesExact(w, key_cond)) continue;
+        
+        const Lset = new Set(); // マッチした単語の「インデックス(i)」を格納
+        const Rset = new Set(); // マッチした単語の「インデックス(i)」を格納
+        const Hset = new Set(); // マッチした単語の「wordId (string)」を格納
+        const Dset = new Set(); // マッチした単語の「wordId (string)」を格納
+
+        // 2-2. L (隣接性・前方) チェック
+        let lMatch = true;
+        for(let lk=0; lk<l_conds.length; lk++){ // [0]=L5, [4]=L1
+          if(l_conds[lk] === null) continue; // このレベルは条件指定なし
+          const targetIndex = i - (l_conds.length - lk); // i-5, ..., i-1
+          const lw = words[targetIndex];
+          if(!wordMatchesExact(lw, l_conds[lk])){ lMatch = false; break; }
+          Lset.add(targetIndex);
         }
-        if(!Lok) continue;
-        // Rchecks
-        let Rok = true; const Rmatched = [];
-        for(let k=0;k<5;k++){
-          const Rcond = Rconds[k];
-          if(!Rcond) continue;
-          const offset = k+1; const posIndex = i + offset;
-          if(posIndex >= words.length){ Rok=false; break; }
-          const nextW = words[posIndex];
-          if(!wordMatchesExact(nextW,Rcond)){ Rok=false; break; }
-          Rmatched.push(posIndex);
+        if(!lMatch) continue;
+
+        // 2-3. R (隣接性・後方) チェック
+        let rMatch = true;
+        for(let rk=0; rk<r_conds.length; rk++){ // [0]=R1, [4]=R5
+          if(r_conds[rk] === null) continue;
+          const targetIndex = i + (rk+1); // i+1, ...
+          const rw = words[targetIndex];
+          if(!wordMatchesExact(rw, r_conds[rk])){ rMatch = false; break; }
+          Rset.add(targetIndex);
         }
-        if(!Rok) continue;
+        if(!rMatch) continue;
+
+        // 2-4. H (係り受け・親) チェック
+        let hMatch = true;
+        
+        // ★ H条件が指定されている (h_conds が [[]] ではない) 場合のみチェック
+        // (h_conds.some(chain => chain.length > 0) で、空のチェーン配列 [[], []] を除外)
+        if (hasDependencyCond && h_conds.length > 0 && h_conds.some(chain => chain.length > 0 && chain.some(c => c !== null))) {
+
+            // ★ 再帰関数 (チェーンの H_k (k=level) 以降がマッチするか)
+            function checkParentChain(currentNode, chain, depth, Hset_chain) {
+                if (depth === chain.length) return true; // チェーン完走
+                
+                const h_cond = chain[depth];
+                if (h_cond === null) {
+                    return checkParentChain(currentNode, chain, depth + 1, Hset_chain); // 条件指定なし
+                }
+
+                const headId = currentNode.getAttribute('udFrom');
+                // ★ getAttribute が "26/27" のような複数の親を返す可能性を考慮 (ただしパースは最初のIDのみ)
+                const firstHeadId = headId ? headId.split('/')[0] : null; 
+                const parentW = wordMap.get(firstHeadId);
+
+                if (wordMatchesExact(parentW, h_cond)) {
+                    if (checkParentChain(parentW, chain, depth + 1, Hset_chain)) {
+                        Hset_chain.add(parentW.getAttribute('wordId')); // マッチしたノードを記録
+                        return true;
+                    }
+                }
+                return false; // このノードからは条件に合う親チェーンが見つからなかった
+            }
+
+            let any_h_chain_found = false;
+            
+            // ★ h_conds は [ [H1a, H2a...], [H1b, H2b...] ]
+            for (const h_chain of h_conds) {
+                if (h_chain.length === 0 || h_chain.every(c => c === null)) continue;
+                
+                const Hset_for_this_chain = new Set();
+                // ★ H1 (h_chain[0]) からチェック開始
+                if (checkParentChain(w, h_chain, 0, Hset_for_this_chain)) {
+                    any_h_chain_found = true;
+                    Hset.add(...Hset_for_this_chain); // Hset にマージ
+                    break; // ★ OR logic: 1つでもマッチしたらOK
+                }
+            }
+            
+            hMatch = any_h_chain_found;
+        }
+        if(!hMatch) continue;
+
+        // 2-5. D (係り受け・子) チェック
+        let dMatch = true;
+        
+        // ★ D条件が指定されている (d_conds が [[]] ではない) 場合のみチェック
+        if (hasDependencyCond && d_conds.length > 0) {
+
+            // ★ 再帰関数 (チェーンの D_k 以降がマッチするか)
+            // (Dset はヒット表示用に、マッチしたノードの wordId を記録する)
+            function checkChainRecursive(currentNode, chain, depth, Dset) {
+                if (depth === chain.length) return true; // チェーン完走
+                
+                const d_cond = chain[depth];
+                if (d_cond === null) {
+                    return checkChainRecursive(currentNode, chain, depth + 1); // 条件指定なし
+                }
+
+                const children = childrenMap.get(currentNode.getAttribute('wordId')) || [];
+                for (const childW of children) {
+                    if (wordMatchesExact(childW, d_cond)) {
+                        if (checkChainRecursive(childW, chain, depth + 1, Dset)) {
+                            Dset.add(childW.getAttribute('wordId')); // マッチしたノードを記録
+                            return true;
+                        }
+                    }
+                }
+                return false; // このノードからは条件に合う子チェーンが見つからなかった
+            }
+
+            let all_d_chains_found = true;
+            const keyWordChildren = childrenMap.get(w.getAttribute('wordId')) || [];
+            // ★ マッチングに「消費」できる子のプール
+            const availableChildren = new Set(keyWordChildren); 
+            
+            // ★ d_conds は [ [D1a, D2a...], [D1b, D2b...] ]
+            for (const d_chain of d_conds) {
+                if (d_chain.length === 0 || d_chain.every(c => c === null)) continue;
+                
+                let found_match_for_this_chain = false;
+                const d1_cond = d_chain[0];
+
+                // ★ D1 が指定されていない場合 (D2から指定など) はキーノード (w) から再帰をスタート
+                if (d1_cond === null) {
+                    if (checkChainRecursive(w, d_chain, 1, Dset)) {
+                         found_match_for_this_chain = true;
+                         // (D1がないので availableChildren は消費しない)
+                    }
+                } else {
+                    // ★ D1 が指定されている場合:
+                    // 利用可能な子 (availableChildren) の中から D1 にマッチし、
+                    // かつ D2... の連鎖も満たす子を探す
+                    for (const childNode of availableChildren) {
+                        if (wordMatchesExact(childNode, d1_cond)) {
+                            if (checkChainRecursive(childNode, d_chain, 1, Dset)) {
+                                found_match_for_this_chain = true;
+                                availableChildren.delete(childNode); // ★ この子をプールから消費
+                                Dset.add(childNode.getAttribute('wordId')); // D1 を記録
+                                break; // このチェーンのマッチングは完了
+                            }
+                        }
+                    }
+                }
+
+                if (!found_match_for_this_chain) {
+                    all_d_chains_found = false; // 必須チェーンの1つが見つからなかった
+                    break;
+                }
+            }
+            
+            dMatch = all_d_chains_found;
+        }
+        if(!dMatch) continue;
+
+        // --- 3. ヒット！ (すべての条件がマッチ) ---
+        serial++;
         const beforeWords = words.slice(0,i);
         const afterWords = words.slice(i+1);
-        const Lset = new Set(Lmatched);
-        const Rset = new Set(Rmatched);
-        const prevText = beforeWords.map((x, idxBw) => Lset.has(idxBw) ? "(" + x.textContent + ")" : x.textContent).join("");
-        const nextText = afterWords.map((x, idxAw) => {
-          const realIdx = i + 1 + idxAw;
-          return Rset.has(realIdx) ? "(" + x.textContent + ")" : x.textContent;
-        }).join("");
-        const keyText = w.textContent;
-        const prevRaw = beforeWords.map((x, idxBw) => Lset.has(idxBw) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
-        const nextRaw = afterWords.map((x, idxAw) => {
-          const realIdx = i + 1 + idxAw;
-          return Rset.has(realIdx) ? "(" + x.outerHTML + ")" : x.outerHTML;
-        }).join("");
-        const keyRaw = w.outerHTML;
+
+        // ( ) 付けのためのロジック (L/R と H/D の両方を考慮)
+        const prevDetails = beforeWords.map((x, idxBw) => ({
+          text: x.textContent.trim(),
+          original: getWAttr(x, 'original') || x.textContent.trim(),
+          isMatched: Lset.has(idxBw) || (hasDependencyCond && Hset.has(x.getAttribute('wordId')))
+        }));
+        const keyDetails = {
+          text: w.textContent.trim(),
+          original: getWAttr(w, 'original') || w.textContent.trim(),
+          isMatched: false // キー自体は括弧でくくらない
+        };
+        const nextDetails = afterWords.map((x, idxAw) => ({
+          text: x.textContent.trim(),
+          original: getWAttr(x, 'original') || x.textContent.trim(),
+          isMatched: Rset.has(i + 1 + idxAw) || (hasDependencyCond && Dset.has(x.getAttribute('wordId')))
+        }));
+        
+        const prevData = { upper: generateDisplayText(prevDetails, ' '), lower: generateOriginalText(prevDetails) };
+        const keyData = { upper: keyDetails.text, lower: keyDetails.original };
+        const nextData = { upper: generateDisplayText(nextDetails, ' '), lower: generateOriginalText(nextDetails) };
+        
+        // CSV/XML出力用の無修正データ
         const sentenceXML = serializer.serializeToString(s);
-        serial++;
+        const prevRaw = beforeWords.map((x, idxBw) => (Lset.has(idxBw) || (hasDependencyCond && Hset.has(x.getAttribute('wordId')))) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
+        const nextRaw = afterWords.map((x, idxAw) => (Rset.has(i + 1 + idxAw) || (hasDependencyCond && Dset.has(x.getAttribute('wordId')))) ? "(" + x.outerHTML + ")" : x.outerHTML).join("");
+        
+        // isFileUploaded に依存せず、detectedAttributes に基づいて全属性を格納
+        const hit_w_attrs = {};
+        detectedAttributes.forEach(attrName => {
+             hit_w_attrs[attrName] = getWAttr(w, attrName);
+        });
+
+
+        // ヒットデータを格納
         hits.push({
           no: serial,
           Task: trimStr(s.getAttribute('Task')),
           textID: trimStr(s.getAttribute('textID')),
-          prev: prevText,
-          key: keyText,
-          next: nextText,
+          prev: prevData,
+          key: keyData,
+          next: nextData,
+          // sタグ由来の属性 (文書情報) は維持
           personID: trimStr(s.getAttribute('personID')),
           personAge: trimStr(s.getAttribute('personAge')),
           language: trimStr(s.getAttribute('language')),
           personFirstLang: trimStr(s.getAttribute('personFirstLang')),
           personSecondLang: trimStr(s.getAttribute('personSecondLang')),
-          pos: getWAttr(w,'pos'),
-          pos1: getWAttr(w,'pos1'),
-          pos2: getWAttr(w,'pos2'),
-          pos3: getWAttr(w,'pos3'),
-          conjClass: getWAttr(w,'conjClass'),
-          conjForm: getWAttr(w,'conjForm'),
-          root: getWAttr(w,'root'),
-          reading: (getWAttr(w,'pronunciation')||getWAttr(w,'reading')),
-          rawPrev: prevRaw, rawKey: keyRaw, rawNext: nextRaw, rawSentence: sentenceXML,
+          rawPrev: prevRaw, rawKey: w.outerHTML, rawNext: nextRaw, rawSentence: sentenceXML,
           keyIndex: i,
-          sentenceNodeIndex: idx
+          sentenceNodeIndex: idx,
+          w_attrs: hit_w_attrs
         });
-      }
-    }
+
+      } // 2. 検索ループ (for i) 終了
+    } // 1. 文 (for idx) ループ終了
+    
     // progress
     const progress = Math.floor((idx / Math.max(1,totalSent)) * 100);
     $('progressBar').style.width = progress + '%';
@@ -14454,18 +15836,44 @@ function runSearchWithProgress(){
     const elapsed = Date.now() - startTime;
     if(elapsed > timeoutMs && progress < 10) searchAbort = true;
     if(searchAbort){ $('progressWrap').style.display='none'; $('progressText').style.display='block'; $('progressText').textContent = "ファイルが大きすぎます。検索は中断されました。"; hasSearched=false; renderTable(); return; }
+    
     if(idx < totalSent) { setTimeout(processChunk,0); }
-    else { hasSearched=true; $('progressBar').style.width='100%'; $('progressText').textContent='検索完了 (100% 完了)'; setTimeout(()=>{$('progressWrap').style.display='none'; $('progressText').style.display='none';},500); currentStartIndex=0; renderTable(); }
+    else {
+      // 検索完了
+      
+      hasSearched=true;	$('progressBar').style.width='100%'; $('progressText').textContent='検索完了 (100% 完了)'; setTimeout(()=>{$('progressWrap').style.display='none'; $('progressText').style.display='none';},500); currentStartIndex=0; renderTable();
+    }
   }
   setTimeout(processChunk,0);
 }
 /* ---------- 表示 / ソート / ページング ---------- */
 function getSortedRows(){
   let rows = hits.slice();
+  const headers = getCurrentHeaders();
   if(sortCol !== null){
     const key = headers[sortCol].key;
+    // このキーが動的Wヘッダーに含まれるかチェック
+    const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === key);
+    
+    
     rows.sort((a,b) => {
-      const A = (a[key] ?? "").toString(); const B = (b[key] ?? "").toString();
+      let valA, valB;
+
+      // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+      if (isDynamicW) {
+          valA = a.w_attrs[key];
+          valB = b.w_attrs[key];
+      } else {
+          valA = a[key];
+          valB = b[key];
+      }
+      
+      if (key === 'prev' || key === 'key' || key === 'next') {
+          valA = valA ? valA.upper : "";
+          valB = valB ? valB.upper : "";
+      }
+
+      const A = (valA ?? "").toString(); const B = (valB ?? "").toString();
       const nA = Number(A), nB = Number(B);
       if(!isNaN(nA) && !isNaN(nB)) return sortAsc ? nA - nB : nB - nA;
       return sortAsc ? A.localeCompare(B,'ja') : B.localeCompare(A,'ja');
@@ -14491,6 +15899,7 @@ function renderTable(){
   const pageRows = rows.slice(start, end);
   const tbl = document.createElement('table'); tbl.className='output';
   const thead = document.createElement('thead'); const thr = document.createElement('tr');
+  const headers = getCurrentHeaders();
   headers.forEach((h, idx) => {
     const th = document.createElement('th'); th.textContent = h.label;
     th.addEventListener('click', ()=> { if(sortCol === idx) sortAsc = !sortAsc; else { sortCol = idx; sortAsc = true; } renderTable(); });
@@ -14502,30 +15911,64 @@ function renderTable(){
     const tr = document.createElement('tr');
     headers.forEach(h => {
       const td = document.createElement('td');
-      if(h.key === 'key'){
-        const span = document.createElement('span'); span.className='key-cell'; span.style.cursor='pointer';
-        span.dataset.hitNo = r.no; span.textContent = r.key;
-        span.addEventListener('click', ()=> {
-          const hitNo = parseInt(span.dataset.hitNo,10);
-          const sorted = getSortedRows();
-          const posInSorted = sorted.findIndex(x => x.no === hitNo);
-          if(posInSorted === -1) return;
-          // set pageSize to 5 and center selected
-          $('pageSize').value = '5';
-          const newPageSize = 5;
-          let desiredStart = posInSorted - Math.floor(newPageSize/2);
-          const maxStart = Math.max(0, sorted.length - newPageSize);
-          if(desiredStart < 0) desiredStart = 0;
-          if(desiredStart > maxStart) desiredStart = maxStart;
-          currentStartIndex = desiredStart;
-          selectedHitNo = hitNo;
-          renderTable();
-          const hitIdx = hits.findIndex(hh => hh.no === hitNo);
-          if(hitIdx !== -1) showSentenceDetailByIndex(hitIdx);
-        });
-        td.appendChild(span);
+      
+      let val;
+      // このキーが動的Wヘッダーに含まれるかチェック
+      const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === h.key);
+
+      // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+      if (isDynamicW) {
+          val = r.w_attrs[h.key];
       } else {
-        td.textContent = r[h.key] ?? "";
+          val = r[h.key];
+      }
+
+      // V7.1 二段表示ロジック
+      if (h.key === 'prev' || h.key === 'next') {
+        if (val) {
+            const upperDiv = document.createElement('div');
+            upperDiv.textContent = val.upper;
+            upperDiv.className = 'context-upper';
+            const lowerDiv = document.createElement('div');
+            lowerDiv.textContent = val.lower;
+            lowerDiv.className = 'context-lower';
+            td.appendChild(upperDiv);
+            td.appendChild(lowerDiv);
+        }
+      } else if(h.key === 'key'){
+        if (val) {
+            const span = document.createElement('span');
+            span.className='key-cell-container';
+            span.dataset.hitNo = r.no;
+            const upperDiv = document.createElement('div');
+            upperDiv.textContent = val.upper;
+            upperDiv.className = 'context-upper';
+            const lowerDiv = document.createElement('div');
+            lowerDiv.textContent = val.lower;
+            lowerDiv.className = 'context-lower';
+            span.appendChild(upperDiv);
+            span.appendChild(lowerDiv);
+            span.addEventListener('click', ()=> {
+              const hitNo = parseInt(span.dataset.hitNo,10);
+              const sorted = getSortedRows();
+              const posInSorted = sorted.findIndex(x => x.no === hitNo);
+              if(posInSorted === -1) return;
+              $('pageSize').value = '5';
+              const newPageSize = 5;
+              let desiredStart = posInSorted - Math.floor(newPageSize/2);
+              const maxStart = Math.max(0, sorted.length - newPageSize);
+              if(desiredStart < 0) desiredStart = 0;
+              if(desiredStart > maxStart) desiredStart = maxStart;
+              currentStartIndex = desiredStart;
+              selectedHitNo = hitNo;
+              renderTable();
+              const hitIdx = hits.findIndex(hh => hh.no === hitNo);
+              if(hitIdx !== -1) showSentenceDetailByIndex(hitIdx);
+            });
+            td.appendChild(span);
+        }
+      } else {
+        td.textContent = val ?? "";
       }
       tr.appendChild(td);
     });
@@ -14572,56 +16015,84 @@ function showSentenceDetailByIndex(hitIndex){
   area.innerHTML = ""; meta.style.display='block'; meta.textContent = `${hit.no || ''}-${hit.Task || ''}-${hit.textID || ''}`;
   $('showArticleBtn').style.display = 'inline-block'; $('articleRangeLabel').style.display = 'inline-block';
   $('articleBox').style.display='none'; $('articleContent').innerHTML='';
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(hit.rawSentence, "application/xml");
-    const wnodes = Array.from(doc.getElementsByTagName('w'));
-    wnodes.forEach((wn, idx) => {
-      const span = document.createElement('span');
-      span.classList.add('word');
-      const pos = (wn.getAttribute('pos') || 'その他');
-      span.classList.add(pos);
-      span.dataset.pos = pos;
-      span.dataset.pos1 = wn.getAttribute('pos1') || "";
-      span.dataset.pos2 = wn.getAttribute('pos2') || "";
-      span.dataset.pos3 = wn.getAttribute('pos3') || "";
-      span.dataset.conjClass = wn.getAttribute('conjClass') || "";
-      span.dataset.conjForm = wn.getAttribute('conjForm') || "";
-      span.dataset.root = wn.getAttribute('root') || "";
-      span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
-      span.textContent = wn.textContent || "";
-      if(pos === '記号') span.classList.add('punct');
-      if(typeof hit.keyIndex === 'number' && idx === hit.keyIndex){
-        span.classList.add('key-selected');
-        const col = posColors[pos] ? posColors[pos].border : 'rgba(0,0,0,0.2)';
-        span.style.border = `2px solid ${col}`; span.style.borderRadius = '4px';
-      }
-      span.addEventListener('mouseenter', onWordMouseEnter);
-      span.addEventListener('mouseleave', onWordMouseLeave);
-      span.addEventListener('mousemove', onWordMouseMove);
-      area.appendChild(span);
-    });
-  } catch(e){
-    area.textContent = "文の表示に失敗しました。";
+
+  // ★ V7.3 描画エリアの表示切り替え
+  if (isUDViewActive) {
+    // UD表示がアクティブ
+    $('sentenceArea').style.display = 'none';
+    $('udCanvasContainer').style.display = 'block';
+    drawUDTree(hit); // ★ 新しい関数を呼ぶ
+  } else {
+    // 通常の文詳細表示
+    $('sentenceArea').style.display = 'block';
+    $('udCanvasContainer').style.display = 'none';
+    try {
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(hit.rawSentence, "application/xml");
+      const wnodes = Array.from(doc.getElementsByTagName('w'));
+      wnodes.forEach((wn, idx) => {
+        const span = document.createElement('span');
+        span.classList.add('word');
+        const pos = (wn.getAttribute('pos') || 'その他');
+        span.classList.add(pos);
+        span.dataset.pos = pos;
+        // ★ 変更: ツールチップ用に、w_attrs (全属性) を data-* に格納
+        if (isFileUploaded) {
+            // ★ 修正: hit.w_attrs (キーワードの属性) ではなく、wn (現在の単語) の全属性を参照する
+            Array.from(wn.attributes).forEach(attr => {
+                span.dataset[attr.name] = attr.value;
+            });
+        } else {
+            // デフォルトデータ用の属性
+            span.dataset.pos1 = wn.getAttribute('pos1') || "";
+            span.dataset.pos2 = wn.getAttribute('pos2') || "";
+            span.dataset.pos3 = wn.getAttribute('pos3') || "";
+            span.dataset.conjClass = wn.getAttribute('conjClass') || "";
+            span.dataset.conjForm = wn.getAttribute('conjForm') || "";
+            span.dataset.root = wn.getAttribute('root') || "";
+            span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
+        }
+        span.textContent = wn.textContent || "";
+        if(pos === '記号') span.classList.add('punct');
+        if(typeof hit.keyIndex === 'number' && idx === hit.keyIndex){
+          span.classList.add('key-selected');
+          const col = posColors[pos] ? posColors[pos].border : 'rgba(0,0,0,0.2)';
+          span.style.border = `2px solid ${col}`; span.style.borderRadius = '4px';
+        }
+        span.addEventListener('mouseenter', onWordMouseEnter);
+        span.addEventListener('mouseleave', onWordMouseLeave);
+        span.addEventListener('mousemove', onWordMouseMove);
+        area.appendChild(span);
+      });
+    } catch(e){
+      area.textContent = "文の表示に失敗しました。";
+    }
   }
+  
   detail.style.display = 'block';
   $('tooltip').style.display = 'none';
 }
 /* ---------- ツールチップ / ホバー処理 ---------- */
+// ★ 変更: ツールチップ (動的属性対応)
 function onWordMouseEnter(e){
   const span = e.currentTarget; const pos = span.dataset.pos || '';
   const areaRoot = span.closest('.sentence-area') || span.closest('.article-box') || document;
   const siblings = areaRoot.querySelectorAll('.word');
   siblings.forEach(w => { if((w.dataset.pos||'') === pos) w.classList.add('hover'); });
+  
   const lines = [];
-  lines.push(`品詞：${span.dataset.pos || ''}`);
-  if(span.dataset.pos1) lines.push(`品詞細分類１：${span.dataset.pos1}`);
-  if(span.dataset.pos2) lines.push(`品詞細分類２：${span.dataset.pos2}`);
-  if(span.dataset.pos3) lines.push(`品詞細分類３：${span.dataset.pos3}`);
-  if(span.dataset.conjClass) lines.push(`活用型：${span.dataset.conjClass}`);
-  if(span.dataset.conjForm) lines.push(`活用形：${span.dataset.conjForm}`);
-  if(span.dataset.root) lines.push(`原形：${span.dataset.root}`);
-  if(span.dataset.reading) lines.push(`読み：${span.dataset.reading}`);
+  // data-* 属性をすべて表示する
+  // ★ 修正: 'pos' を先に表示し、その後 'pos' 以外をすべて表示する
+  if (span.dataset.pos) {
+      lines.push(`pos：${span.dataset.pos}`);
+  }
+  Object.keys(span.dataset).forEach(key => {
+      // 'pos' 以外で、値が存在するものを追加
+      if (key !== 'pos' && span.dataset[key]) {
+          lines.push(`${key}：${span.dataset[key]}`);
+      }
+  });
+
   const tt = $('tooltip'); tt.textContent = lines.join("\n");
   const pc = posColors[pos] ? posColors[pos].bg : '#fff'; tt.style.background = pc; tt.style.border='1px solid #ccc';
   tt.style.display = 'block';
@@ -14674,13 +16145,23 @@ function renderArticleRange(start, end, hit){
       const pos = (wn.getAttribute('pos') || 'その他');
       span.classList.add(pos);
       span.dataset.pos = pos;
-      span.dataset.pos1 = wn.getAttribute('pos1') || "";
-      span.dataset.pos2 = wn.getAttribute('pos2') || "";
-      span.dataset.pos3 = wn.getAttribute('pos3') || "";
-      span.dataset.conjClass = wn.getAttribute('conjClass') || "";
-      span.dataset.conjForm = wn.getAttribute('conjForm') || "";
-      span.dataset.root = wn.getAttribute('root') || "";
-      span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
+      
+      // ★ 変更: ツールチップ用に、w の全属性を data-* に格納
+      if (isFileUploaded) {
+          Array.from(wn.attributes).forEach(attr => {
+              span.dataset[attr.name] = attr.value;
+          });
+      } else {
+          // デフォルトデータ用の属性
+          span.dataset.pos1 = wn.getAttribute('pos1') || "";
+          span.dataset.pos2 = wn.getAttribute('pos2') || "";
+          span.dataset.pos3 = wn.getAttribute('pos3') || "";
+          span.dataset.conjClass = wn.getAttribute('conjClass') || "";
+          span.dataset.conjForm = wn.getAttribute('conjForm') || "";
+          span.dataset.root = wn.getAttribute('root') || "";
+          span.dataset.reading = wn.getAttribute('pronunciation') || wn.getAttribute('reading') || "";
+      }
+      
       span.textContent = wn.textContent || "";
       if(pos === '記号') span.classList.add('punct');
       if(i === hit.sentenceNodeIndex && typeof hit.keyIndex === 'number' && idx === hit.keyIndex){
@@ -14700,24 +16181,80 @@ function renderArticleRange(start, end, hit){
 }
 /* ---------- CSV（無修正列を末尾に付与） ---------- */
 function sanitizeFilename(s){ return (s||"").replace(/[\/\\?%*:|"<>]/g, '_'); }
+
 function buildCondString(){
-  const parts = [];
-  ['pos','textID','personID','personAge','language'].forEach(k=>{
-    const el = $(k); const v = el ? trimStr(el.value || "") : "";
-    if(v) parts.push(`${k}-${v}`);
-  });
-  return parts.length ? parts.join('_') : 'all';
+    let parts = [];
+    
+   // 1. キー条件 (代表的なものをピックアップ)
+    let keyKeys = ['surface', 'pos', 'lemma', 'root', 'udType']; 
+
+    keyKeys.forEach(k=>{
+        const el = $(k); // V8.0: key_ はつかない
+        const v = el ? trimStr(el.value || "") : "";
+        if(v) parts.push(`Key-${v}`);
+    });
+
+    // 2. L/R/H/D 条件 (L1/R1/H1/D1 の 'surface' または 'root' があれば採用)
+    ['L', 'R', 'H', 'D'].forEach(type => {
+        const k = 1; // L1, R1, H1, D1 のみ
+        let v = "";
+        
+        // ▼ 修正後 ▼
+        // H/D のID体系 (H1-1-surface) と L/R のID体系 (L1_surface) を両方試す
+        let surfaceEl;
+        let rootEl;
+        
+        if (type === 'H' || type === 'D') {
+            surfaceEl = $(`${type}1-1-surface`); // H1-1-surface, D1-1-surface
+            rootEl = $(`${type}1-1-root`); // H1-1-root
+        } else {
+            surfaceEl = $(`${type}${k}_surface`); // L1_surface, R1_surface
+            rootEl = $(`${type}${k}_root`); // L1_root
+        }
+        
+        if (surfaceEl && surfaceEl.value) v = trimStr(surfaceEl.value);
+        else if (rootEl && rootEl.value) v = trimStr(rootEl.value);
+
+        if(v) parts.push(`${type}${k}-${v}`);
+    });
+
+    // 3. 文書情報
+    ['textID','personID'].forEach(k=>{
+        const el = $(k); const v = el ? trimStr(el.value || "") : "";
+        if(v) parts.push(`${k}-${v}`);
+    });
+
+    if (parts.length === 0) parts.push('all');
+    return parts.join('_');
 }
 function downloadCSV(encoding){
   if(hits.length === 0){ alert("出力する結果がありません。"); return; }
+  const headers = getCurrentHeaders();
   const visibleLabels = headers.map(h => h.label);
   const headerRow = visibleLabels.concat(["無修正前文脈","無修正キー","無修正後文脈","無修正全文"]);
   const rows = hits.map(r => {
-    const visible = headers.map(h => r[h.key] ?? "");
-    return visible.concat([r.rawPrev ?? "", r.rawKey ?? "", r.rawNext ?? "", r.rawSentence ?? ""]);
+    const visible = headers.map(h => {
+        let val;
+        // このキーが動的Wヘッダーに含まれるかチェック
+        const isDynamicW = currentDynamicWHeaders.find(dh => dh.key === h.key);
+
+        // 動的Wヘッダーなら w_attrs から、それ以外 (静的 or 文書情報) ならトップレベルから取得
+        if (isDynamicW) {
+            val = r.w_attrs[h.key];
+        } else {
+            val = r[h.key];
+        }
+        if (h.key === 'prev' || h.key === 'key' || h.key === 'next') {
+            return val ? val.upper : "";
+        }
+        return val ?? "";
+    });
+   return visible.concat([r.rawPrev ?? "", r.rawKey ?? "", r.rawNext ?? "", r.rawSentence ?? ""]);
   });
+  // ★ 修正: 改行コードのタイプミス ("\rn" -> "\r\n")
   const csvText = [headerRow, ...rows].map(r => r.map(cell => `"${String(cell).replace(/"/g,'""')}"`).join(",")).join("\r\n");
   const date = new Date(); const yy = String(date.getFullYear()).slice(2); const mm = String(date.getMonth()+1).padStart(2,'0'); const dd = String(date.getDate()).padStart(2,'0');
+  
   const datestr = `${yy}-${mm}-${dd}`; const prefix = sanitizeFilename(uploadFileName || 'keioSFC'); const condStr = sanitizeFilename(buildCondString());
   const fname = `${prefix}_${datestr}_${condStr}.csv`;
   let blob;
@@ -14732,21 +16269,395 @@ function downloadCSV(encoding){
 }
 /* ---------- クリア ---------- */
 function clearAll(){
-  const ids = ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface','Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
-  ids.forEach(id => { if($(id)) $(id).value = ""; });
-  ['L1_','L2_','L3_','L4_','L5_','R1_','R2_','R3_','R4_','R5_'].forEach(pref=>{
-    ['pos','pos1','pos2','pos3','conjClass','conjForm','root','surface'].forEach(k=>{ if($(pref+k)) $(pref+k).value = ""; });
-  });
-  ['Lmatrix','Rmatrix'].forEach(id=>{ if($(id)) $(id).style.display='none'; });
-  enableAllPosSubfields();
+  // 1. 文書情報クリア
+  const docIds = ['Task','textID','personID','personAge','language','personFirstLang','personSecondLang'];
+  docIds.forEach(id => { if($(id)) $(id).value = ""; });
+  // (文書情報フィールドセットは閉じない)
+
+  // 2. L/R/H/D 動的ボックスをクリア
+  clearDynamicBoxes(); // ★ V8.0 新ヘルパー
+
+  // 3. キーノード フォーム クリア
+  // ★ 変更: V8.0 - rebuildForms(null) がキーノードをリセットする
+  rebuildForms(null); 
+
+  // 4. デフォルトUIの場合のみ、pos連動を再有効化
+  if (!isCustomized) {
+      enableAllPosSubfields();
+  }
+  
+  // ★ 削除: V8.0 - activeSearchMode のリセットは不要
+
+  // 5. 検索結果・状態クリア
   hits=[]; currentStartIndex=0; sortCol=null; sortAsc=true; hasSearched=false; searchAbort=false; selectedHitNo=null;
   $('tableContainer').innerHTML=""; $('hitCount').style.display='none'; $('hitCount').textContent=''; $('pagerTop').innerHTML=''; $('pagerBottom').innerHTML='';
+  
   $('errorMsg').style.display='none'; $('errorMsg').textContent='';
+  $('fileError').style.display='none'; 
   $('progressWrap').style.display='none'; $('progressText').style.display='none'; $('sentenceDetail').style.display='none'; $('sentenceArea').innerHTML=''; $('sentenceMeta').style.display='none'; $('articleBox').style.display='none';
   $('tooltip').style.display='none';
+  
+  isUDViewActive = false;
+  if ($('udToggleBtn')) {
+    $('udToggleBtn').textContent = 'UD表示 OFF';
+    $('udToggleBtn').classList.remove('active');
+  }
+  if ($('udCanvasContainer')) {
+    $('udCanvasContainer').style.display = 'none';
+  }
+  if ($('sentenceArea')) {
+    $('sentenceArea').style.display = 'block';
+  }
+  
+  // 6. ヘッダーのクリア
+  if (!isCustomized) {
+      currentDynamicHeaders = defaultDynamicHeaders;
+  }
+  renderTable();
+}
+
+/* ---------- ★ V7.3 UDツリー描画 ---------- */
+
+
+// UD表示ボタンのトグル処理
+function toggleUDView() {
+  isUDViewActive = !isUDViewActive;
+  const btn = $('udToggleBtn');
+  const area = $('sentenceArea');
+  const canvasContainer = $('udCanvasContainer');
+  const udOptions = $('udOptions'); // ★ 追加
+
+  if (isUDViewActive) {
+    btn.textContent = 'UD表示 ON';
+    btn.classList.add('active');
+    area.style.display = 'none';
+    canvasContainer.style.display = 'block';
+    udOptions.style.display = 'inline-block'; // ★ 追加
+    
+    // 現在選択中のヒットがあれば、即時描画
+    if (selectedHitNo !== null) {
+      const hitIdx = hits.findIndex(h => h.no === selectedHitNo);
+      if (hitIdx !== -1) {
+        drawUDTree(hits[hitIdx]);
+      }
+    }
+  } else {
+    btn.textContent = 'UD表示 OFF';
+    btn.classList.remove('active');
+    area.style.display = 'block';
+    canvasContainer.style.display = 'none';
+    udOptions.style.display = 'none'; // ★ 追加
+  }
+}s
+// UDツリーのメイン描画関数
+function drawUDTree(hit) {
+  const canvas = $('udCanvas');
+  const ctx = canvas.getContext('2d');
+  const errDiv = $('udError');
+  errDiv.style.display = 'none';
+  
+  // 1. データのパース
+  let words = [];
+  let rootNode = null;
+  const wordMap = new Map();
+
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(hit.rawSentence, "application/xml");
+    const wnodes = Array.from(doc.getElementsByTagName('w'));
+    
+    if (wnodes.length === 0) throw new Error("wタグが見つかりません。");
+
+    // ★ 追加: チェックボックスから表示内容を決定
+    const displayOptions = [];
+    if ($('udOpt_original').checked) displayOptions.push('original');
+    if ($('udOpt_text').checked) displayOptions.push('textContent');
+    if ($('udOpt_root').checked) displayOptions.push('root');
+    if ($('udOpt_pos').checked) displayOptions.push('pos');
+    // デフォルトフォールバック
+    if (displayOptions.length === 0) {
+        displayOptions.push('original');
+        $('udOpt_original').checked = true; // フォールバック時はチェックをON
+    }
+
+    wnodes.forEach(wn => {
+      const id = parseInt(wn.getAttribute('wordId'), 10);
+      const headId = parseInt(wn.getAttribute('udFrom'), 10);
+      
+      // ★ 修正: チェックボックスに応じて表示テキストを構築
+      const nodeTexts = [];
+      displayOptions.forEach(opt => {
+          if (opt === 'original') {
+              nodeTexts.push(wn.getAttribute('original') || wn.textContent.trim());
+          } else if (opt === 'textContent') {
+              nodeTexts.push(wn.textContent.trim());
+          } else if (opt === 'root') {
+              // 'root' が空なら '-' を表示
+              nodeTexts.push(wn.getAttribute('root') || '-');
+          } else if (opt === 'pos') {
+              // 'pos' が空なら '-' を表示
+              nodeTexts.push(wn.getAttribute('pos') || '-');
+          }
+      });
+      const textLines = nodeTexts;
+
+      const pos = wn.getAttribute('pos') || 'その他';
+      const udType = wn.getAttribute('udType') || '';
+      
+      if (isNaN(id) || isNaN(headId)) {
+          // udFrom が空や不正な値の場合はスキップ (例: V7.3のサンプルデータ '●' (wordId=1, udFrom="24", udTo=""))
+          // ただし、これがエラーの原因になる可能性もある
+          if (isNaN(id)) throw new Error(`wordId が不正です: ${wn.outerHTML}`);
+          // headId が不正な場合は、ひとまず自分自身を指すようにしてエラー回避
+          console.warn(`udFrom が不正なため、 ${id} を仮ルートとして扱います: ${wn.outerHTML}`);
+      }
+
+     const node = {
+        id: id,
+        textLines: textLines, 
+        pos: pos,
+        headId: isNaN(headId) ? id : headId,
+        udType: udType,
+        children: [],
+        level: -1,
+        x: 0,
+        y: 0
+      };
+      words.push(node);
+      wordMap.set(id, node);
+    });
+
+    // 親子関係の構築とルートの特定
+    words.forEach(node => {
+      if (node.id === node.headId) {
+        rootNode = node;
+      } else {
+        const head = wordMap.get(node.headId);
+        if (head) {
+          head.children.push(node);
+        } else {
+          // headId が存在しない場合 (例: 0 や範囲外)
+          console.warn(`ID ${node.headId} の親ノードが見つかりません (ノード ${node.id})`);
+          if (!rootNode) { // まだルートが未定なら、これを暫定ルートにする
+            rootNode = node;
+          }
+        }
+      }
+    });
+
+    if (!rootNode) {
+        // self-loop がない場合、udFrom="0" などを探す
+        const zeroHead = words.find(w => w.headId === 0);
+        if (zeroHead) {
+            rootNode = zeroHead;
+        } else if (words.length > 0) {
+            // それでもない場合、udFrom が自分以外を指しているが、
+            // その headId が見つからない最初のノードをルートとみなす
+             console.warn("ルートノード (headId=id or headId=0) が見つかりません。暫定ルートを適用します。");
+             rootNode = words.find(w => w.headId !== w.id && !wordMap.has(w.headId)) || words[0];
+        } else {
+             throw new Error("描画する単語がありません。");
+        }
+    }
+
+  } catch (e) {
+    errDiv.textContent = `UDデータのパースに失敗しました: ${e.message}`;
+    errDiv.style.display = 'block';
+    return;
+  }
+
+  // 2. レイアウト計算 (レベル決定 - 葉から)
+  let maxLevel = 0;
+  function calculateLevel(node) {
+    if (node.children.length === 0) {
+      node.level = 0;
+    } else {
+      let maxChildLevel = 0;
+      node.children.forEach(child => {
+        calculateLevel(child); // 再帰的に子を計算
+        if (child.level > maxChildLevel) {
+          maxChildLevel = child.level;
+        }
+      });
+      node.level = maxChildLevel + 1;
+    }
+    if (node.level > maxLevel) {
+      maxLevel = node.level;
+    }
+  }
+  
+  // wordMapにある全ノードを対象に、未計算のノードからレベルを計算
+  words.forEach(node => {
+      if(node.level === -1) {
+          // 接続されていない孤立ノードや、
+          // 循環参照によって calculateLevel(rootNode) から漏れたノード
+          // のレベルを計算する
+          try {
+            calculateLevel(node);
+          } catch(e) {
+            // 循環参照エラーなど
+            console.error("レベル計算中にエラー:", e);
+            node.level = 0; // 暫定的に0
+          }
+      }
+  });
+
+
+  // 3. 描画設定
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  
+  // const boxHeight = 30; // ★ 削除
+  const boxPaddingY = 50; // 箱と箱のY間隔
+  const boxPaddingX = 10; // 箱と箱のX間隔
+  let totalWidth = 0;
+  
+  // ★ 修正: 複数行に対応したレイアウト計算
+  const lineHeight = 16; // 1行の高さ (14pxフォント + 2px隙間)
+  const nodeMetrics = new Map();
+  words.sort((a,b) => a.id - b.id); // wordId順にソート
+
+  let currentX = 20; // 左右マージン
+  
+  words.forEach(node => {
+      let maxWidth = 0;
+      // ★ node.text ではなく node.textLines を使用
+      node.textLines.forEach(line => {
+          const metrics = ctx.measureText(line);
+          if (metrics.width > maxWidth) {
+              maxWidth = metrics.width;
+          }
+      });
+      
+      const boxWidth = Math.max(40, maxWidth + 16); // 最小幅40px, 左右パディング8px
+      // ★ 高さを動的に計算 (上下パディング4px)
+      const boxHeight = node.textLines.length * lineHeight + 8; 
+      
+      nodeMetrics.set(node.id, { width: boxWidth, height: boxHeight, lineHeight: lineHeight });
+      
+      node.x = currentX + (boxWidth / 2);
+      currentX += boxWidth + boxPaddingX;
+  });
+  totalWidth = currentX + 20; // 左右マージン
+
+  // ★ 修正: Y座標をレベルごとの最大高さを考慮して決定
+  const levelMaxHeight = new Array(maxLevel + 1).fill(0);
+  words.forEach(node => {
+      const metrics = nodeMetrics.get(node.id);
+      if (metrics.height > levelMaxHeight[node.level]) {
+          levelMaxHeight[node.level] = metrics.height;
+      }
+  });
+
+  const levelYTop = new Array(maxLevel + 1).fill(0);
+  let currentY_Layout = 20; // Top margin
+  for (let l = maxLevel; l >= 0; l--) { // Top level (maxLevel) to Bottom level (0)
+      levelYTop[l] = currentY_Layout;
+      currentY_Layout += levelMaxHeight[l] + boxPaddingY;
+  }
+  const totalHeight = currentY_Layout + 20; // Add bottom margin (20 - boxPaddingY)
+
+  words.forEach(node => {
+      const metrics = nodeMetrics.get(node.id);
+      // node.y を箱の「中央」Y座標として設定
+      node.y = levelYTop[node.level] + (metrics.height / 2);
+  });
+  
+  // キャンバスサイズを調整
+  canvas.width = totalWidth;
+  canvas.height = totalHeight; // ★ 修正
+
+  // 4. 描画 (再度設定が必要)
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.strokeStyle = '#888';
+  ctx.lineWidth = 1.5;
+
+  // 4a. 線の描画 (下から)
+  words.forEach(node => {
+    if (node.id === node.headId) return; // ルートは描画しない
+    const head = wordMap.get(node.headId);
+    if (!head) return; // 親が見つからない
+
+    // ★ 修正: metrics から動的な高さを取得
+    const nodeMetrics_child = nodeMetrics.get(node.id);
+    const nodeMetrics_head = nodeMetrics.get(head.id);
+    if (!nodeMetrics_child || !nodeMetrics_head) return; // 安全装置
+
+    ctx.beginPath();
+    ctx.moveTo(node.x, node.y - nodeMetrics_child.height / 2); // 子の上端
+    ctx.lineTo(head.x, head.y + nodeMetrics_head.height / 2); // 親の下端
+    ctx.stroke();
+    
+    // ★ 修正: udType を線の中央に描画 (Y座標の計算を修正)
+    if (node.udType) {
+        const midX = (node.x + head.x) / 2;
+        // ★ Y座標もエッジ基準で中央を計算
+        const midY = ( (node.y - nodeMetrics_child.height / 2) + (head.y + nodeMetrics_head.height / 2) ) / 2;
+        
+        ctx.font = '12px "Hiragino Sans", "Noto Sans JP", sans-serif';
+        ctx.fillStyle = '#1f6f3a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        
+        const text = node.udType;
+        const textMetrics = ctx.measureText(text);
+        
+        ctx.clearRect(midX - (textMetrics.width / 2) - 2, midY - 8, textMetrics.width + 4, 16);
+        ctx.fillText(text, midX, midY);
+        
+        ctx.font = '14px "Hiragino Sans", "Noto Sans JP", sans-serif'; // 元に戻す
+    }
+  });
+
+  // 4b. ノード(箱とテキスト)の描画 (上から)
+  words.forEach(node => {
+    const metrics = nodeMetrics.get(node.id);
+    const x_box = node.x - metrics.width / 2; // 箱の左上X
+    const y_box = node.y - metrics.height / 2; // 箱の左上Y
+    const lineHeight = metrics.lineHeight;
+
+    // ★ V7.5: posColors から動的に色を取得
+    // ('その他' またはハードコード値をフォールバックとして使用)
+    const colorInfo = posColors[node.pos] || posColors['その他'] || { bg: '#eafff4', border: '#57a070' };
+
+    // 箱
+    ctx.fillStyle = colorInfo.bg;
+    ctx.fillRect(x_box, y_box, metrics.width, metrics.height);
+    ctx.strokeStyle = colorInfo.border;
+    ctx.strokeRect(x_box, y_box, metrics.width, metrics.height);
+    
+    // ★ 修正: 複数行のテキストを描画
+    ctx.fillStyle = '#133';
+    ctx.textBaseline = 'middle';
+    
+    // 垂直方向の開始位置を計算 (箱の上端 + 上パディング(4px) + 最初の行の半分の高さ)
+    let y_text = y_box + 4 + (lineHeight / 2); 
+    
+    node.textLines.forEach(line => {
+        ctx.fillText(line, node.x, y_text);
+        y_text += lineHeight; // 次の行へ
+    });
+  });
 }
 /* ---------- debug helper ---------- */
-window._debug = { getCurrentData: ()=> currentData, getHits: ()=> hits, getParsedSentences: ()=> parsedSentences };
+window._debug = {
+    getCurrentData: ()=> currentData, 
+    getHits: ()=> hits, 
+    getParsedSentences: ()=> parsedSentences,
+    getDetectedAttrs: ()=> detectedAttributes,
+    isCustomized: ()=> isCustomized
+};
 </script>
 </body>
+
 </html>
+
+
+
+
+
