@@ -195,9 +195,7 @@ label[for="fileInput"], label[for="posCsv"] {
 #tokens.ud-mode-active .token {
     cursor: pointer;
 }
-#tokens.ud-mode-active .boundary {
-    display: none;
-}
+
 
 /* トークン表示エリアに上部パディングを追加し、矢印のスペースを確保 */
 .tokens-wrapper {
@@ -283,9 +281,6 @@ label[for="fileInput"], label[for="posCsv"] {
     font-weight: 500;
 }
 
-/* ▲▲▲ UDモード用スタイル ▲▲▲ */
-
-
 .sentence-header {
     background-color: #f9fafb; /* 薄いグレー */
     color: var(--color-text);
@@ -315,10 +310,12 @@ label[for="fileInput"], label[for="posCsv"] {
     padding: 4px 8px;
     font-family: inherit;
     font-size: 14px;
-    width: 60px;
+    /* 変更: 固定幅を削除し、文字列幅に合わせる設定と最大・最小幅を追加 */
+    min-width: 60px;
+    max-width: 250px;
+    field-sizing: content; /* モダンブラウザ用：コンテンツに合わせて自動伸縮 */
 }
 .status{font-size:13px;color:var(--muted);margin-top:8px}
-
 
 /* コントロールコンテナのギャップも調整 (HTMLのインラインスタイルを上書き) */
 #controlsContainer {
@@ -874,9 +871,7 @@ function getAllWElements(){ if(!xmlDoc) return []; return selectByLocalName(xmlD
 
     setStatus('UDモードを終了しました。');
   }
-  // ▲▲▲ 追加完了 ▲▲▲
-
-  // =====【重要】ここから下の loadXMLText 関数を、既存のものと完全に置き換えてください =====
+  
   function loadXMLText(text, sourceName){
     sourceName = sourceName || '(uploaded)';
     setStatus('パース中...');
@@ -903,26 +898,19 @@ function getAllWElements(){ if(!xmlDoc) return []; return selectByLocalName(xmlD
     xmlDoc = doc;
 
     
-// ▼▼▼ 修正 ▼▼▼
+
 const idProcessingOk = processWordIDs(xmlDoc.documentElement);
 if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
         tokensEl.innerHTML = '<div style="color: red;">wordIDに不正な値が含まれているため、ファイルの読み込みを中止しました。</div>';
         return;
     }
-    
 
     historySnapshots.length = 0;
     pushSnapshot();
     renderTokens();
     setStatus(sourceName+' をロードしました ('+getAllWElements().length+' w)');
   }
-// =====【重要】loadXMLText 関数の置き換えはここまでです =====
-
-/*
-  【重要】以下の renderTokens 関数を、既存の renderTokens 関数と完全に置き換えてください。
-*/
   function renderTokens() {
-    // ▼▼▼ 変更: 属性リストの管理をモード分岐の前に行う ▼▼▼
     const propsListEl = $('udDisplayPropsList');
 
     // UD編集中は属性UIを構築 (Flat/Upright共通)
@@ -942,7 +930,6 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
                 }
             }
             
-            // ★変更: 編集中の文の単語から属性を収集する (効率化)
             const wsInSentence = selectByLocalName(contextElement, 'w');
             
             wsInSentence.forEach(wNode => {
@@ -978,10 +965,7 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
              uprightPosColorCache.clear();
         }
     }
-    // ▲▲▲ 属性リスト管理ここまで ▲▲▲
 
-
-    // ▼▼▼ モード分岐 ▼▼▼
     if (window.__udModeActive && window.__udLayoutUpright) {
         renderTokensUpright();
         return;
@@ -1014,7 +998,7 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
              s.classList.add('ud-error-self-reference');
         }
 
-        // ▼▼▼ 変更: Flatモードでも色と属性表示を適用 ▼▼▼
+
         const attrs = getAttrs(wNode);
         
         // ★ UD編集中 (Flat) の場合
@@ -1085,16 +1069,17 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
             ev.stopPropagation();
             // UDモードのハンドリング
             if (window.__udModeActive) {
-                // ★ 変更: sentenceIdentifier を渡す
                 handleUDTokenClick(s, wNode, ev, sentenceIdentifier);
-                return;
+                // 変更: returnを削除し、他のモードの処理も許可する
             }
-            // 既存モードのハンドリング
-            if (window.__mergeModeActive) return;
-            if (!window.__attrEditModeActive) return;
-            // ROOTノードは属性編集不可
-            if (wordId === '0') return;
-            openAttrEditor(s, wNode);
+            // 既存モード（属性編集）のハンドリング
+            // 変更: 統合モード等との排他処理を削除
+            if (window.__attrEditModeActive) {
+                // ROOTノードは属性編集不可
+                if (wordId !== '0') {
+                    openAttrEditor(s, wNode);
+                }
+            }
         });
         
         tokenIdToNode.set(String(tokenId), wNode);
@@ -1139,10 +1124,18 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
                 label.className = 'sentence-attr-label';
                 label.textContent = key;
                 const input = document.createElement('input');
-                input.className = 'sentence-attr-input';
-                input.type = 'text';
-                input.value = sAttrs[key];
-                input.addEventListener('change', () => {
+                input.className = 'sentence-attr-input';
+                input.type = 'text';
+                input.value = sAttrs[key];
+                
+                // 変更: JSによる動的な幅調整ロジック（入力文字数に応じて幅を変更）
+                const adjustWidth = () => {
+                    input.style.width = Math.min(Math.max(input.value.length + 1, 4), 30) + 'ch';
+                };
+                adjustWidth(); // 初期化時に適用
+                input.addEventListener('input', adjustWidth); // 入力するたびに幅を更新
+
+                input.addEventListener('change', () => {
                     pushSnapshot();
                     contextElement.setAttribute(key, input.value);
                     const displayIndex = sentenceIndex !== null ? sentenceIndex + 1 : '(全体)';
@@ -1217,13 +1210,12 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
                     const isCurrentRoot = w.getAttribute('wordID') === '0';
                     const isNextRoot = nextW.getAttribute('wordID') === '0';
 
-                    // UDモード中は統合UI(boundary)は表示しない（CSSでも制御しているが、DOM構造上も分ける）
-                    // また、ROOT周辺も統合UIは表示しない
-                    if (window.__udModeActive || isCurrentRoot || isNextRoot) {
-                        // UDモード中やROOT周辺は視認性のために半角スペースを入れる
+                    // 変更: 統合モード(U)がONの場合は、UDモードの状態に関わらず境界を表示する
+                    if (!window.__mergeModeActive || isCurrentRoot || isNextRoot) {
+                        // 統合モードがOFF、またはROOT周辺は視認性のために半角スペースを入れる
                         tokensWrapper.appendChild(document.createTextNode(' '));
                     } else {
-                    // 通常モード時は統合UI(boundary)を表示
+                    // 統合モードがONの時は統合UI(boundary)を表示
                     const boundaryEl = createBoundaryElement(tokenId);
                     tokensWrapper.appendChild(boundaryEl);
                     }
@@ -1979,12 +1971,12 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
   }
   function hideAttrPopup(){ try{ popup.style.display='none'; }catch(e){} }
   function handleHoverIn(el,node){ 
-    
-    if (window.__udModeActive && currentEditingSentenceIdentifier !== null) {
+    if (window.__udModeActive && currentEditingSentenceIdentifier !== null && !window.__attrEditModeActive) {
         return;
     }
     
-    const attrs = JSON.stringify(getAttrs(node)); document.querySelectorAll('.token').forEach(t=>{ if(t.dataset.attrs===attrs) t.style.boxShadow='0 0 0 3px rgba(0,0,0,0.06)'; }); if(window.__attrEditModeActive || (!window.__splitModeActive && !window.__mergeModeActive)) showAttrPopup(el,node); 
+    const attrs = JSON.stringify(getAttrs(node)); document.querySelectorAll('.token').forEach(t=>{ if(t.dataset.attrs===attrs) t.style.boxShadow='0 0 0 3px rgba(0,0,0,0.06)'; }); 
+    if(window.__attrEditModeActive) showAttrPopup(el,node); 
 	}
 
 function handleHoverOut(el,node){ document.querySelectorAll('.token').forEach(t=>{ t.style.boxShadow=''; t.classList.remove('split-pending'); }); hideAttrPopup(); splitIndicator.style.display='none'; }
@@ -2826,19 +2818,17 @@ document.addEventListener('keydown', function(e){
 
     if(e.ctrlKey){
       switch(e.key.toLowerCase()){
-        case 'o': e.preventDefault(); $('fileInput').click(); break;
-        case 's': e.preventDefault(); $('btnSplitMode').click(); break;
-        case 'u': e.preventDefault(); $('btnMergeMode').click(); break;
-        case 'p': e.preventDefault(); $('btnAttrMode').click(); break;
-        
-        case 'd': e.preventDefault(); $('btnUDMode').click(); break;
-        
+        case 'o': e.preventDefault(); $('fileInput')?.click(); break;
+        case 's': e.preventDefault(); $('btnSplitMode')?.click(); break;
+        case 'u': e.preventDefault(); $('btnMergeMode')?.click(); break;
+        case 'p': e.preventDefault(); $('btnAttrMode')?.click(); break;
+        case 'd': e.preventDefault(); $('btnUDMode')?.click(); break;
         case 'z': e.preventDefault(); undoOnce(); break;
       }
     }
   }, true);
 
-// ▼▼▼ 追加: リサイズハンドラ ▼▼▼
+
   let resizeTimeout;
   window.addEventListener('resize', () => {
       // ▼▼▼ 変更: Flatモードでのみリサイズ時の再描画を行う（Uprightは固定レイアウトのため不要） ▼▼▼
@@ -2866,50 +2856,40 @@ document.addEventListener('keydown', function(e){
     let requiresRerender = false;
 
     if (window[targetMode]) {
-        // 新しくアクティブになった場合、他のモードをOFFにする
-        ['__splitModeActive', '__mergeModeActive', '__attrEditModeActive', '__udModeActive'].forEach(mode => {
-            if (mode !== targetMode && window[mode]) {
-                // UDモードをOFFにする場合はクリーンアップ処理を呼ぶ
-                if (mode === '__udModeActive') {
-                    cleanupUDMode();
-                    requiresRerender = true;
-                }
-                window[mode] = false;
-            }
-        });
+        
 
         // UDモードをONにする場合は初期化処理を呼ぶ
         if (targetMode === '__udModeActive') {
             initializeUDMode();
             requiresRerender = true;
-            // ▼▼▼ 変更 ▼▼▼
-            $('udLayoutGroup').style.display = 'block'; // 'flex' から 'block' に変更
-            $('udDisplayPropsGroup').style.display = 'flex'; // (これは control-group なので 'flex' のまま)
+
+            // 要素が存在する場合のみ表示を変更する（Null Safe化）
+            const udLayoutGroup = $('udLayoutGroup');
+            if (udLayoutGroup) udLayoutGroup.style.display = 'block';
+
+            const udDisplayPropsGroup = $('udDisplayPropsGroup');
+            if (udDisplayPropsGroup) udDisplayPropsGroup.style.display = 'flex';
             
-            // ▼▼▼ 追加: 現在のUpright設定に応じて方向ボタンの表示を制御 ▼▼▼
-            if (window.__udLayoutUpright) {
-                $('udDirectionContainer').style.display = 'block';
-            } else {
-                $('udDirectionContainer').style.display = 'none';
+            const udDirContainer = $('udDirectionContainer');
+            if (udDirContainer) {
+                udDirContainer.style.display = window.__udLayoutUpright ? 'block' : 'none';
             }
-            // ▲▲▲ 追加完了 ▲▲▲
         }
     } else {
         // 非アクティブになった場合
-        // UDモードをOFFにした場合はクリーンアップ処理を呼ぶ
+        /// UDモードをOFFにした場合はクリーンアップ処理を呼ぶ
        if (targetMode === '__udModeActive') {
             cleanupUDMode();
             requiresRerender = true;
-            // ▼▼▼ 変更 ▼▼▼
-            $('udLayoutGroup').style.display = 'none';
-            $('udDisplayPropsGroup').style.display = 'none'; // ★ 追加
-            $('udDisplayPropsList').innerHTML = ''; // ★ チェックボックスをクリア
+            if ($('udLayoutGroup')) $('udLayoutGroup').style.display = 'none';
+            if ($('udDisplayPropsGroup')) $('udDisplayPropsGroup').style.display = 'none';
+            if ($('udDisplayPropsList')) $('udDisplayPropsList').innerHTML = '';
             
             // レイアウト状態をリセット（Flatに戻す）
             window.__udLayoutUpright = false;
-            $('btnUDLayoutFlat').classList.add('mode-on');
-            $('btnUDLayoutUpright').classList.remove('mode-on');
-            $('udDirectionContainer').style.display = 'none';
+            $('btnUDLayoutFlat')?.classList.add('mode-on');
+            $('btnUDLayoutUpright')?.classList.remove('mode-on');
+            if ($('udDirectionContainer')) $('udDirectionContainer').style.display = 'none';
         }
     }
 
@@ -2929,7 +2909,7 @@ document.addEventListener('keydown', function(e){
   $('btnSplitMode').addEventListener('click', ()=>{ switchMode('__splitModeActive'); });
   $('btnMergeMode').addEventListener('click', ()=>{ switchMode('__mergeModeActive'); });
   $('btnAttrMode').addEventListener('click', ()=>{ switchMode('__attrEditModeActive'); });
-  // ▼▼▼ 変更 ▼▼▼
+
   $('btnUDMode').addEventListener('click', ()=>{ switchMode('__udModeActive'); });
 
   // UDレイアウト切替ボタン
@@ -3256,7 +3236,10 @@ document.addEventListener('keydown', function(e){
       }
   }
 
-  setStatus('準備完了');
+
+  updateModeUI();
+
+  setStatus('準備完了');
 })();
 </script>
 </body>
