@@ -57,44 +57,46 @@ body {
 .small{font-size:13px;padding:6px 8px;border-radius:8px}
 .btn {
   cursor: pointer;
-  border: 1px solid var(--color-border);
-  padding: 8px 16px; /* パディング調整 */
+  border: 1px solid #a0a0a0; /* 枠線を濃いグレーにしてくっきりと */
+  padding: 8px 16px;
   border-radius: var(--radius);
-  /* フラットなデザインに変更 */
-  background: var(--color-card);
-  color: var(--color-text);
-  box-shadow: var(--shadow-sm);
-  transition: background-color 0.2s;
-  font-weight: 500;
+  background: #ffffff;
+  color: #222222; /* 文字色を濃く */
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1); /* 軽い影で立体感を出す */
+  transition: all 0.15s ease-in-out;
+  font-weight: 600; /* 文字を少し太く */
   text-align: center;
   display: inline-block;
 }
 .btn:hover {
-  background-color: #f9fafb;
+  background-color: #f0f0f0;
+  border-color: #666666;
 }
 
 .mode-btn {
   padding: 8px 12px;
   border-radius: var(--radius);
-  /* グラデーションを廃止し、シンプルなスタイルへ */
-  border: 1px solid var(--color-border);
-  background: var(--color-card);
-  color: var(--color-text);
+  border: 1px solid #a0a0a0; /* 枠線を濃く */
+  background: #ffffff;
+  color: #222222;
   cursor: pointer;
-  transition: all 0.2s;
-}
-.mode-btn:hover {
-    background: var(--color-bg);
-}
-.mode-btn.mode-on {
-  /* アクティブ状態を明確に強調 */
-  background: var(--color-primary);
-  color: #fff;
-  border-color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  transition: all 0.15s ease-in-out;
   font-weight: 600;
 }
+.mode-btn:hover {
+    background-color: #f0f0f0;
+    border-color: #666666;
+}
+.mode-btn.mode-on {
+  /* アクティブ状態をさらに鮮やかなブルーにし、押されている感を出す */
+  background: #0d6efd !important;
+  color: #ffffff !important;
+  border-color: #0a58ca !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.2) !important; 
+}
 .mode-btn.mode-on:hover {
-    background: var(--color-primary-hover);
+    background: #0b5ed7 !important;
 }
 
 /* HTML側でインラインスタイルが使われている部分への対応 */
@@ -380,7 +382,6 @@ label[for="fileInput"], label[for="posCsv"] {
     font-weight: 500;
 }
 .upright-arc-group.selected {
-    /* ▼▼▼ 線とラベル全体に青いグロー効果を適用 ▼▼▼ */
     filter: drop-shadow(0 0 4px rgba(30, 144, 255, 0.7)); 
 }
 .upright-arc-group.selected .upright-line {
@@ -390,6 +391,13 @@ label[for="fileInput"], label[for="posCsv"] {
 .upright-arc-group.selected .upright-label {
     fill: #1E90FF;
     font-weight: 700;
+}
+
+.disabled-ui {
+    opacity: 0.4 !important;         /* 薄く半透明にする */
+    pointer-events: none !important; /* クリック操作を完全に無視する */
+    user-select: none;               /* テキスト選択不可 */
+    filter: grayscale(100%);         /* 色味を完全に抜いてグレーにする */
 }
 </style>
 </head>
@@ -548,7 +556,7 @@ label[for="fileInput"], label[for="posCsv"] {
 		,'*':'#ff9393'
 		};
 
-
+  window.__isAttrDirty = false; // 属性編集で変更が加えられたかを判定するフラグ
   window.__splitModeActive = false;
   window.__mergeModeActive = false;
   window.__attrEditModeActive = true;
@@ -2555,12 +2563,59 @@ function handleHoverOut(el,node){ document.querySelectorAll('.token').forEach(t=
           renderTokens();
       }
   }
-  function openAttrEditor(tokenEl, xmlNode){
-    const tokenId = tokenEl.dataset.tokenId;
-    if(currentEditor && currentEditingTokenId !== tokenId){
-        // 連続して別のトークンをクリックした場合は、確認なしで閉じる
-      closeAttrEditor();
-    } else if(currentEditor && currentEditingTokenId === tokenId){
+// デフォルトが「いいえ（継続）」になる確認ダイアログ
+function confirmCancelEdit() {
+    return new Promise((resolve) => {
+        let dialog = document.getElementById('customConfirmDialog');
+        if (!dialog) {
+            dialog = document.createElement('dialog');
+            dialog.id = 'customConfirmDialog';
+            dialog.style.cssText = 'border: 1px solid var(--color-border, #ccc); border-radius: 12px; padding: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); background: white; color: #333; max-width: 400px; z-index: 100000;';
+            dialog.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 16px; font-size: 15px; text-align: center;">現在の編集をキャンセルしますか？</div>
+                <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                    <button id="confirmNoBtn" autofocus class="btn small" style="background: #dc3545; color: white;">いいえ (継続)</button>
+                    <button id="confirmYesBtn" class="btn small" style="font-weight: bold; border: none;">はい (破棄)</button>
+                </div>
+            `;
+            document.body.appendChild(dialog);
+        }
+
+        const noBtn = dialog.querySelector('#confirmNoBtn');
+        const yesBtn = dialog.querySelector('#confirmYesBtn');
+
+        const cleanup = (result) => {
+            yesBtn.replaceWith(yesBtn.cloneNode(true));
+            noBtn.replaceWith(noBtn.cloneNode(true));
+            dialog.close();
+            resolve(result);
+        };
+
+        // 「いいえ (継続)」を押したとき -> 破棄しない(false)
+        noBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // イベントのバブリングを停止
+            cleanup(false);
+        });
+
+        // 「はい (破棄)」を押したとき -> 破棄する(true)
+        yesBtn.addEventListener('click', (e) => {
+            e.stopPropagation(); // イベントのバブリングを停止
+            cleanup(true);
+        });
+
+        dialog.showModal();
+    });
+}
+
+  async function openAttrEditor(tokenEl, xmlNode){ // ★ async を追加
+    const tokenId = tokenEl.dataset.tokenId;
+    if(currentEditor && currentEditingTokenId !== tokenId){
+        if (window.__isAttrDirty) {
+            const shouldDiscard = await confirmCancelEdit(); // ★ モーダルを呼び出し
+            if (!shouldDiscard) return; // 「いいえ」なら継続
+        }
+        closeAttrEditor();
+    } else if(currentEditor && currentEditingTokenId === tokenId){
       currentEditor.scrollIntoView({behavior:'smooth',block:'center'});
       return;
     }
@@ -2614,8 +2669,15 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     
     // ... (ドラッグ処理のロジック) ...
 
-    const form = document.createElement('div'); form.style.maxHeight='280px'; form.style.overflow='auto'; form.style.paddingRight='6px';
-    const inputs={}; const keys=Object.keys(attrs);
+    window.__isAttrDirty = false; 
+
+    const form = document.createElement('div'); form.style.maxHeight='280px'; form.style.overflow='auto'; form.style.paddingRight='6px';
+    
+    form.addEventListener('input', () => {
+        window.__isAttrDirty = true;
+    });
+
+    const inputs={}; const keys=Object.keys(attrs);
 
     // ▼▼▼ 追加: ２．原文文字列の入力欄 ▼▼▼
     const textContentRow = document.createElement('div');
@@ -2717,15 +2779,24 @@ copyBtn.addEventListener('click', () => {
         });
         rightControls.appendChild(pasteBtn);
     }
-    const cancel=document.createElement('button'); cancel.textContent='キャンセル'; cancel.className='btn small'; cancel.addEventListener('click', ()=>{ closeAttrEditor(); });
-    const ok=document.createElement('button'); ok.textContent='決定'; ok.className='btn small attr-ok-btn'; 
+    const cancel=document.createElement('button'); cancel.textContent='キャンセル'; cancel.className='btn small'; 
+    cancel.addEventListener('click', async ()=>{ // ★ async を追加
+        if (window.__isAttrDirty) {
+            const shouldDiscard = await confirmCancelEdit(); // ★ モーダルを呼び出し
+            if (!shouldDiscard) return; // 「いいえ」なら継続
+        }
+        closeAttrEditor(); 
+    });
+    
+    const ok=document.createElement('button'); ok.textContent='決定'; ok.className='btn small attr-ok-btn'; 
 // ok.style.background='#FFDFF0';
     ok.style.background = 'var(--color-primary)'; // 決定ボタンをプライマリーカラーに
     ok.style.color = '#FFFFFF';
     ok.style.border = 'none';
 	
-    ok.addEventListener('click', ()=>{
-      const newAttrsFromInputs = {};
+    ok.addEventListener('click', ()=>{
+      window.__isAttrDirty = false; // ▼ 追加: 保存（決定）する時はフラグを安全にリセットする ▼
+      const newAttrsFromInputs = {};
       Object.keys(inputs).forEach(k => { newAttrsFromInputs[k] = inputs[k].value; });
 
       
@@ -2738,16 +2809,31 @@ copyBtn.addEventListener('click', () => {
     document.body.appendChild(editor);
     currentEditor = editor;
     currentEditingTokenId = tokenId;
-    outsideClickHandler = (event) => {
+    outsideClickHandler = async (event) => {
+        // ▼ 追加: ダイアログ自体のクリックは「画面外クリック」として判定しない ▼
+        const dialog = document.getElementById('customConfirmDialog');
+        if (dialog && dialog.contains(event.target)) {
+            return;
+        }
+
         // ポップアップ（属性エディタ）の外側がクリックされたか判定
-        if (currentEditor && !currentEditor.contains(event.target)) {
-            // ただし、クリック対象がトークンそのものの場合は閉じない（次の編集対象へスムーズに移行するため）
+        if (currentEditor && !currentEditor.contains(event.target)) {
+            // ただし、クリック対象がトークンそのものの場合は閉じない
             if (event.target.closest && event.target.closest('.token')) {
                 return;
             }
-            closeAttrEditor();
-        }
-    };
+            
+            // 編集中の場合は確認ダイアログを出す
+            if (window.__isAttrDirty) {
+                const shouldDiscard = await confirmCancelEdit();
+                if (!shouldDiscard) {
+                    return; // 「いいえ (継続)」なら閉じずに編集画面へ復帰
+                }
+            }
+            
+            closeAttrEditor(); // 「はい (破棄)」なら閉じる
+        }
+    };
     // mousedownではなくclickを使うことで、ドラッグ操作などとの競合を避ける
     // すぐに登録すると、エディタを開いたクリックイベント自身で閉じてしまうため、少し待つ
     setTimeout(() => {
@@ -2859,37 +2945,62 @@ document.addEventListener('keydown', function(e){
         
 
         // UDモードをONにする場合は初期化処理を呼ぶ
-        if (targetMode === '__udModeActive') {
-            initializeUDMode();
-            requiresRerender = true;
+            if (targetMode === '__udModeActive') {
+                initializeUDMode();
+                requiresRerender = true;
 
-            // 要素が存在する場合のみ表示を変更する（Null Safe化）
-            const udLayoutGroup = $('udLayoutGroup');
-            if (udLayoutGroup) udLayoutGroup.style.display = 'block';
+                // ▼ 要素は表示したまま、グレーアウト(disabled-ui)を解除する ▼
+                const udLayoutGroup = $('udLayoutGroup');
+                if (udLayoutGroup) {
+                    udLayoutGroup.style.display = 'block';
+                    udLayoutGroup.classList.remove('disabled-ui');
+                }
 
-            const udDisplayPropsGroup = $('udDisplayPropsGroup');
-            if (udDisplayPropsGroup) udDisplayPropsGroup.style.display = 'flex';
+                const udDisplayPropsGroup = $('udDisplayPropsGroup');
+                if (udDisplayPropsGroup) {
+                    udDisplayPropsGroup.style.display = 'flex';
+                    udDisplayPropsGroup.classList.remove('disabled-ui');
+                }
             
             const udDirContainer = $('udDirectionContainer');
-            if (udDirContainer) {
-                udDirContainer.style.display = window.__udLayoutUpright ? 'block' : 'none';
+                if (udDirContainer) {
+                    // ▼ 常に表示をキープし、Flatの時はグレーアウトさせる ▼
+                    udDirContainer.style.display = 'block';
+                    if (window.__udLayoutUpright) {
+                        udDirContainer.classList.remove('disabled-ui');
+                    } else {
+                        udDirContainer.classList.add('disabled-ui');
+                    }
+                }
             }
-        }
     } else {
         // 非アクティブになった場合
         /// UDモードをOFFにした場合はクリーンアップ処理を呼ぶ
        if (targetMode === '__udModeActive') {
             cleanupUDMode();
             requiresRerender = true;
-            if ($('udLayoutGroup')) $('udLayoutGroup').style.display = 'none';
-            if ($('udDisplayPropsGroup')) $('udDisplayPropsGroup').style.display = 'none';
+            
+            // ▼ 非表示(none)にせず、グレーアウト(disabled-ui)を付与する ▼
+            if ($('udLayoutGroup')) {
+                $('udLayoutGroup').style.display = 'block'; // 表示はキープ！
+                $('udLayoutGroup').classList.add('disabled-ui'); // 代わりにグレーアウト
+            }
+            if ($('udDisplayPropsGroup')) {
+                $('udDisplayPropsGroup').style.display = 'flex'; // 表示はキープ！
+                $('udDisplayPropsGroup').classList.add('disabled-ui'); // 代わりにグレーアウト
+            }
             if ($('udDisplayPropsList')) $('udDisplayPropsList').innerHTML = '';
             
             // レイアウト状態をリセット（Flatに戻す）
             window.__udLayoutUpright = false;
             $('btnUDLayoutFlat')?.classList.add('mode-on');
             $('btnUDLayoutUpright')?.classList.remove('mode-on');
-            if ($('udDirectionContainer')) $('udDirectionContainer').style.display = 'none';
+            
+            // 方向コンテナも位置ズレ防止のため表示をキープしつつグレーアウト
+            if ($('udDirectionContainer')) {
+                $('udDirectionContainer').style.display = 'block';
+                $('udDirectionContainer').classList.add('disabled-ui');
+            }
         }
     }
 
@@ -2918,9 +3029,15 @@ document.addEventListener('keydown', function(e){
       window.__udLayoutUpright = false;
       $('btnUDLayoutFlat').classList.add('mode-on');
       $('btnUDLayoutUpright').classList.remove('mode-on');
-      // ▼▼▼ 追加: 方向ボタンを非表示 ▼▼▼
-      $('udDirectionContainer').style.display = 'none';
-      // ▲▲▲ 追加完了 ▲▲▲
+      
+      // ▼▼▼ 修正: 方向ボタンは表示したままグレーアウト(disabled-ui)にする ▼▼▼
+      const dirContainer = $('udDirectionContainer');
+      if (dirContainer) {
+          dirContainer.style.display = 'block'; // 定位置に表示をキープ
+          dirContainer.classList.add('disabled-ui'); // 薄くして操作不可に
+      }
+
+      
       setStatus('UD表示を Flat モードに変更');
       renderTokens(); // 再描画
   });
@@ -2930,9 +3047,15 @@ document.addEventListener('keydown', function(e){
       window.__udLayoutUpright = true;
       $('btnUDLayoutFlat').classList.remove('mode-on');
       $('btnUDLayoutUpright').classList.add('mode-on');
-      // ▼▼▼ 追加: 方向ボタンを表示 ▼▼▼
-      $('udDirectionContainer').style.display = 'block';
-      // ▲▲▲ 追加完了 ▲▲▲
+      
+      // ▼▼▼ 修正: 方向ボタンのグレーアウト(disabled-ui)を解除する ▼▼▼
+      const dirContainer = $('udDirectionContainer');
+      if (dirContainer) {
+          dirContainer.style.display = 'block'; // 定位置に表示をキープ
+          dirContainer.classList.remove('disabled-ui'); // グレーアウト解除
+      }
+      // ▲▲▲ 修正完了 ▲▲▲
+      
       setStatus('UD表示を Upright モードに変更');
       renderTokens(); // 再描画
   });
@@ -3237,7 +3360,19 @@ document.addEventListener('keydown', function(e){
   }
 
 
-  updateModeUI();
+ updateModeUI();
+
+  // ▼ 初期状態がUDモードOFFなら、関連ボタンを最初からグレーアウトしておく ▼
+  if (!window.__udModeActive) {
+      $('udLayoutGroup')?.classList.add('disabled-ui');
+      $('udLayoutGroup')?.style.setProperty('display', 'block');
+      
+      $('udDisplayPropsGroup')?.classList.add('disabled-ui');
+      $('udDisplayPropsGroup')?.style.setProperty('display', 'flex');
+      
+      $('udDirectionContainer')?.classList.add('disabled-ui');
+      $('udDirectionContainer')?.style.setProperty('display', 'block');
+  }
 
   setStatus('準備完了');
 })();
