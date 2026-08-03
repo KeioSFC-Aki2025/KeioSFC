@@ -73,6 +73,45 @@ body {
   border-color: #666666;
 }
 
+
+/* 親枠の中にある直下要素の余白調整 */
+.token-group > .token {
+    margin: 0 2px !important;                     /* 枠同士の密着を防ぐための余白 */
+}
+
+/* ★追加: 親枠(token-group)の中にある「単なる子単語」からは
+   個別の枠線・背景を消し、外側の太枠だけが見えるようにする */
+.token-group > .token:not(.token-group) {
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    padding: 2px 4px !important;
+}
+
+    .token.selected-mwe {
+      background-color: rgba(255, 165, 0, 0.4) !important;
+      box-shadow: 0 0 0 2px orange;
+    }
+	
+	/* ★ 親MWE（長単位枠）をクリック可能にするスタイル */
+/* ★ マルチワード全体を囲む「外枠」のスタイル（入れ子対応） */
+.token.token-group {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 6px !important;
+    padding: 6px 8px !important;
+    margin: 2px 4px !important;
+    border: 2px solid #0f254c !important;
+    border-radius: 8px;
+    background-color: rgba(15, 37, 76, 0.06) !important;
+    vertical-align: middle;
+}
+/* マウスを親枠の余白に乗せた時に枠線を青く光らせて「押せる」ことを明示 */
+.token.token-group:hover {
+    border-color: #2563EB !important; /* アクセントブルー */
+    background-color: rgba(37, 99, 235, 0.12) !important; /* 少し濃い背景色 */
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+}
 .mode-btn {
   padding: 8px 12px;
   border-radius: var(--radius);
@@ -182,7 +221,7 @@ label[for="fileInput"], label[for="posCsv"] {
     min-width: 320px;
     margin-bottom: 0; /* 親要素のgapで余白を管理するため */
 }
-/* ▲▲▲ 追加 ▲▲▲ *//* ▲▲▲ 追加 ▲▲▲ */
+
 .sentence-container {
     margin-bottom: 24px;
     padding-bottom: 12px;
@@ -192,7 +231,6 @@ label[for="fileInput"], label[for="posCsv"] {
     border-bottom: none;
 }
 
-/* ▼▼▼ UDモード用スタイル ▼▼▼ */
 /* UDモード中はトークン選択可能にし、統合境界は非表示 */
 #tokens.ud-mode-active .token {
     cursor: pointer;
@@ -399,12 +437,69 @@ label[for="fileInput"], label[for="posCsv"] {
     user-select: none;               /* テキスト選択不可 */
     filter: grayscale(100%);         /* 色味を完全に抜いてグレーにする */
 }
+/* マルチワード（親要素）の太枠コンテナ */
+.mwe-container {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 8px;
+    margin: 4px 2px;
+    border: 2px solid var(--color-primary, #4A90E2); /* 太枠線 */
+    border-radius: 12px;
+    background-color: rgba(74, 144, 226, 0.06); /* うすい背景色 */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+/* ホバー時の強調表示 */
+.mwe-container:hover {
+    border-color: #2b6cb0;
+    background-color: rgba(74, 144, 226, 0.12);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+/* 親要素であることを示す小さなラベル（左上） */
+.mwe-container::before {
+    content: "MWE";
+    font-size: 9px;
+    font-weight: bold;
+    color: var(--color-primary, #4A90E2);
+    position: absolute;
+    top: -8px;
+    left: 8px;
+    background: #ffffff;
+    padding: 0 4px;
+    border-radius: 4px;
+    border: 1px solid var(--color-primary, #4A90E2);
+}
+
+.mwe-inner{
+    display:inline-flex;
+    gap:6px;
+    pointer-events:none;
+}
+
+.mwe-inner>.token{
+    pointer-events:auto;
+}
+
 </style>
 </head>
 <body>
 <div class="app">
   <div class="card">
-    <h1>KeioXML editor (Version 1)</h1>
+     <div class="kx-masthead">
+      <div class="kx-masthead__row">
+        <div>
+          
+          <h1 class="kx-masthead__title">KeioXML <small>editor · v1</small></h1>
+          <p class="kx-masthead__tagline">日本語コーパス注釈エディタ — トークン分割・マルチワード・UD係り受け編集</p>
+        </div>
+        <div class="kx-masthead__meta">MODE // ANNOTATION<br>ENCODING // UTF-8</div>
+      </div>
+    </div>
     <div id="controlsContainer" style="display: flex; flex-wrap: wrap; gap: 16px;">
       <div class="control-group">
         <h3>ファイル操作</h3>
@@ -419,6 +514,8 @@ label[for="fileInput"], label[for="posCsv"] {
       <div class="control-group">
         <h3>XML編集モード</h3>
         <div class="controls-content">
+          <button id="btnMweMode" class="mode-btn" onclick="switchMode('__mweModeActive')">マルチワード (m)</button>
+          <button id="btnMweDissolveMode" class="mode-btn" onclick="switchMode('__mweDissolveModeActive')">マルチワード解除</button>
           <button id="btnSplitMode" class="mode-btn">分割 (S)</button>
           <button id="btnMergeMode" class="mode-btn">統合 (U)</button>
           <button id="btnAttrMode" class="mode-btn mode-on">属性編集 (P)</button>
@@ -455,6 +552,14 @@ label[for="fileInput"], label[for="posCsv"] {
         </div>
       </div>
 
+      <div class="control-group" id="autosaveGroup" style="min-width: 220px;">
+        <h3>自動保存</h3>
+        <div class="controls-content" style="flex-direction: column; align-items: flex-start; gap: 6px;">
+          <div id="autosaveStatus" style="font-size:12px; color:#666;">自動保存: まだありません</div>
+          <button id="chooseAutosaveFileBtn" class="btn small">保存先ファイルを選択 (任意)</button>
+        </div>
+      </div>
+
       <div class="control-group" style="min-width: 150px;">
         <h3>作業者</h3>
         <div class="controls-content">
@@ -472,13 +577,12 @@ label[for="fileInput"], label[for="posCsv"] {
 
 
 
- <div id="mainLayout" style="display:flex;gap:16px;align-items:flex-start">
-    <div style="flex:1; overflow-x: auto;">
-      <div class="card">
-        <div style="display: flex; align-items: center; margin-bottom: 8px;">
-          <h3 style="margin: 0;">テキスト表示</h3>
-          <button id="wideModeBtn" class="mode-btn small" style="margin-left: auto;">横長モード</button>
-        </div>
+ <div id="mainLayout" class="wide-mode" style="display:flex;gap:16px;align-items:flex-start">
+  <div style="flex:1; overflow-x: auto;">
+    <div class="card">
+      <div style="display: flex; align-items: center; margin-bottom: 8px;">
+        <h3 style="margin: 0;">テキスト表示</h3>
+      </div>
                 <div id="tokens" class="tokens">ここにトークンが表示されます。</div>
       </div>
     </div>
@@ -524,7 +628,7 @@ label[for="fileInput"], label[for="posCsv"] {
 (function(){
   const $ = id => document.getElementById(id);
 
-  // ▼▼▼ 追加: 文字列からランダムな薄い色を生成するヘルパー ▼▼▼
+
   function getLightColor(str) {
       let hash = 0;
       for (let i = 0; i < str.length; i++) {
@@ -560,6 +664,27 @@ label[for="fileInput"], label[for="posCsv"] {
   window.__splitModeActive = false;
   window.__mergeModeActive = false;
   window.__attrEditModeActive = true;
+  
+  window.__mweModeActive = false;
+  window.__mweDissolveModeActive = false;
+  window.isMweSelecting = false;
+  window.mweSelectionNodes = new Set();
+  
+  // ドキュメント全体でのマウスアップ（ドラッグ終了）検知
+  document.addEventListener('mouseup', () => {
+      if (window.isMweSelecting) {
+          window.isMweSelecting = false;
+          const nodes = Array.from(window.mweSelectionNodes);
+          if (nodes.length > 1) {
+              if (confirm(`選択された ${nodes.length} 個の単語からマルチワードを形成しますか？`)) {
+                  createMultiWordExpression(nodes);
+              }
+          }
+          // 選択をクリア
+          document.querySelectorAll('.selected-mwe').forEach(el => el.classList.remove('selected-mwe'));
+          window.mweSelectionNodes.clear();
+      }
+  });
   
   window.__udModeActive = false;
   let udSourceTokenId = null; // (3) UDモードで選択中のスタート単語ID
@@ -703,19 +828,23 @@ let outsideClickHandler = null;
     for (const context of contexts) {
         const words = selectByLocalName(context, 'w');
         
-        // Step 1: 既存のwordIDが数字であるか検証する
+        // Step 1: 既存のwordIDが「数字」または「数字-数字」(マルチワードの子)であるか検証する
         for (const w of words) {
             if (w.hasAttribute('wordID')) {
                 const id = w.getAttribute('wordID');
-                if (!/^\d+$/.test(id)) { // 正規表現で数字のみかチェック
-                    alert(`エラー: wordID "${id}" が数字ではありません。処理を中断します。`);
+                if (!/^\d+(-\d+)?$/.test(id)) { // 単純な数字、または "親ID-連番" 形式を許可
+                    alert(`エラー: wordID "${id}" が不正な形式です。処理を中断します。`);
                     return false; // 処理失敗
                 }
             }
         }
         
-        // Step 2: 検証が通ったら、文脈内の全単語を再採番する
-        const targetWords = words.filter(w => w.getAttribute('wordID') !== '0');
+        // Step 2: トップレベルの単語だけを再採番する
+        // （マルチワードの子は<w>の入れ子の中にあるため対象外とし、既存のIDを維持する）
+        const targetWords = words.filter(w =>
+            w.getAttribute('wordID') !== '0' &&
+            getTagName(w.parentNode) !== 'w'
+        );
         targetWords.forEach((w, index) => {
             w.setAttribute('wordID', index + 1);
         });
@@ -918,7 +1047,14 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
     renderTokens();
     setStatus(sourceName+' をロードしました ('+getAllWElements().length+' w)');
   }
-  function renderTokens() {
+
+
+const getTagName = (node) => {
+    if (!node || node.nodeType !== Node.ELEMENT_NODE) return '';
+    const name = node.localName || node.nodeName || '';
+    return name.toLowerCase().replace(/^.*:/, ''); // 名前空間 (ns:w等) も考慮
+};
+function renderTokens() {
     const propsListEl = $('udDisplayPropsList');
 
     // UD編集中は属性UIを構築 (Flat/Upright共通)
@@ -991,40 +1127,87 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
     }
 
     const createTokenElement = (wNode, tokenId, sentenceIdentifier) => {
-        const s = document.createElement('span');
-        s.className = 'token';
-        s.dataset.tokenId = tokenId;
+    const s = document.createElement('span');
+    s.className = 'token';
+    s.dataset.tokenId = tokenId;
 
-        const wordId = wNode.getAttribute('wordID') || '';
-        s.dataset.wordId = wordId;
+    const wordId = wNode.getAttribute('wordID') || '';
+    s.dataset.wordId = wordId;
 
-        // ▼▼▼ 変更: 自己参照エラーチェック (１．モード問わず適用) ▼▼▼
-        // UDモード以外でも自己参照があればエラー表示
-        const udFrom = wNode.getAttribute('udFrom');
-        // wordIDが0 (ROOT) 以外で、udFromが存在し、udFromが自身のwordIDと同じ場合
-        if (wordId !== '0' && udFrom && wordId === udFrom) {
-             s.classList.add('ud-error-self-reference');
-        }
+    // 大文字・小文字・要素ノード判定を厳密化
+    const getSafeTagName = (node) => {
+        return (node && node.nodeType === 1) ? (node.localName || node.tagName || '').toLowerCase() : '';
+    };
 
+    // 子<w>ノードの判定（MWEかどうかの判定）
+    const childWNodes = Array.from(wNode.childNodes).filter(
+        n => getSafeTagName(n) === 'w'
+    );
+    const isParentMwe = childWNodes.length > 0;
 
-        const attrs = getAttrs(wNode);
-        
-        // ★ UD編集中 (Flat) の場合
+    // 自己参照エラーチェック
+    const udFrom = wNode.getAttribute('udFrom');
+    if (wordId !== '0' && udFrom && wordId === udFrom) {
+        s.classList.add('ud-error-self-reference');
+    }
+
+    const attrs = getAttrs(wNode);
+    s.dataset.attrs = JSON.stringify(attrs);
+    const pos = attrs.pos || '';
+    s.dataset.pos = pos;
+
+    // ==========================================
+    // ① 親MWE（複数単語のグループ枠）の場合
+    // ==========================================
+    if (isParentMwe) {
+        s.classList.add('token-group');
+        s.style.display = 'inline-flex';
+        s.style.alignItems = 'center';
+        s.style.gap = '6px';
+        s.style.padding = '4px 8px';
+        s.style.margin = '2px 4px';
+        s.style.border = '2px solid #2b6cb0'; // 親MWEの太枠
+        s.style.borderRadius = '10px';
+        s.style.backgroundColor = 'rgba(43, 108, 176, 0.08)';
+        s.style.cursor = 'pointer';
+
+        // 子要素を納めるコンテナ
+        const inner = document.createElement("span");
+        inner.className = "mwe-inner";
+        inner.style.display = "inline-flex";
+        inner.style.alignItems = "center";
+        inner.style.gap = "4px";
+
+        // 子単語を再帰的に生成して親枠に挿入
+        childWNodes.forEach((childW) => {
+            const childTokenId = globalTokenIndex++;
+            inner.appendChild(
+                createTokenElement(childW, childTokenId, sentenceIdentifier)
+            );
+        });
+        s.appendChild(inner);
+
+    // ==========================================
+    // ② 個別単語（親MWEではない単一の単語）の場合
+    // ==========================================
+    } else {
+        s.style.display = 'inline-block';
+        s.style.padding = '4px 8px';
+        s.style.borderRadius = '6px';
+        s.style.margin = '2px';
+
+        // ★ UD表示モード時の描画
         if (window.__udModeActive && currentEditingSentenceIdentifier !== null) {
-            // ★ 要求②: POSに応じた背景色
-            const pos = attrs.pos || 'UNKNOWN';
-            if (!uprightPosColorCache.has(pos)) {
-                uprightPosColorCache.set(pos, getLightColor(pos));
+            const posUpper = pos.toUpperCase();
+            if (posUpper && !uprightPosColorCache.has(posUpper)) {
+                uprightPosColorCache.set(posUpper, getLightColor(posUpper));
             }
-            s.style.backgroundColor = uprightPosColorCache.get(pos);
-            s.style.border = "1px solid #ccc";
             s.style.textAlign = "left";
-            s.style.padding = "4px 8px";
-            s.style.borderRadius = "6px";
-            
-            // ★ 要求③: ノード内部に属性を表示
+
             const propsListEl = $('udDisplayPropsList');
-            const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
+            const checkedAttrs = propsListEl 
+                ? Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value)
+                : [];
             if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
 
             const lines = [];
@@ -1040,66 +1223,101 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
             });
             s.innerHTML = lines.join('<br>');
 
+        // ★ 通常モード時の描画 (属性編集、分割、統合モード等)
         } else {
-            // ★ 通常時 (属性編集、分割、統合モード)
             const word = document.createElement('span');
             word.className = 'word';
             word.textContent = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
             s.appendChild(word);
-            
-            s.dataset.attrs = JSON.stringify(attrs);
-            const pos = attrs.pos || '';
-            s.dataset.pos = pos;
 
-            // ▼▼▼ 追加: Flatモード通常時でもPOS色を恒常表示 ▼▼▼
             const posUpper = pos.toUpperCase();
             if (posUpper && posColorMap[posUpper]) {
-                // '40' を末尾につけて透明度を追加 (例: #RRGGBB40)
                 s.style.backgroundColor = posColorMap[posUpper] + '40';
             }
-            
         }
-        
-        if (wordId === '0') {
-            s.classList.add('ud-root');
-            if (!window.__udModeActive) s.style.display = 'none';
-        }
-        
+    }
 
-        if (wNode.getAttribute('newsplit') === 'true') s.dataset.newsplit = 'true';
-        if (wNode.getAttribute('merged') === 'true') s.dataset.merged = 'true';
-        s.addEventListener('mouseenter', (ev) => { handleHoverIn(s, wNode); });
-        s.addEventListener('mouseleave', (ev) => { handleHoverOut(s, wNode); });
-        s.addEventListener('mousemove', (ev) => { handleTokenMouseMove(s, wNode, ev); });
+    // ==========================================
+    // ③ 共通処理 (属性・イベントリスナー等)
+    // ==========================================
+    if (wordId === '0') {
+        s.classList.add('ud-root');
+        if (!window.__udModeActive) s.style.display = 'none';
+    }
 
-        // ▼▼▼ 変更: クリックハンドラの分岐 ▼▼▼
-        s.addEventListener('click', (ev) => {
+    if (wNode.getAttribute('newsplit') === 'true') s.dataset.newsplit = 'true';
+    if (wNode.getAttribute('merged') === 'true') s.dataset.merged = 'true';
+
+    // ホバーイベント
+    s.addEventListener('mouseenter', (ev) => { handleHoverIn(s, wNode); });
+    s.addEventListener('mouseleave', (ev) => { handleHoverOut(s, wNode); });
+    s.addEventListener('mousemove', (ev) => { handleTokenMouseMove(s, wNode, ev); });
+
+    // MWEモード用ドラッグ選択イベント
+    s.addEventListener('mousedown', (ev) => {
+        if (window.__mweModeActive) {
             ev.stopPropagation();
-            // UDモードのハンドリング
-            if (window.__udModeActive) {
-                handleUDTokenClick(s, wNode, ev, sentenceIdentifier);
-                // 変更: returnを削除し、他のモードの処理も許可する
+            window.isMweSelecting = true;
+
+            if (!window.mweSelectionNodes) {
+                window.mweSelectionNodes = new Set();
             }
-            // 既存モード（属性編集）のハンドリング
-            // 変更: 統合モード等との排他処理を削除
-            if (window.__attrEditModeActive) {
-                // ROOTノードは属性編集不可
-                if (wordId !== '0') {
+            window.mweSelectionNodes.clear();
+
+            document.querySelectorAll('.selected-mwe').forEach(el => el.classList.remove('selected-mwe'));
+
+            window.mweSelectionNodes.add(wNode);
+            s.classList.add('selected-mwe');
+        }
+    });
+
+    s.addEventListener('mouseenter', (ev) => {
+        if (window.__mweModeActive && window.isMweSelecting) {
+            if (!window.mweSelectionNodes) {
+                window.mweSelectionNodes = new Set();
+            }
+            window.mweSelectionNodes.add(wNode);
+            s.classList.add('selected-mwe');
+        }
+    });
+
+    // クリックイベント
+    s.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+
+        if (isParentMwe) {
+            if (ev.target === s) {
+                if (window.__mweDissolveModeActive) {
+                    if (confirm('このマルチワードを解除して、元の単語の並びに戻しますか？')) {
+                        dissolveMultiWordExpression(wNode);
+                    }
+                } else {
                     openAttrEditor(s, wNode);
                 }
             }
-        });
-        
-        tokenIdToNode.set(String(tokenId), wNode);
-        return s;
-    };
+            return;
+        }
+
+        if (window.__udModeActive) {
+            handleUDTokenClick(s, wNode, ev, sentenceIdentifier);
+        }
+
+        if (window.__attrEditModeActive) {
+            openAttrEditor(s, wNode);
+        }
+    });
+
+    tokenIdToNode.set(String(tokenId), wNode);
+    return s;
+};
 
     const createBoundaryElement = (leftTokenId) => {
         const b = document.createElement('span');
         b.className = 'boundary';
         b.dataset.left = leftTokenId;
         b.dataset.right = leftTokenId + 1;
-        b.addEventListener('click', (ev) => { ev.stopPropagation(); if (!window.__mergeModeActive) return; handleMerge(leftTokenId, leftTokenId + 1); });
+        b.addEventListener('click', (ev) => { 
+ev.stopPropagation(); if (!window.__mergeModeActive) return; handleMerge(leftTokenId, leftTokenId + 1); });
         return b;
     };
 
@@ -1198,42 +1416,51 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
 		
 
         const tokensWrapper = document.createElement('div');
+        tokensWrapper.className = 'tokens-wrapper';
+        
+        // ★ 修正: タグ名を安全に取得するヘルパー
+        const getSafeTag = (node) => (node && node.nodeType === 1) ? (node.localName || node.tagName || '').toLowerCase() : '';
 
-        tokensWrapper.className = 'tokens-wrapper'; // CSS適用のためクラスを追加
-        const wsInSentence = selectByLocalName(contextElement, 'w');
+        // ★ 修正: 文直下の要素を見て、<w>または「直下に<w>を持つラッパー(<mwe>等)」を取得する
+        const topLevelWs = Array.from(contextElement.childNodes).filter(n => {
+            if (n.nodeType !== Node.ELEMENT_NODE) return false;
+            
+            // 1. 自身が <w> ならトップレベルとして扱う
+            if (getSafeTag(n) === 'w') return true;
+            
+            // 2. <mwe> や <phr> などの別名タグであっても、直下に <w> を含んでいればグループ枠として扱う
+            return Array.from(n.childNodes).some(child => getSafeTag(child) === 'w');
+        });
 
-        // トークンとバウンダリの描画
-       　wsInSentence.forEach((w, localIdx) => {
+        // トークンとバウンダリの描画（最上位ノードのみループ）
+        topLevelWs.forEach((w, localIdx) => {
             const tokenId = globalTokenIndex++;
-            // ★ 変更: sentenceIdentifier を createTokenElement に渡す
             const tokenEl = createTokenElement(w, tokenId, sentenceIdentifier);
             tokensWrapper.appendChild(tokenEl);
 
             // バウンダリ（単語間のスペース）の表示条件
-            if (localIdx < wsInSentence.length - 1) {
-                const nextW = wsInSentence[localIdx + 1];
+            if (localIdx < topLevelWs.length - 1) {
+                const nextW = topLevelWs[localIdx + 1];
 
-                // nextWが存在しない場合のフォールバック (稀なケース)
                 if (nextW) {
                     const isCurrentRoot = w.getAttribute('wordID') === '0';
                     const isNextRoot = nextW.getAttribute('wordID') === '0';
 
-                    // 変更: 統合モード(U)がONの場合は、UDモードの状態に関わらず境界を表示する
                     if (!window.__mergeModeActive || isCurrentRoot || isNextRoot) {
-                        // 統合モードがOFF、またはROOT周辺は視認性のために半角スペースを入れる
                         tokensWrapper.appendChild(document.createTextNode(' '));
                     } else {
-                    // 統合モードがONの時は統合UI(boundary)を表示
-                    const boundaryEl = createBoundaryElement(tokenId);
-                    tokensWrapper.appendChild(boundaryEl);
+                        const boundaryEl = createBoundaryElement(tokenId);
+                        tokensWrapper.appendChild(boundaryEl);
                     }
                 }
             }
         });
         sentenceContainer.appendChild(tokensWrapper);
 
-        // (12) UD完了状態のチェック
+        // (12) UD完了状態のチェック（全体の <w> リストでチェック）
         if (window.__udModeActive) {
+            // ★追加: この文の中にある全ての <w> を取得しておく
+            const wsInSentence = selectByLocalName(contextElement, 'w');
             checkUDCompletion(sentenceContainer, wsInSentence);
         }
 
@@ -1274,312 +1501,329 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
         setTimeout(drawAllUDArcs, 0);
     }
     
+    scheduleAutosave(); // ★追加: 再描画のたびに自動保存をスケジュール
 }
 
 
 /**
    * Upright (ツリー) モードの描画関数 (動的レイアウト対応・修正版)
    */
-  function renderTokensUpright() {
-      tokensEl.innerHTML = '';
-      tokensEl.classList.add('ud-mode-active');
-      
-      let globalTokenIndex = 0;
-      tokenIdToNode.clear();
+function renderTokensUpright() {
+    tokensEl.innerHTML = '';
+    tokensEl.classList.add('ud-mode-active');
+    
+    let globalTokenIndex = 0;
+    tokenIdToNode.clear();
 
-      const sElements = selectByLocalName(xmlDoc.documentElement, 's');
-      const contexts = (sElements.length > 0)
-          ? sElements.map((el, idx) => ({ element: el, identifier: String(idx) }))
-          : [{ element: xmlDoc.documentElement, identifier: 'root' }];
+    const sElements = selectByLocalName(xmlDoc.documentElement, 's');
+    const contexts = (sElements.length > 0)
+        ? sElements.map((el, idx) => ({ element: el, identifier: String(idx) }))
+        : [{ element: xmlDoc.documentElement, identifier: 'root' }];
 
-      // ▼▼▼ 動的レイアウト用の定数 ▼▼▼
-      const X_SPACING = 120;
-      const Y_OFFSET = 50;
-      const X_OFFSET = 60;
-      // ノード間の垂直方向の最小マージン（矢印やラベルのスペース確保）
-      const VERTICAL_MARGIN = 60; 
+    // ▼▼▼ 動的レイアウト用の定数 ▼▼▼
+    const X_SPACING = 120;
+    const Y_OFFSET = 50;
+    const X_OFFSET = 60;
+    const VERTICAL_MARGIN = 60; 
 
-      // renderTokensで構築済みの属性リストを参照
-      const propsListEl = $('udDisplayPropsList');
-      // 現在チェックされている属性を取得
-      const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
-      if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
+    const propsListEl = $('udDisplayPropsList');
+    const checkedAttrs = Array.from(propsListEl.querySelectorAll('.ud-display-prop-chk:checked')).map(chk => chk.value);
+    if (checkedAttrs.length === 0) checkedAttrs.push('textContent');
 
+    const createUprightTokenElement = (wNode, sentenceIdentifier, isEditingThis) => {
+    const wordId = wNode.getAttribute('wordID');
+    const tokenId = globalTokenIndex++;
+    tokenIdToNode.set(String(tokenId), wNode);
+    const udFrom = wNode.getAttribute('udFrom') || null;
 
-      contexts.forEach(context => {
-          const sentenceContainer = document.createElement('div');
-          sentenceContainer.className = 'sentence-container';
-          sentenceContainer.dataset.identifier = context.identifier;
-          
-          const isEditingThis = currentEditingSentenceIdentifier === context.identifier;
+    const s = document.createElement('span');
+    s.className = 'token';
+    s.dataset.tokenId = String(tokenId);
+    s.dataset.wordId = wordId;
 
-          if (isEditingThis) {
-               sentenceContainer.classList.add('ud-editing');
-          }
-          
-          // --- ヘッダーと編集ボタン (変更なし) ---
-          const header = document.createElement('div');
-          header.className = 'sentence-header';
-          const titleSpan = document.createElement('span');
-          titleSpan.textContent = (context.identifier !== 'root') ? `文 ${parseInt(context.identifier) + 1}` : '文 1';
-          header.appendChild(titleSpan);
-          
-          const udControlsContainer = document.createElement('div');
-          udControlsContainer.style.marginLeft = 'auto';
-          
-          const editBtn = document.createElement('button');
-          editBtn.className = 'btn small';
-          if (isEditingThis) {
-              editBtn.textContent = '編集終了';
-              editBtn.addEventListener('click', (e) => { e.stopPropagation(); stopUDEditing(); });
-          } else {
-              editBtn.textContent = '編集';
-              editBtn.disabled = (currentEditingSentenceIdentifier !== null);
-              editBtn.addEventListener('click', (e) => { e.stopPropagation(); startUDEditing(context.identifier); });
-          }
-          udControlsContainer.appendChild(editBtn);
-          header.appendChild(udControlsContainer);
-          
-          sentenceContainer.appendChild(header);
-          // --- ヘッダーと編集ボタンここまで ---
+    // 大文字・小文字・要素ノード判定を厳密化
+    const getSafeTagName = (node) => {
+        return (node && node.nodeType === 1) ? (node.localName || node.tagName || '').toLowerCase() : '';
+    };
 
-          const tokensWrapper = document.createElement('div');
-          tokensWrapper.className = 'tokens-wrapper upright-mode';
+    const childWNodes = Array.from(wNode.childNodes).filter(
+        n => getSafeTagName(n) === 'w'
+    );
+    const isParentMwe = childWNodes.length > 0;
 
-          // ★重要: 高さ測定の前にドキュメント(tokensEl)にアタッチする
-          sentenceContainer.appendChild(tokensWrapper);
-          tokensEl.appendChild(sentenceContainer);
-          
-          const wsInSentence = selectByLocalName(context.element, 'w');
-          const wordIdToNodeMap = new Map();
-          const nodeObjects = [];
+    // 自己参照エラーチェック
+    if (wordId !== '0' && udFrom && udFrom === wordId) {
+        s.classList.add('ud-error-self-reference');
+    }
 
-          if (wsInSentence.length === 0) {
-               tokensWrapper.innerHTML = `<p style="padding: 20px; text-align: center; color: #999;">トークンがありません。</p>`;
-          } else {
-              
-              // ▼▼▼ 1. ノードマップ構築、DOM生成、仮配置、高さ測定 ▼▼▼
-              wsInSentence.forEach((wNode, index) => {
-                  const wordId = wNode.getAttribute('wordID');
-                  const tokenId = globalTokenIndex++;
-                  tokenIdToNode.set(String(tokenId), wNode);
-                  const udFrom = wNode.getAttribute('udFrom') || null;
+    if (isParentMwe) {
+        // ★ 修正点②: 親MWE枠のスタイル（inline-flex で綺麗に包み込む）
+        s.classList.add('token-group');
+        s.style.display = 'inline-flex';
+        s.style.alignItems = 'center';
+        s.style.gap = '6px';
+        s.style.padding = '6px 12px';
+        s.style.borderRadius = '12px';
+        s.style.margin = '4px';
+        s.style.border = '2px solid #2b6cb0'; // 大きな太枠
+        s.style.backgroundColor = 'rgba(43, 108, 176, 0.08)';
+        s.style.cursor = 'pointer';
 
-                  // DOM要素(s)の生成
-                  const s = document.createElement('span');
-                  s.className = 'token';
-                  s.dataset.tokenId = String(tokenId);
-                  s.dataset.wordId = wordId;
-                  
-                  // 自己参照エラーチェック
-                  if (wordId !== '0' && udFrom && udFrom === wordId) {
-                      s.classList.add('ud-error-self-reference');
-                  }
-				  
-                  // POS色付け (Flat/Upright共通化)
-                  const pos = wNode.getAttribute('pos') || 'UNKNOWN';
-                  // 編集開始時にキャッシュがクリアされているため、ここで再設定
-                  if (isEditingThis) {
-                      if (!uprightPosColorCache.has(pos)) {
-                          uprightPosColorCache.set(pos, getLightColor(pos));
-                      }
-                  }
-                  // 色の適用
-                  if (uprightPosColorCache.has(pos)) {
-                     s.style.backgroundColor = uprightPosColorCache.get(pos);
-                  } else {
-                     // キャッシュがない場合（編集中でない文など）のフォールバック
-                     s.style.backgroundColor = getLightColor(pos);
-                  }
+        // 子要素を再帰的に生成して親枠の中にネスト挿入する
+        childWNodes.forEach(childW => {
+            const childEl = createUprightTokenElement(childW, sentenceIdentifier, isEditingThis);
+            s.appendChild(childEl);
+        });
 
-                  s.style.border = "1px solid #ccc";
-                  s.style.padding = "4px 8px";
-                  s.style.borderRadius = "6px";
-                  s.style.textAlign = "left";
-                  
-                  // 属性表示 (HTML生成)
-                  const lines = [];
-                  
-                  // チェックされた属性に基づいて表示内容を決定
-                  // Uprightモードでは、編集中かどうかにかかわらず、チェックされた属性を表示する
-                  // ただし、編集中でない場合はシンプルに表示する
-                  if (isEditingThis) {
-                      // 編集中: 属性名と値を表示
-                      checkedAttrs.forEach(attrName => {
-                          let value = '';
-                          if (attrName === 'textContent') {
-                              value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
-                              lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
-                          } else {
-                              value = wNode.getAttribute(attrName) || '';
-                              // 値がある場合のみ表示
-                              if (value) {
-                                    lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(attrName)}: ${escapeHtml(value)}</span>`);
-                              }
-                          }
-                      });
-                  } else {
-                      // 編集中でない場合: 基本情報のみ
-                       const value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
-                       lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
-                       // 必要ならラベルも表示
-                       const label = wNode.getAttribute('udLabel') || '';
-                       if (label) {
-                            lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(label)}</span>`);
-                       }
-                  }
+    } else {
+        // ==========================================
+        // ★ 既存のコード（提示いただいた部分）をそのまま残します！
+        // ==========================================
+        const pos = wNode.getAttribute('pos') || 'UNKNOWN';
+        if (isEditingThis && !uprightPosColorCache.has(pos)) {
+            uprightPosColorCache.set(pos, getLightColor(pos));
+        }
+        s.style.backgroundColor = uprightPosColorCache.has(pos) 
+            ? uprightPosColorCache.get(pos) 
+            : getLightColor(pos);
 
+        s.style.display = 'inline-block';
+        s.style.padding = '6px 10px';
+        s.style.borderRadius = '10px';
+        s.style.margin = '4px';
+        s.style.border = '1px solid #ddd';
+        s.style.cursor = 'pointer';
 
-                  s.innerHTML = lines.join('<br>');
+        // テキスト・属性ラベルの描画
+        const lines = [];
+        if (isEditingThis) {
+            checkedAttrs.forEach(attrName => {
+                let value = '';
+                if (attrName === 'textContent') {
+                    value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
+                    lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+                } else {
+                    value = wNode.getAttribute(attrName) || '';
+                    if (value) {
+                        lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(attrName)}: ${escapeHtml(value)}</span>`);
+                    }
+                }
+            });
+        } else {
+            const value = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
+            lines.push(`<span style="font-weight:bold; color: #000;">${escapeHtml(value)}</span>`);
+            const label = wNode.getAttribute('udLabel') || '';
+            if (label) {
+                lines.push(`<span style="font-size: 0.8em; color: #333;">${escapeHtml(label)}</span>`);
+            }
+        }
+        s.innerHTML = lines.join('<br>');
+    }
 
-                  if (wordId === '0') s.classList.add('ud-root');
-                  
-                  // クリックハンドラ設定
-                  s.addEventListener('click', (ev) => {
-                      ev.stopPropagation();
-                      handleUDTokenClick(s, wNode, ev, context.identifier);
-                  });
+    if (wordId === '0') s.classList.add('ud-root');
 
-                  // 仮配置 (高さを測定するため)
-                  s.style.position = 'absolute';
-                  const x = (index * X_SPACING) + X_OFFSET;
-                  s.style.left = x + 'px'; // X座標は確定
+    // イベントハンドラ
+    s.addEventListener('click', (ev) => {
+        ev.stopPropagation(); // 子をクリックした時に親まで連動して発火しないよう防止
+        if (isParentMwe && window.__mweDissolveModeActive && ev.target === s) {
+            if (confirm('このマルチワードを解除して、元の単語の並びに戻しますか？')) {
+                dissolveMultiWordExpression(wNode);
+            }
+            return;
+        }
+        if (window.__udModeActive) {
+            handleUDTokenClick(s, wNode, ev, sentenceIdentifier);
+        }
+        if (window.__attrEditModeActive && wordId !== '0') {
+            openAttrEditor(s, wNode);
+        }
+    });
 
-                  // 計測中は非表示にする
-                  s.style.visibility = 'hidden'; 
-                  tokensWrapper.appendChild(s); // ★すでにアタッチされているコンテナに追加
-                  
-                  const nodeObj = {
-                      wNode: wNode,
-                      tokenId: String(tokenId),
-                      wordId: wordId,
-                      parentId: udFrom,
-                      children: [],
-                      level: -1,
-                      x: x,
-                      height: s.offsetHeight, // ★高さを計測 (ドキュメントに追加されているため確実)
-                      element: s
-                  };
-                  wordIdToNodeMap.set(wordId, nodeObj);
-                  nodeObjects.push(nodeObj);
-              });
-              // ▲▲▲ 測定ここまで ▲▲▲
+    return s;
+};
 
-              // 2. 親子関係の構築 (変更なし)
-              nodeObjects.forEach(node => {
-                  if (node.parentId && node.parentId !== node.wordId) {
-                      const parent = wordIdToNodeMap.get(node.parentId);
-                      if (parent) parent.children.push(node);
-                  }
-              });
+    contexts.forEach(context => {
+        const sentenceContainer = document.createElement('div');
+        sentenceContainer.className = 'sentence-container';
+        sentenceContainer.dataset.identifier = context.identifier;
+        
+        const isEditingThis = currentEditingSentenceIdentifier === context.identifier;
 
-              // 3. 深度 (level) 計算 (BFS) (変更なし)
-              let maxDepth = 0;
-              const queue = [];
-              // 起点ノードを探す
-              nodeObjects.forEach(node => {
-                  const isSelfReference = node.parentId === node.wordId;
-                  if (!node.parentId || !wordIdToNodeMap.has(node.parentId) || isSelfReference) {
-                      node.level = 0; queue.push(node);
-                  } else {
-                      node.level = -1; // 未訪問
-                  }
-              });
-              let head = 0;
-              while (head < queue.length) {
-                  const current = queue[head++];
-                  maxDepth = Math.max(maxDepth, current.level);
-                  current.children.forEach(child => {
-                      if (child === current) return; 
-                      if (child.level === -1) {
-                          child.level = current.level + 1;
-                          queue.push(child);
-                      }
-                  });
-              }
-              // 未訪問ノードの処理
-              let unreachedDepth = maxDepth;
-              nodeObjects.forEach(node => {
-                  if (node.level === -1) {
-                      console.warn(`UD構造に未到達ノード（おそらく循環参照）があります: wordID=${node.wordId}`);
-                      if (unreachedDepth === maxDepth) { 
-					  unreachedDepth++;
-					  maxDepth = unreachedDepth;
-					  }
-                      node.level = unreachedDepth;
-                  }
-              });
-              // --- BFS計算ここまで ---
+        if (isEditingThis) {
+            sentenceContainer.classList.add('ud-editing');
+        }
+        
+        // --- ヘッダーと編集ボタン ---
+        const header = document.createElement('div');
+        header.className = 'sentence-header';
+        const titleSpan = document.createElement('span');
+        titleSpan.textContent = (context.identifier !== 'root') ? `文 ${parseInt(context.identifier) + 1}` : '文 1';
+        header.appendChild(titleSpan);
+        
+        const udControlsContainer = document.createElement('div');
+        udControlsContainer.style.marginLeft = 'auto';
+        
+        const editBtn = document.createElement('button');
+        editBtn.className = 'btn small';
+        if (isEditingThis) {
+            editBtn.textContent = '編集終了';
+            editBtn.addEventListener('click', (e) => { e.stopPropagation(); stopUDEditing(); });
+        } else {
+            editBtn.textContent = '編集';
+            editBtn.disabled = (currentEditingSentenceIdentifier !== null);
+            editBtn.addEventListener('click', (e) => { e.stopPropagation(); startUDEditing(context.identifier); });
+        }
+        udControlsContainer.appendChild(editBtn);
+        header.appendChild(udControlsContainer);
+        sentenceContainer.appendChild(header);
 
-              
-              // ▼▼▼ 4. 動的Y軸調整ロジック ▼▼▼
+        const tokensWrapper = document.createElement('div');
+        tokensWrapper.className = 'tokens-wrapper upright-mode';
 
-              // 4-A. レベルごとの最大高さの計算
-              const levelMaxHeights = new Array(maxDepth + 1).fill(0);
+        sentenceContainer.appendChild(tokensWrapper);
+        tokensEl.appendChild(sentenceContainer);
+        
+        // ★ 変更: 親が <w> ではない「最外郭の <w>」のみを取得
+        // ★ 修正: タグ名を安全に取得するヘルパー
+        const getSafeTag = (node) => (node && node.nodeType === 1) ? (node.localName || node.tagName || '').toLowerCase() : '';
 
-              nodeObjects.forEach(nodeObj => {
-                  if (nodeObj.level !== -1) {
-                      // 計測済みの高さを使用
-                      levelMaxHeights[nodeObj.level] = Math.max(levelMaxHeights[nodeObj.level], nodeObj.height);
-                  }
-              });
+        // ★ 修正: 文直下の要素を見て、<w>または「直下に<w>を持つラッパー(<mwe>等)」を取得する
+        const topLevelWs = Array.from(context.element.childNodes).filter(n => {
+            if (n.nodeType !== Node.ELEMENT_NODE) return false;
+            if (getSafeTag(n) === 'w') return true;
+            return Array.from(n.childNodes).some(child => getSafeTag(child) === 'w');
+        });
+        const wordIdToNodeMap = new Map();
+        const nodeObjects = [];
 
-              // 4-B. レベルごとのY座標の計算 (累積和)
-              const levelYCoordinates = new Array(maxDepth + 1).fill(Y_OFFSET);
-              let currentY = Y_OFFSET;
-              
-              // 方向に応じて累積計算の順序を変える
-              if (window.__udUprightDirectionTopDown) {
-                  // TopDown (親＞子): Level 0 から順に計算
-                  for (let i = 0; i <= maxDepth; i++) {
-                      levelYCoordinates[i] = currentY;
-                      // 次のレベルのY座標 = 現在のY座標 + このレベルの最大高さ + マージン
-                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
-                  }
-              } else {
-                  // BottomUp (子＞親): Level maxDepth から逆順に計算
-                  for (let i = maxDepth; i >= 0; i--) {
-                      levelYCoordinates[i] = currentY;
-                      currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
-                  }
-              }
-              // ▲▲▲ 動的Y軸調整ロジックここまで ▲▲▲
+        if (topLevelWs.length === 0) {
+            tokensWrapper.innerHTML = `<p style="padding: 20px; text-align: center; color: #999;">トークンがありません。</p>`;
+        } else {
+            // 1. ノードマップ構築、DOM生成、仮配置、高さ測定（最上位ノードのみループ）
+            topLevelWs.forEach((wNode, index) => {
+                const wordId = wNode.getAttribute('wordID');
+                const udFrom = wNode.getAttribute('udFrom') || null;
 
+                // ヘルパーを使ってDOM要素を生成（入れ子構造も内部で構築される）
+                const s = createUprightTokenElement(wNode, context.identifier, isEditingThis);
 
-              // --- 5. DOM最終配置 ---
-              let totalWidth = 0;
-              nodeObjects.forEach(nodeObj => {
-                  totalWidth = Math.max(totalWidth, nodeObj.x + X_SPACING);
+                // 仮配置 (高さを測定するため)
+                s.style.position = 'absolute';
+                const x = (index * X_SPACING) + X_OFFSET;
+                s.style.left = x + 'px';
 
-                  if (nodeObj.element && nodeObj.level !== -1) {
-                      // 計算済みのY座標を使用
-                      const y = levelYCoordinates[nodeObj.level];
-                      
-                      // 最終的な位置を設定し、表示する
-                      nodeObj.element.style.top = y + 'px';
-                      nodeObj.element.style.visibility = 'visible'; 
-                  }
-              });
+                s.style.visibility = 'hidden'; 
+                tokensWrapper.appendChild(s);
+                
+                const nodeObj = {
+                    wNode: wNode,
+                    tokenId: s.dataset.tokenId,
+                    wordId: wordId,
+                    parentId: udFrom,
+                    children: [],
+                    level: -1,
+                    x: x,
+                    height: s.offsetHeight,
+                    element: s
+                };
+                wordIdToNodeMap.set(wordId, nodeObj);
+                nodeObjects.push(nodeObj);
+            });
 
-              // 6. ラッパーのサイズ設定
-              // currentYは最後にVERTICAL_MARGINが余分に足されているので引く。少し余裕を持たせる。
-              const totalHeight = currentY - VERTICAL_MARGIN + Y_OFFSET/2; 
-              
-              tokensWrapper.style.minHeight = totalHeight + 'px';
-              tokensWrapper.style.minWidth = totalWidth + 'px';
+            // 2. 親子関係の構築
+            nodeObjects.forEach(node => {
+                if (node.parentId && node.parentId !== node.wordId) {
+                    const parent = wordIdToNodeMap.get(node.parentId);
+                    if (parent) parent.children.push(node);
+                }
+            });
 
-             // 7. 矢印の描画 (DOM配置後)
-              setTimeout(() => {
-                  // drawUprightArcsは別途定義が必要です (既存コードに含まれている前提)
-                  if (typeof drawUprightArcs === 'function') {
-                     drawUprightArcs(tokensWrapper, wordIdToNodeMap, context.identifier);
-                  }
-              }, 0);
-          }
-          
-          // sentenceContainer/tokensElへの追加は実施済み
-      });
-  }
+            // 3. 深度 (level) 計算 (BFS)
+            let maxDepth = 0;
+            const queue = [];
+            nodeObjects.forEach(node => {
+                const isSelfReference = node.parentId === node.wordId;
+                if (!node.parentId || !wordIdToNodeMap.has(node.parentId) || isSelfReference) {
+                    node.level = 0; queue.push(node);
+                } else {
+                    node.level = -1;
+                }
+            });
+            let head = 0;
+            while (head < queue.length) {
+                const current = queue[head++];
+                maxDepth = Math.max(maxDepth, current.level);
+                current.children.forEach(child => {
+                    if (child === current) return; 
+                    if (child.level === -1) {
+                        child.level = current.level + 1;
+                        queue.push(child);
+                    }
+                });
+            }
+            
+            let unreachedDepth = maxDepth;
+            nodeObjects.forEach(node => {
+                if (node.level === -1) {
+                    console.warn(`UD構造に未到達ノード（おそらく循環参照）があります: wordID=${node.wordId}`);
+                    if (unreachedDepth === maxDepth) { 
+                        unreachedDepth++;
+                        maxDepth = unreachedDepth;
+                    }
+                    node.level = unreachedDepth;
+                }
+            });
+
+            // 4. 動的Y軸調整ロジック
+            const levelMaxHeights = new Array(maxDepth + 1).fill(0);
+            nodeObjects.forEach(nodeObj => {
+                if (nodeObj.level !== -1) {
+                    levelMaxHeights[nodeObj.level] = Math.max(levelMaxHeights[nodeObj.level], nodeObj.height);
+                }
+            });
+
+            const levelYCoordinates = new Array(maxDepth + 1).fill(Y_OFFSET);
+            let currentY = Y_OFFSET;
+            
+            if (window.__udUprightDirectionTopDown) {
+                for (let i = 0; i <= maxDepth; i++) {
+                    levelYCoordinates[i] = currentY;
+                    currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                }
+            } else {
+                for (let i = maxDepth; i >= 0; i--) {
+                    levelYCoordinates[i] = currentY;
+                    currentY += levelMaxHeights[i] + VERTICAL_MARGIN;
+                }
+            }
+
+            // 5. DOM最終配置
+            let totalWidth = 0;
+            nodeObjects.forEach(nodeObj => {
+                totalWidth = Math.max(totalWidth, nodeObj.x + X_SPACING);
+
+                if (nodeObj.element && nodeObj.level !== -1) {
+                    const y = levelYCoordinates[nodeObj.level];
+                    nodeObj.element.style.top = y + 'px';
+                    nodeObj.element.style.visibility = 'visible'; 
+                }
+            });
+
+            // 6. ラッパーのサイズ設定
+            const totalHeight = currentY - VERTICAL_MARGIN + Y_OFFSET/2; 
+            tokensWrapper.style.minHeight = totalHeight + 'px';
+            tokensWrapper.style.minWidth = totalWidth + 'px';
+
+            // 7. 矢印の描画
+            setTimeout(() => {
+                if (typeof drawUprightArcs === 'function') {
+                    drawUprightArcs(tokensWrapper, wordIdToNodeMap, context.identifier);
+                }
+            }, 0);
+        }
+    });
+    scheduleAutosave(); // ★追加: 再描画のたびに自動保存をスケジュール
+}
     /**
      * トークン要素を視覚的な行ごとに分類するヘルパー関数
      */
@@ -1702,9 +1946,6 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
       });
   }
 
-/*
-  【重要】以下の drawUDArcs 関数を、既存の drawUDArcs 関数と完全に置き換えてください。
-*/
   
   /**
    * (4) 指定された文コンテナ内のUD依存関係の矢印を描画する（行間調整対応）
@@ -1832,11 +2073,12 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
         const existingSvg = tokensWrapper.querySelector('.ud-svg-overlay');
         if (existingSvg) existingSvg.remove();
 
-        // レイアウト更新を待って再描画をリクエスト
-        requestAnimationFrame(() => {
-            // ブラウザがレイアウトを更新した後に再帰呼び出し
-            drawUDArcs(sentenceContainer, recursionDepth + 1);
-        });
+    // ▼▼▼ 修正: requestAnimationFrame で次の描画を挿むと、
+    //     「余白ゼロの詰まったレイアウト」が一瞬そのまま画面に出てしまい、
+    //     直後に余白が付いて動く＝「びくっ」とするちらつきの原因になっていた。
+    //     画面が再描画される前に、同じ処理の中で最終レイアウトまで計算しきってしまうことで、
+    //     安定した状態だけを画面に見せる。
+    drawUDArcs(sentenceContainer, recursionDepth + 1);
         return; // 現在のパスを終了
     }
 
@@ -1875,27 +2117,32 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
     // SVGをtokensWrapperに追加（これによりtokensWrapperが配置基準となる）
     tokensWrapper.appendChild(svg);
 
-    // 基準コンテナ（tokensWrapper）の情報を取得
-    // ▼▼▼ 変更: getBoundingClientRectは使用しない ▼▼▼
+    // 基準コンテナ（tokensWrapper）の情報を取得
+    // ▼▼▼ 修正: マルチワード枠(.token-group)には position:relative があり、
+    //     その中の単語からは offsetLeft/offsetTop が「tokensWrapper基準」ではなく
+    //     「マルチワード枠自身の基準」になってしまう（＝画面左上に矢印が飛ぶ原因）。
+    //     常にビューポート基準で取れる getBoundingClientRect() を使い、
+    //     tokensWrapperとの差分から座標を求めることで、この入れ子構造の影響を受けないようにする。
+    const wrapperRect = tokensWrapper.getBoundingClientRect();
 
-    dependencies.forEach(dep => {
-        const { sourceToken, targetToken, wNode, sourceWordId, targetWordId, label } = dep;
+    dependencies.forEach(dep => {
+        const { sourceToken, targetToken, wNode, sourceWordId, targetWordId, label } = dep;
 
         // 自己参照の場合は描画しない
         if (sourceToken === targetToken) return;
 
-        // 安定したレイアウトで座標を再計算
-        // ▼▼▼ 変更: offsetTop / offsetLeft を使用して親基準の座標を取得 ▼▼▼
+        // 安定したレイアウトで座標を再計算
+        // ▼▼▼ 修正: getBoundingClientRect() を tokensWrapper 基準に変換して座標を取得 ▼▼▼
+        const sourceRect = sourceToken.getBoundingClientRect();
+        const targetRect = targetToken.getBoundingClientRect();
 
-        // (4) トークンの中心X座標
-        // offsetLeftは左端境界の位置。幅の半分を足す。
-        const startX = sourceToken.offsetLeft + sourceToken.offsetWidth / 2;
-        const endX = targetToken.offsetLeft + targetToken.offsetWidth / 2;
+        // (4) トークンの中心X座標（tokensWrapper基準）
+        const startX = (sourceRect.left + sourceRect.right) / 2 - wrapperRect.left;
+        const endX = (targetRect.left + targetRect.right) / 2 - wrapperRect.left;
 
-        // トークンの上端Y座標
-        // offsetTopは上端境界の位置。
-        const startY = sourceToken.offsetTop;
-        const endY = targetToken.offsetTop;
+        // トークンの上端Y座標（tokensWrapper基準）
+        const startY = sourceRect.top - wrapperRect.top;
+        const endY = targetRect.top - wrapperRect.top;
        
 
         // 弧の高さ再計算
@@ -2607,6 +2854,20 @@ function confirmCancelEdit() {
     });
 }
 
+  // ▼▼▼ 追加: 属性編集ウィンドウのドラッグ移動用の共有状態とイベント ▲▲▲
+  let __attrEditorDragState = null;
+  document.addEventListener('mousemove', (ev) => {
+      if (!__attrEditorDragState) return;
+      const dx = ev.clientX - __attrEditorDragState.startX;
+      const dy = ev.clientY - __attrEditorDragState.startY;
+      __attrEditorDragState.target.style.left = `${__attrEditorDragState.startLeft + dx}px`;
+      __attrEditorDragState.target.style.top = `${__attrEditorDragState.startTop + dy}px`;
+  });
+  document.addEventListener('mouseup', () => {
+      __attrEditorDragState = null;
+  });
+  // ▲▲▲ 追加完了 ▲▲▲
+
   async function openAttrEditor(tokenEl, xmlNode){ // ★ async を追加
     const tokenId = tokenEl.dataset.tokenId;
     if(currentEditor && currentEditingTokenId !== tokenId){
@@ -2667,7 +2928,17 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     }
     
     
-    // ... (ドラッグ処理のロジック) ...
+  // ▼▼▼ 修正: ドラッグ処理のロジック（タイトルバーを掴んでウィンドウを移動） ▲▲▲
+  title.addEventListener('mousedown', (ev) => {
+    __attrEditorDragState = {
+      target: editor,
+      startX: ev.clientX,
+      startY: ev.clientY,
+      startLeft: parseFloat(editor.style.left) || 0,
+      startTop: parseFloat(editor.style.top) || 0
+    };
+    ev.preventDefault();
+  });
 
     window.__isAttrDirty = false; 
 
@@ -2708,7 +2979,172 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     textContentRow.appendChild(textContentLabel);
     textContentRow.appendChild(textContentInput);
     form.appendChild(textContentRow);
-	
+
+    // ▼▼▼ 追加: 候補検索（原文文字列が一致する他の単語から属性をコピー）▼▼▼
+    let candidateMatches = [];
+    let candidateIndex = -1;
+    let candidateMode = 'exact'; // 'exact' | 'partial'
+
+    function getLeafWNodes() {
+        if (!xmlDoc) return [];
+        return selectByLocalName(xmlDoc.documentElement, 'w').filter(n => {
+            const childW = Array.from(n.childNodes).filter(c => getTagName(c) === 'w');
+            return childW.length === 0; // マルチワードの親（入れ子の器）は候補から除外
+        });
+    }
+
+    function applyCandidateAttrs(candidateNode) {
+        const candidateAttrs = getAttrs(candidateNode);
+        Object.keys(inputs).forEach(k => {
+            if (Object.prototype.hasOwnProperty.call(candidateAttrs, k)) {
+                inputs[k].value = candidateAttrs[k];
+            }
+        });
+        window.__isAttrDirty = true;
+    }
+
+    function updateCandidateNav() {
+        prevBtn.disabled = candidateIndex <= 0;
+        nextBtn.disabled = candidateIndex >= candidateMatches.length - 1;
+        prevBtn.style.opacity = prevBtn.disabled ? '0.4' : '1';
+        nextBtn.style.opacity = nextBtn.disabled ? '0.4' : '1';
+        prevBtn.style.cursor = prevBtn.disabled ? 'default' : 'pointer';
+        nextBtn.style.cursor = nextBtn.disabled ? 'default' : 'pointer';
+        candidateCountLabel.textContent = candidateMatches.length > 0
+            ? `${candidateIndex + 1} / ${candidateMatches.length}`
+            : '候補なし';
+    }
+
+    function attrSignature(node) {
+        const a = getAttrs(node);
+        const keysSorted = Object.keys(a).filter(k => k !== 'wordID').sort();
+        return keysSorted.map(k => `${k}=${a[k]}`).join('\u0001');
+    }
+
+    function runCandidateSearch() {
+        const target = (xmlNode.textContent || '').trim();
+        if (!target) { alert('原文文字列が空です。'); return; }
+        const all = getLeafWNodes();
+        const rawMatches = all.filter(n => {
+            if (n === xmlNode) return false;
+            const t = (n.textContent || '').trim();
+            if (!t) return false;
+            return candidateMode === 'exact' ? (t === target) : t.includes(target);
+        });
+        // 属性が全て同じ候補は1件にまとめる（重複カウントしない）
+        const seenSignatures = new Set();
+        candidateMatches = [];
+        rawMatches.forEach(n => {
+            const sig = attrSignature(n);
+            if (seenSignatures.has(sig)) return;
+            seenSignatures.add(sig);
+            candidateMatches.push(n);
+        });
+        if (candidateMatches.length === 0) {
+            candidateIndex = -1;
+            updateCandidateNav();
+            alert('一致する候補が見つかりませんでした。');
+            return;
+        }
+        candidateIndex = 0;
+        applyCandidateAttrs(candidateMatches[0]);
+        updateCandidateNav();
+    }
+
+    const candidateRow = document.createElement('div');
+    candidateRow.style.display = 'flex';
+    candidateRow.style.alignItems = 'center';
+    candidateRow.style.flexWrap = 'wrap';
+    candidateRow.style.gap = '6px';
+    candidateRow.style.marginBottom = '10px';
+    candidateRow.style.paddingBottom = '10px';
+    candidateRow.style.borderBottom = '1px solid rgba(221,170,192,0.5)';
+
+    const exactBtn = document.createElement('button');
+    exactBtn.type = 'button';
+    exactBtn.textContent = '完全一致';
+    exactBtn.style.padding = '4px 8px';
+    exactBtn.style.borderRadius = '8px';
+    exactBtn.style.border = '1px solid var(--color-border)';
+    exactBtn.style.cursor = 'pointer';
+
+    const partialBtn = document.createElement('button');
+    partialBtn.type = 'button';
+    partialBtn.textContent = '部分一致';
+    partialBtn.style.padding = '4px 8px';
+    partialBtn.style.borderRadius = '8px';
+    partialBtn.style.border = '1px solid var(--color-border)';
+    partialBtn.style.cursor = 'pointer';
+
+    function updateModeButtons() {
+        exactBtn.style.background = candidateMode === 'exact' ? 'var(--color-primary)' : '#fff';
+        exactBtn.style.color = candidateMode === 'exact' ? '#fff' : '#333';
+        partialBtn.style.background = candidateMode === 'partial' ? 'var(--color-primary)' : '#fff';
+        partialBtn.style.color = candidateMode === 'partial' ? '#fff' : '#333';
+    }
+    exactBtn.addEventListener('click', () => { candidateMode = 'exact'; updateModeButtons(); });
+    partialBtn.addEventListener('click', () => { candidateMode = 'partial'; updateModeButtons(); });
+
+    const searchBtn = document.createElement('button');
+    searchBtn.type = 'button';
+    searchBtn.textContent = '候補検索';
+    searchBtn.style.padding = '4px 10px';
+    searchBtn.style.borderRadius = '8px';
+    searchBtn.style.border = 'none';
+    searchBtn.style.background = '#0f254c';
+    searchBtn.style.color = '#fff';
+    searchBtn.style.fontWeight = '600';
+    searchBtn.style.cursor = 'pointer';
+    searchBtn.addEventListener('click', runCandidateSearch);
+
+    const prevBtn = document.createElement('button');
+    prevBtn.type = 'button';
+    prevBtn.textContent = '←';
+    prevBtn.style.padding = '4px 10px';
+    prevBtn.style.borderRadius = '8px';
+    prevBtn.style.border = '1px solid var(--color-border)';
+
+    const candidateCountLabel = document.createElement('span');
+    candidateCountLabel.style.fontSize = '12px';
+    candidateCountLabel.style.color = '#666';
+    candidateCountLabel.style.minWidth = '56px';
+    candidateCountLabel.style.textAlign = 'center';
+    candidateCountLabel.textContent = '候補なし';
+
+    const nextBtn = document.createElement('button');
+    nextBtn.type = 'button';
+    nextBtn.textContent = '→';
+    nextBtn.style.padding = '4px 10px';
+    nextBtn.style.borderRadius = '8px';
+    nextBtn.style.border = '1px solid var(--color-border)';
+
+    prevBtn.addEventListener('click', () => {
+        if (candidateIndex > 0) {
+            candidateIndex--;
+            applyCandidateAttrs(candidateMatches[candidateIndex]);
+            updateCandidateNav();
+        }
+    });
+    nextBtn.addEventListener('click', () => {
+        if (candidateIndex < candidateMatches.length - 1) {
+            candidateIndex++;
+            applyCandidateAttrs(candidateMatches[candidateIndex]);
+            updateCandidateNav();
+        }
+    });
+
+    candidateRow.appendChild(exactBtn);
+    candidateRow.appendChild(partialBtn);
+    candidateRow.appendChild(searchBtn);
+    candidateRow.appendChild(prevBtn);
+    candidateRow.appendChild(candidateCountLabel);
+    candidateRow.appendChild(nextBtn);
+    form.appendChild(candidateRow);
+
+    updateModeButtons();
+    updateCandidateNav();
+    // ▲▲▲ 追加完了 ▲▲▲
+
     // wordID以外のキーが存在するかチェック
     if(keys.filter(k => k !== 'wordID').length === 0){ 
         const p=document.createElement('div'); p.textContent='属性がありません'; p.style.color='#666'; form.appendChild(p); 
@@ -2755,30 +3191,32 @@ copyBtn.addEventListener('click', () => {
 
 
     rightControls.appendChild(copyBtn);
-    if (__copiedAttributes) {
-        const pasteBtn = document.createElement('button');
-        pasteBtn.textContent = '一括貼り付け';
-        pasteBtn.className = 'btn small';
-        pasteBtn.style.background = '#D1C4E9';
-        pasteBtn.addEventListener('click', () => {
-            if (!__copiedAttributes) return alert('コピーされた属性がありません。');
-            
-            // ▼▼▼ バグ修正: 自動適用の判定ロジックを修正 ▼▼▼
-            const localApplyAllChk = $('applyAllChk');
-            let applyAll = (localApplyAllChk ? localApplyAllChk.checked : window.__autoEditEnabled);
-            // ▲▲▲ バグ修正ここまで ▲▲▲
+    const pasteBtn = document.createElement('button');
+    pasteBtn.textContent = '一括貼り付け';
+    pasteBtn.className = 'btn small';
+    pasteBtn.style.background = '#D1C4E9';
+    pasteBtn.disabled = !__copiedAttributes;
+    pasteBtn.style.opacity = __copiedAttributes ? '1' : '0.4';
+    pasteBtn.style.cursor = __copiedAttributes ? 'pointer' : 'default';
+    pasteBtn.addEventListener('click', () => {
+        if (!__copiedAttributes) return alert('コピーされた属性がありません。先に「一括コピー」を押してください。');
 
-            if (applyAll) {
-                const originalText = (xmlNode.textContent || '').trim();
-                const confirmed = confirm(`他の "${originalText}" も一括で変更しますか？`);
-                if (!confirmed) {
-                    applyAll = false;
-                }
-            }
-            applyAttributeUpdate(xmlNode, { ...__copiedAttributes }, true, applyAll);
-        });
-        rightControls.appendChild(pasteBtn);
-    }
+        // ▼▼▼ バグ修正: 自動適用の判定ロジックを修正 ▼▼▼
+        const localApplyAllChk = $('applyAllChk');
+        let applyAll = (localApplyAllChk ? localApplyAllChk.checked : window.__autoEditEnabled);
+        // ▲▲▲ バグ修正ここまで ▲▲▲
+
+        if (applyAll) {
+            const originalText = (xmlNode.textContent || '').trim();
+            const confirmed = confirm(`他の "${originalText}" も一括で変更しますか？`);
+            if (!confirmed) {
+                applyAll = false;
+            }
+        }
+        applyAttributeUpdate(xmlNode, { ...__copiedAttributes }, true, applyAll);
+    });
+    rightControls.appendChild(pasteBtn);
+
     const cancel=document.createElement('button'); cancel.textContent='キャンセル'; cancel.className='btn small'; 
     cancel.addEventListener('click', async ()=>{ // ★ async を追加
         if (window.__isAttrDirty) {
@@ -2855,7 +3293,100 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
     fileOpsGroup.appendChild(createHtmlBtn);
   }
 
-  createHtmlBtn.addEventListener('click', function(){ if(!xmlDoc) return alert('まずXMLを読み込んでください'); const ws = getAllWElements(); let bodyHtml = '<div style="font-family:system-ui,-apple-system,sans-serif;padding:18px; max-width:1100px; margin:auto;">'; bodyHtml += `<h3>トークン一覧 (${new Date().toLocaleString()})</h3><div style="font-size:18px;line-height:2;">`; ws.forEach((w,idx)=>{ const txt = (w.textContent||'').trim() || '□'; const attrs = getAttrs(w); const pos = attrs.pos || ''; const attrsJson = escapeHtml(JSON.stringify(attrs)); bodyHtml += `<span class="token" data-pos="${escapeHtml(pos)}" data-attrs='${attrsJson}' style="display:inline-block;padding:6px 10px;border-radius:10px;margin:4px;border:1px solid #ddd; cursor:pointer;">${escapeHtml(txt)}</span>`; if(idx < ws.length-1) bodyHtml += '<span style="display:inline-block;width:14px;"></span>'; }); bodyHtml += '</div></div><div id="attrPopup" style="display:none; position:fixed; z-index:999; background:#fff; border:1px solid #ccc; box-shadow:0 8px 24px rgba(0,0,0,0.12); border-radius:12px; padding:8px; font-size:13px; min-width:180px;"></div>'; const snapshotScript = `const pcm = ${JSON.stringify(posColorMap)};const pop=document.getElementById('attrPopup');document.querySelectorAll('.token').forEach(el=>{const pos=(el.dataset.pos||'').toUpperCase();if(pos&&pcm[pos]){el.style.borderColor=pcm[pos];}el.addEventListener('mouseenter',()=>{if(pos&&pcm[pos]){document.querySelectorAll('.token').forEach(t=>{if((t.dataset.pos||'').toUpperCase()===pos)t.style.background=pcm[pos]+'40';});}try{const attrs=JSON.parse(el.dataset.attrs);let h='<div style="font-weight:700;margin-bottom:6px">属性</div><table>';Object.keys(attrs).forEach(k=>{h+='<tr><td style="padding:4px 6px;font-weight:700">'+k+'</td><td style="padding:4px 6px">'+attrs[k]+'</td></tr>';});h+='</table>';pop.innerHTML=h;const r=el.getBoundingClientRect();pop.style.left=(r.right+6)+'px';pop.style.top=(r.bottom+6)+'px';pop.style.display='block';}catch(e){}});el.addEventListener('mouseleave',()=>{document.querySelectorAll('.token').forEach(t=>{t.style.background='';});pop.style.display='none';});});`; const full = `<!doctype html><html><head><meta charset="utf-8"><title>Snapshot</title></head><body>${bodyHtml}<script>${snapshotScript}<\/script></body></html>`; const blob = new Blob([full], {type:'text/html;charset=utf-8;'}); const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='snapshot_interactive.html'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); setStatus('インタラクティブHTMLを生成・ダウンロードしました'); });
+  createHtmlBtn.addEventListener('click', function(){
+    if(!xmlDoc) return alert('まずXMLを読み込んでください');
+
+    // ★ 1. 親が <w> ではない最外郭（トップレベル）の <w> ノードのみを取得
+    const allW = Array.from(xmlDoc.getElementsByTagName('w'));
+    const topWNodes = allW.filter(w => getTagName(w.parentNode) !== 'w');
+
+    // ★ 2. <w> ノードから再帰的にHTML文字列を生成するヘルパー関数
+    const renderWNodeToHtml = (wNode) => {
+        const wordId = wNode.getAttribute('wordID') || '';
+        // ROOTノード(wordID="0")はスナップショット出力から除外
+        if (wordId === '0') return '';
+
+        const childWNodes = Array.from(wNode.childNodes).filter(n => getTagName(n) === 'w');
+        const isParentMwe = childWNodes.length > 0;
+        const attrs = getAttrs(wNode);
+        const pos = attrs.pos || '';
+        const attrsJson = escapeHtml(JSON.stringify(attrs));
+
+        if (isParentMwe) {
+            // 親MWE: 子要素を再帰呼び出しして枠の中にネスト（包み込み）する
+            const childrenHtml = childWNodes.map(child => renderWNodeToHtml(child)).join('');
+            return `<span class="token token-group" data-pos="${escapeHtml(pos)}" data-attrs='${attrsJson}' style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:12px;margin:4px;border:2px solid #2b6cb0;background-color:rgba(43, 108, 176, 0.08);cursor:pointer;">${childrenHtml}</span>`;
+        } else {
+            // 個別単語
+            const txt = (wNode.textContent || '').trim() || '□';
+            return `<span class="token" data-pos="${escapeHtml(pos)}" data-attrs='${attrsJson}' style="display:inline-block;padding:6px 10px;border-radius:10px;margin:4px;border:1px solid #ddd;cursor:pointer;"><span style="font-weight:bold;">${escapeHtml(txt)}</span></span>`;
+        }
+    };
+
+    let bodyHtml = '<div style="font-family:system-ui,-apple-system,sans-serif;padding:18px; max-width:1100px; margin:auto;">';
+    bodyHtml += `<h3>トークン一覧 (${new Date().toLocaleString()})</h3><div style="font-size:18px;line-height:2;">`;
+
+    topWNodes.forEach((w, idx) => {
+        const tokenHtml = renderWNodeToHtml(w);
+        if (tokenHtml) {
+            bodyHtml += tokenHtml;
+            if (idx < topWNodes.length - 1) {
+                bodyHtml += '<span style="display:inline-block;width:14px;"></span>';
+            }
+        }
+    });
+
+    bodyHtml += '</div></div><div id="attrPopup" style="display:none; position:fixed; z-index:999; background:#fff; border:1px solid #ccc; box-shadow:0 8px 24px rgba(0,0,0,0.12); border-radius:12px; padding:8px; font-size:13px; min-width:180px;"></div>';
+
+    const snapshotScript = `
+        const pcm = ${JSON.stringify(posColorMap)};
+        const pop = document.getElementById('attrPopup');
+        document.querySelectorAll('.token').forEach(el => {
+            const pos = (el.dataset.pos || '').toUpperCase();
+            if (pos && pcm[pos]) {
+                el.style.borderColor = pcm[pos];
+            }
+            el.addEventListener('mouseenter', (ev) => {
+                ev.stopPropagation();
+                if (pos && pcm[pos]) {
+                    document.querySelectorAll('.token').forEach(t => {
+                        if ((t.dataset.pos || '').toUpperCase() === pos) t.style.background = pcm[pos] + '40';
+                    });
+                }
+                try {
+                    const attrs = JSON.parse(el.dataset.attrs);
+                    let h = '<div style="font-weight:700;margin-bottom:6px">属性</div><table>';
+                    Object.keys(attrs).forEach(k => {
+                        h += '<tr><td style="padding:4px 6px;font-weight:700">' + k + '</td><td style="padding:4px 6px">' + attrs[k] + '</td></tr>';
+                    });
+                    h += '</table>';
+                    pop.innerHTML = h;
+                    const r = el.getBoundingClientRect();
+                    pop.style.left = (r.right + 6) + 'px';
+                    pop.style.top = (r.bottom + 6) + 'px';
+                    pop.style.display = 'block';
+                } catch(e) {}
+            });
+            el.addEventListener('mouseleave', (ev) => {
+                ev.stopPropagation();
+                document.querySelectorAll('.token').forEach(t => { t.style.background = ''; });
+                pop.style.display = 'none';
+            });
+        });
+    `;
+
+    const full = `<!doctype html><html><head><meta charset="utf-8"><title>Snapshot</title></head><body>${bodyHtml}<script>${snapshotScript}<\/script></body></html>`;
+    const blob = new Blob([full], {type:'text/html;charset=utf-8;'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'snapshot_interactive.html';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    setStatus('インタラクティブHTMLを生成・ダウンロードしました');
+});
   function escapeHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;'); }
 
 
@@ -2881,6 +3412,55 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
   refreshPosList();
   const historySnapshots=[];
   function pushSnapshot(){ try{ if(!xmlDoc) return; const s=(new XMLSerializer()).serializeToString(xmlDoc.documentElement); if(historySnapshots.length > 0 && historySnapshots[historySnapshots.length-1] === s) return; historySnapshots.push(s); if(historySnapshots.length > 10) historySnapshots.shift(); writeLog(`snapshot saved (${historySnapshots.length} total)`); }catch(e){ console.error("Snapshot failed", e); } }
+
+  // ▼▼▼ 追加: 自動保存（A: localStorage / C: File System Access API） ▼▼▼
+  const AUTOSAVE_LS_KEY = 'keioxml_autosave_v1';
+  let __autosaveFileHandle = null;
+  let __autosaveTimer = null;
+
+  function getAutosavePayload() {
+      if (!xmlDoc) return null;
+      try {
+          const xml = (new XMLSerializer()).serializeToString(xmlDoc.documentElement);
+          return { xml, savedAt: new Date().toISOString() };
+      } catch (e) {
+          console.error('自動保存用のXMLシリアライズに失敗しました。', e);
+          return null;
+      }
+  }
+
+  async function writeAutosaveFile(payload) {
+      if (!__autosaveFileHandle) return;
+      try {
+          const writable = await __autosaveFileHandle.createWritable();
+          await writable.write('<?xml version="1.0" encoding="UTF-8"?>\n' + payload.xml);
+          await writable.close();
+      } catch (e) {
+          console.error('自動保存ファイルへの書き込みに失敗しました。', e);
+      }
+  }
+
+  function autoSaveNow() {
+      const payload = getAutosavePayload();
+      if (!payload) return;
+      try {
+          localStorage.setItem(AUTOSAVE_LS_KEY, JSON.stringify(payload));
+          const el = $('autosaveStatus');
+          if (el) el.textContent = '自動保存: ' + new Date(payload.savedAt).toLocaleTimeString();
+      } catch (e) {
+          console.error('localStorageへの自動保存に失敗しました。', e);
+      }
+      if (__autosaveFileHandle) {
+          writeAutosaveFile(payload);
+      }
+  }
+
+  // 編集のたびに何度も書き込まないよう、短時間まとめて1回だけ実行する
+  function scheduleAutosave() {
+      if (__autosaveTimer) clearTimeout(__autosaveTimer);
+      __autosaveTimer = setTimeout(autoSaveNow, 800);
+  }
+  // ▲▲▲ 追加完了 ▲▲▲
   function undoOnce(){ if(historySnapshots.length <= 1){ setStatus('これ以上戻れません'); return; } historySnapshots.pop(); const last = historySnapshots[historySnapshots.length - 1]; const d=parseXMLString(last); if(d){ xmlDoc=d; renderTokens(); setStatus('Undo実行'); } }
 
 document.addEventListener('keydown', function(e){
@@ -2909,6 +3489,7 @@ document.addEventListener('keydown', function(e){
         case 'u': e.preventDefault(); $('btnMergeMode')?.click(); break;
         case 'p': e.preventDefault(); $('btnAttrMode')?.click(); break;
         case 'd': e.preventDefault(); $('btnUDMode')?.click(); break;
+		case 'm': e.preventDefault(); $('btnMweMode')?.click(); break;
         case 'z': e.preventDefault(); undoOnce(); break;
       }
     }
@@ -2998,26 +3579,43 @@ document.addEventListener('keydown', function(e){
             
             // 方向コンテナも位置ズレ防止のため表示をキープしつつグレーアウト
             if ($('udDirectionContainer')) {
-                $('udDirectionContainer').style.display = 'block';
-                $('udDirectionContainer').classList.add('disabled-ui');
-            }
-        }
+               $('udDirectionContainer').style.display = 'block';
+               $('udDirectionContainer').classList.add('disabled-ui');
+           }
+       }
+       // ▼▼▼ 追加: マルチワードモードをOFFにした場合の選択解除 ▼▼▼
+       else if (targetMode === '__mweModeActive') {
+           window.isMweSelecting = false;
+           if (window.mweSelectionNodes) {
+               window.mweSelectionNodes.clear();
+           }
+           // 選択状態のハイライトをすべて消去
+           document.querySelectorAll('.selected-mwe').forEach(el => el.classList.remove('selected-mwe'));
+       }
+       // ▲▲▲ 追加完了 ▲▲▲
     }
 
     // アクティブなモードがなくなった場合、デフォルト（属性編集）に戻す
-    if (!window.__splitModeActive && !window.__mergeModeActive && !window.__attrEditModeActive && !window.__udModeActive) {
+   
+    if (!window.__splitModeActive && !window.__mergeModeActive && !window.__attrEditModeActive && !window.__udModeActive && !window.__mweModeActive && !window.__mweDissolveModeActive) {
         window.__attrEditModeActive = true;
     }
+    
 
     updateModeUI();
 
-    // UDモードの切り替え、または分割/統合モードへの切り替えは再描画が必要
-    if (requiresRerender || (window[targetMode] && (targetMode === '__splitModeActive' || targetMode === '__mergeModeActive'))) {
-         renderTokens();
+    if (requiresRerender || (window[targetMode] && (targetMode === '__splitModeActive' || targetMode === '__mergeModeActive' || targetMode === '__mweModeActive'))) {
+    if (window.__udLayoutUpright) {
+        renderTokensUpright();
+    } else {
+        renderTokens();
     }
+}
   }
 
-  $('btnSplitMode').addEventListener('click', ()=>{ switchMode('__splitModeActive'); });
+  $('btnMweMode').addEventListener('click', ()=>{ switchMode('__mweModeActive'); });
+  $('btnMweDissolveMode').addEventListener('click', ()=>{ switchMode('__mweDissolveModeActive'); });
+$('btnSplitMode').addEventListener('click', ()=>{ switchMode('__splitModeActive'); });
   $('btnMergeMode').addEventListener('click', ()=>{ switchMode('__mergeModeActive'); });
   $('btnAttrMode').addEventListener('click', ()=>{ switchMode('__attrEditModeActive'); });
 
@@ -3085,14 +3683,16 @@ document.addEventListener('keydown', function(e){
   // ▲▲▲ 追加完了 ▲▲▲
 
  function updateModeUI(){
-    $('btnSplitMode').classList.toggle('mode-on', window.__splitModeActive);
+    $('btnMweMode')?.classList.toggle('mode-on', window.__mweModeActive);
+    $('btnMweDissolveMode')?.classList.toggle('mode-on', window.__mweDissolveModeActive);
+	$('btnSplitMode').classList.toggle('mode-on', window.__splitModeActive);
     $('btnMergeMode').classList.toggle('mode-on', window.__mergeModeActive);
     $('btnAttrMode').classList.toggle('mode-on', window.__attrEditModeActive);
     
     $('btnUDMode').classList.toggle('mode-on', window.__udModeActive);
     
 
-    // ▼▼▼ 変更 ▼▼▼
+   
     // ステータス表示はswitchMode内や各処理で行われるため、ここではモード状態のログ出力に留める
     writeLog(`モード状態: 分割=${window.__splitModeActive}, 統合=${window.__mergeModeActive}, 属性=${window.__attrEditModeActive}, UD=${window.__udModeActive}`);
 
@@ -3160,21 +3760,6 @@ document.addEventListener('keydown', function(e){
   });
 
   
-  // --- 横長モードボタンのロジック ---
-  let isWideMode = false;
-  const wideModeBtn = $('wideModeBtn');
-  const mainLayout = $('mainLayout');
-  wideModeBtn.addEventListener('click', () => {
-      isWideMode = !isWideMode;
-      mainLayout.classList.toggle('wide-mode', isWideMode);
-      wideModeBtn.classList.toggle('mode-on', isWideMode);
-      // ▼▼▼ 追加: Flatモードでのモード切替時にレイアウトが崩れるのを防ぐため再描画 ▼▼▼
-      if (window.__udModeActive && !window.__udLayoutUpright) {
-        // レイアウト変更が反映されるのを少し待つ
-        setTimeout(drawAllUDArcs, 50);
-      }
-      // ▲▲▲ 追加完了 ▲▲▲
-  });
  // ▼▼▼ 追加: サイドバーカードの表示/非表示トグル ▼▼▼
   document.querySelectorAll('.toggle-visibility-btn').forEach(btn => {
       btn.addEventListener('click', function() {
@@ -3374,8 +3959,103 @@ document.addEventListener('keydown', function(e){
       $('udDirectionContainer')?.style.setProperty('display', 'block');
   }
 
+  // ▼▼▼ 追加: マルチワードのXML構造を作成する関数 ▼▼▼
+  function createMultiWordExpression(nodes) {
+      nodes.sort((a, b) => {
+          return a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1;
+      });
+      const firstNode = nodes[0];
+      const parentElement = firstNode.parentNode;
+      const parentW = xmlDoc.createElement('w');
+      Array.from(firstNode.attributes).forEach(attr => {
+          parentW.setAttribute(attr.name, attr.value);
+      });
+      const baseWordId = parentW.getAttribute('wordID') || 'mwe';
+      parentElement.insertBefore(parentW, firstNode);
+      nodes.forEach((node, index) => {
+          node.setAttribute('wordID', `${baseWordId}-${index + 1}`);
+          parentW.appendChild(node);
+      });
+      pushSnapshot();
+      if (window.__udModeActive && window.__udLayoutUpright) {
+          renderTokensUpright();
+      } else {
+          renderTokens();
+      }
+      setStatus(`マルチワードを形成しました（親ID: ${baseWordId}）。必要に応じて属性を編集してください。`);
+  }
+
+  // ▼▼▼ 追加: マルチワードを解除し、平らな単語の並びに戻す関数 ▼▼▼
+  function dissolveMultiWordExpression(parentWNode) {
+      const container = parentWNode.parentNode;
+      if (!container) return;
+      const children = Array.from(parentWNode.childNodes).filter(n => getTagName(n) === 'w');
+      if (children.length === 0) return;
+
+      // 子ノードを親の位置に、元の順序のまま展開する
+      children.forEach(child => {
+          container.insertBefore(child, parentWNode);
+      });
+      container.removeChild(parentWNode);
+
+      pushSnapshot();
+      if (window.__udModeActive && window.__udLayoutUpright) {
+          renderTokensUpright();
+      } else {
+          renderTokens();
+      }
+      setStatus(`マルチワードを解除しました（${children.length}語）。`);
+  }
+  // ▲▲▲ 追加完了 ▲▲▲
+
+  // ▼▼▼ 追加: 自動保存先ファイルの選択ボタン（C: File System Access API） ▼▼▼
+  const chooseAutosaveFileBtn = $('chooseAutosaveFileBtn');
+  if (chooseAutosaveFileBtn) {
+      if (window.showSaveFilePicker) {
+          chooseAutosaveFileBtn.addEventListener('click', async () => {
+              try {
+                  __autosaveFileHandle = await window.showSaveFilePicker({
+                      suggestedName: 'keioxml-autosave.xml',
+                      types: [{ description: 'XML files', accept: { 'application/xml': ['.xml'] } }]
+                  });
+                  chooseAutosaveFileBtn.textContent = '保存先: ' + (__autosaveFileHandle.name || '選択済み');
+                  setStatus('自動保存ファイルを設定しました: ' + (__autosaveFileHandle.name || ''));
+                  autoSaveNow(); // 選択直後に一度保存しておく
+              } catch (e) {
+                  if (e && e.name !== 'AbortError') console.error(e);
+              }
+          });
+      } else {
+          // Firefox/Safariなど非対応ブラウザではボタンを無効化するだけ（localStorageの自動保存は全員に効く）
+          chooseAutosaveFileBtn.disabled = true;
+          chooseAutosaveFileBtn.title = 'このブラウザはファイルへの自動保存に対応していません（Chrome/Edge推奨）。localStorageへの自動保存は引き続き有効です。';
+          chooseAutosaveFileBtn.textContent = 'ファイル自動保存 非対応';
+      }
+  }
+  // ▲▲▲ 追加完了 ▲▲▲
+
+  // ▼▼▼ 追加: ページ読み込み時、自動保存データがあれば復元を提案する（A: localStorage） ▼▼▼
+  (function checkAutosaveRestore() {
+      try {
+          const raw = localStorage.getItem(AUTOSAVE_LS_KEY);
+          if (!raw) return;
+          const payload = JSON.parse(raw);
+          if (!payload || !payload.xml) return;
+          const when = payload.savedAt ? new Date(payload.savedAt).toLocaleString() : '不明な時刻';
+          if (confirm(`自動保存されたデータが見つかりました（保存日時: ${when}）。\n復元しますか？`)) {
+              loadXMLText(payload.xml, '自動保存データ');
+              const sb = $('loadSample');
+              if (sb) { sb.disabled = true; sb.style.opacity = 0.5; }
+          }
+      } catch (e) {
+          console.error('自動保存データの読み込みに失敗しました。', e);
+      }
+  })();
+  // ▲▲▲ 追加完了 ▲▲▲
+
   setStatus('準備完了');
-})();
-</script>
+})();  // ← IIFEはここで終了（createMultiWordExpressionは内側に入った）
+ 
+  </script>
 </body>
 </html>
