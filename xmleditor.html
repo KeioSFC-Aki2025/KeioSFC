@@ -511,6 +511,22 @@ label[for="fileInput"], label[for="posCsv"] {
           </div>
       </div>
 
+      <div class="control-group" id="tagListUploadGroup">
+        <h3>タグリスト</h3>
+        <div class="controls-content" style="flex-direction:column; align-items:flex-start; gap:8px;">
+          <div style="display:flex; gap:8px; align-items:center; width:100%;">
+            <label class="btn small" for="tagListCsv" style="background:#eef7ff; flex:1; text-align:center;">タグリストのファイルをアップロードする</label>
+            <input id="tagListCsv" type="file" accept=".csv,text/csv" style="display:none">
+          </div>
+          <div id="tagListStatus" style="font-size:12px; color:#666;">タグリスト: 読込中...</div>
+        </div>
+      </div>
+
+      <div class="control-group" id="comboListPanel" style="display:none; flex-basis:100%;">
+        <h3>コンボリストタグリスト</h3>
+        <div id="comboListContent" class="controls-content" style="flex-direction:column; align-items:flex-start; gap:6px;"></div>
+      </div>
+
       <div class="control-group">
         <h3>XML編集モード</h3>
         <div class="controls-content">
@@ -661,6 +677,14 @@ label[for="fileInput"], label[for="posCsv"] {
 		};
 
   window.__isAttrDirty = false; // 属性編集で変更が加えられたかを判定するフラグ
+
+  // ▼▼▼ 追加: タグリスト（コンボボックス）機能の状態 ▼▼▼
+  window.__tagListColumns = [];      // タグリストCSVの列名一覧
+  window.__tagListValues = {};       // { 列名: [{display, hint, raw}, ...] }
+  window.__comboAttrNames = [];      // 現在編集中のXMLに実在し、タグリストとも一致する属性名
+  window.__comboRestrictFlags = {};  // { 属性名: true/false } リスト内の値に限定するかどうか（既定: 限定する）
+  // ▲▲▲ 追加完了 ▲▲▲
+
   window.__splitModeActive = false;
   window.__mergeModeActive = false;
   window.__attrEditModeActive = true;
@@ -1045,6 +1069,7 @@ if (!idProcessingOk) {        // wordIDが不正な場合は描画を中断
     historySnapshots.length = 0;
     pushSnapshot();
     renderTokens();
+    refreshComboAttrList(); // ★追加: タグリストとの一致属性を再計算
     setStatus(sourceName+' をロードしました ('+getAllWElements().length+' w)');
   }
 
@@ -2209,6 +2234,297 @@ function renderTokensUpright() {
   
   
   const popup = $('attrPopup');
+  // ▼▼▼ 追加: タグリスト（コンボボックス）機能 ▼▼▼
+  const DEFAULT_TAGLIST_URL = 'https://keiosfc-aki2025.github.io/KeioSFC/KeioXMLeditor_tag_lists.csv';
+
+  // シンプルなCSVパーサ（ダブルクォート・改行対応）
+  function parseCsvText(text){
+    text = String(text||'').replace(/^\uFEFF/,'');
+    const rows = [];
+    let row = []; let field=''; let inQuotes=false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i];
+      if(inQuotes){
+        if(c === '"'){
+          if(text[i+1] === '"'){ field+='"'; i++; } else { inQuotes=false; }
+        } else { field += c; }
+      } else {
+        if(c === '"'){ inQuotes = true; }
+        else if(c === ','){ row.push(field); field=''; }
+        else if(c === '\r'){ /* 無視（\r\nの\rはここで捨てる） */ }
+        else if(c === '\n'){ row.push(field); rows.push(row); row=[]; field=''; }
+        else { field += c; }
+      }
+    }
+    if(field.length>0 || row.length>0){ row.push(field); rows.push(row); }
+    return rows.filter(r => !(r.length===1 && r[0].trim()===''));
+  }
+
+  // タグリストの行データを列ごとの候補リストに変換して反映する
+  function applyTagListRows(rows, sourceLabel){
+    if(!rows || rows.length===0){ return false; }
+    const header = rows[0].map(h => String(h||'').trim());
+    const dataRows = rows.slice(1);
+    const values = {};
+    header.forEach((col, idx) => {
+      if(!col) return;
+      const list = [];
+      const seen = new Set();
+      dataRows.forEach(r => {
+        const raw = (r[idx]!==undefined ? String(r[idx]) : '').trim();
+        if(!raw) return;
+        if(seen.has(raw)) return;
+        seen.add(raw);
+        const colonIdx = raw.indexOf(':');
+        let display, hint;
+        if(colonIdx >= 0){
+          display = raw.slice(0, colonIdx).trim();
+          hint = raw.slice(colonIdx+1).trim();
+        } else {
+          display = raw;
+          hint = '';
+        }
+        if(!display) return;
+        list.push({ display, hint, raw });
+      });
+      if(list.length>0) values[col] = list;
+    });
+    const cols = Object.keys(values);
+    if(cols.length === 0) return false;
+    window.__tagListColumns = cols;
+    window.__tagListValues = values;
+    writeLog('タグリストを読込: ' + sourceLabel + ' (列: ' + cols.join(', ') + ')');
+    refreshComboAttrList();
+    return true;
+  }
+
+  // 既定のタグリストCSVをネットワークから取得する（file://等で失敗しても無視して続行）
+  function loadDefaultTagList(){
+    const statusEl2 = $('tagListStatus');
+    fetch(DEFAULT_TAGLIST_URL).then(r => {
+      if(!r.ok) throw new Error('HTTP '+r.status);
+      return r.text();
+    }).then(text => {
+      const rows = parseCsvText(text);
+      const ok = applyTagListRows(rows, 'デフォルト');
+      if(statusEl2) statusEl2.textContent = ok
+        ? ('タグリスト: デフォルトを読込 (' + window.__tagListColumns.join(', ') + ')')
+        : 'タグリスト: デフォルトに有効な列が見つかりませんでした';
+    }).catch(err => {
+      console.warn('デフォルトタグリストの読込に失敗しました', err);
+      if(statusEl2) statusEl2.textContent = 'タグリスト: デフォルトの自動読込に失敗しました（アップロードしてください）';
+    });
+  }
+
+  // 現在編集中のXMLの<w>タグに実在する属性名と、タグリストの列名の積集合を求めてパネルを更新する
+  function refreshComboAttrList(){
+    const panel = $('comboListPanel');
+    const content = $('comboListContent');
+    if(!panel || !content) return;
+    const cols = window.__tagListColumns || [];
+    const presentAttrs = new Set();
+    if(xmlDoc && cols.length>0){
+      getAllWElements().forEach(n => {
+        if(!n.attributes) return;
+        for(let i=0;i<n.attributes.length;i++){ presentAttrs.add(n.attributes[i].name); }
+      });
+    }
+    const matched = cols.filter(c => presentAttrs.has(c));
+    window.__comboAttrNames = matched;
+    matched.forEach(name => {
+      if(!(name in window.__comboRestrictFlags)) window.__comboRestrictFlags[name] = true; // 既定は「リスト内の値に限定」
+    });
+    content.innerHTML = '';
+    if(matched.length === 0){
+      panel.style.display = 'none';
+      return;
+    }
+    panel.style.display = '';
+    matched.forEach(name => {
+      const row = document.createElement('label');
+      row.style.display='flex'; row.style.alignItems='center'; row.style.gap='6px'; row.style.fontSize='13px'; row.style.cursor='pointer';
+      const chk = document.createElement('input');
+      chk.type='checkbox';
+      chk.checked = !!window.__comboRestrictFlags[name];
+      chk.addEventListener('change', () => { window.__comboRestrictFlags[name] = chk.checked; });
+      row.appendChild(chk);
+      const label = document.createElement('span');
+      label.innerHTML = '<b>'+name+'</b> をリスト内の値に限定する';
+      row.appendChild(label);
+      content.appendChild(row);
+    });
+  }
+
+  // ▼ コンボボックスのヒント（ホバー時ポップアップ）用ツールチップ ▼
+  let __comboHintTooltip = null;
+  function getComboHintTooltip(editorEl){
+    if(__comboHintTooltip && __comboHintTooltip.parentNode === editorEl) return __comboHintTooltip;
+    const el = document.createElement('div');
+    el.style.position='fixed';
+    el.style.zIndex=100000;
+    el.style.maxWidth='240px';
+    el.style.padding='6px 10px';
+    el.style.background='#1F2937';
+    el.style.color='#fff';
+    el.style.fontSize='12px';
+    el.style.borderRadius='6px';
+    el.style.boxShadow='0 4px 10px rgba(0,0,0,0.25)';
+    el.style.display='none';
+    el.style.pointerEvents='auto';
+    el.style.lineHeight='1.4';
+    el.style.wordBreak='break-all';
+    editorEl.appendChild(el);
+    __comboHintTooltip = el;
+    return el;
+  }
+  function showComboHintTooltip(editorEl, anchorEl, hintText){
+    if(!hintText){ hideComboHintTooltip(); return; }
+    const tip = getComboHintTooltip(editorEl);
+    const isUrl = /^https?:\/\/\S+$/i.test(hintText.trim());
+    tip.innerHTML = '';
+    if(isUrl){
+      const a = document.createElement('a');
+      a.href = hintText.trim();
+      a.target = '_blank';
+      a.rel = 'noopener noreferrer';
+      a.textContent = hintText.trim();
+      a.style.color = '#93C5FD';
+      a.style.textDecoration = 'underline';
+      a.addEventListener('click', (ev) => { ev.stopPropagation(); });
+      tip.appendChild(a);
+    } else {
+      tip.textContent = hintText;
+    }
+    const r = anchorEl.getBoundingClientRect();
+    tip.style.display='block';
+    let left = r.right + 6;
+    let top = r.top;
+    if(left + 244 > window.innerWidth) left = Math.max(4, r.left - 246);
+    if(top + 60 > window.innerHeight) top = Math.max(4, window.innerHeight - 64);
+    tip.style.left = left+'px';
+    tip.style.top = top+'px';
+  }
+  function hideComboHintTooltip(){
+    if(__comboHintTooltip) __comboHintTooltip.style.display='none';
+  }
+
+  // ▼ 開いているコンボドロップダウンを1つだけ管理し、外側クリックで閉じる ▼
+  let __activeComboDropdown = null; // { dropdown, wrap, close }
+  document.addEventListener('click', function(ev){
+    if(__activeComboDropdown && !__activeComboDropdown.wrap.contains(ev.target) && !__activeComboDropdown.dropdown.contains(ev.target)){
+      __activeComboDropdown.close();
+    }
+  });
+
+  // 属性編集ウィンドウ内に、タグリストから選択できるコンボボックス型の入力欄を作る
+  function createComboAttrField(attrName, currentValue, editorEl){
+    const wrap = document.createElement('div');
+    wrap.style.position='relative';
+    wrap.style.flex='1';
+    wrap.style.display='flex';
+    wrap.style.gap='4px';
+
+    const inp = document.createElement('input');
+    inp.value = currentValue || '';
+    inp.style.flex='1';
+    inp.style.padding='6px';
+    inp.style.borderRadius='8px';
+    inp.style.border='1px solid rgba(0,0,0,0.06)';
+
+    const toggleBtn = document.createElement('button');
+    toggleBtn.type='button';
+    toggleBtn.textContent='▼';
+    toggleBtn.title='候補一覧から選択';
+    toggleBtn.style.padding='6px 8px';
+    toggleBtn.style.borderRadius='8px';
+    toggleBtn.style.border='1px solid var(--color-border)';
+    toggleBtn.style.background='#fff';
+    toggleBtn.style.cursor='pointer';
+    toggleBtn.style.flexShrink='0';
+
+    wrap.appendChild(inp);
+    wrap.appendChild(toggleBtn);
+
+    const dropdown = document.createElement('div');
+    dropdown.style.position='fixed';
+    dropdown.style.background='#fff';
+    dropdown.style.border='1px solid var(--color-border)';
+    dropdown.style.borderRadius='8px';
+    dropdown.style.boxShadow='var(--shadow-lg)';
+    dropdown.style.maxHeight='180px';
+    dropdown.style.overflowY='auto';
+    dropdown.style.zIndex=100000;
+    dropdown.style.display='none';
+    editorEl.appendChild(dropdown);
+
+    function isRestricted(){ return !!window.__comboRestrictFlags[attrName]; }
+    inp.readOnly = isRestricted();
+    inp.style.background = isRestricted() ? '#F3F4F6' : '#fff';
+    inp.style.cursor = isRestricted() ? 'pointer' : 'text';
+
+    function closeDropdown(){
+      dropdown.style.display='none';
+      hideComboHintTooltip();
+      if(__activeComboDropdown && __activeComboDropdown.dropdown === dropdown) __activeComboDropdown = null;
+    }
+
+    function openDropdown(){
+      if(__activeComboDropdown && __activeComboDropdown.close) __activeComboDropdown.close();
+      const list = (window.__tagListValues[attrName]||[]);
+      dropdown.innerHTML='';
+      if(list.length===0){
+        const p=document.createElement('div');
+        p.textContent='候補なし';
+        p.style.padding='6px 10px'; p.style.color='#888'; p.style.fontSize='12px';
+        dropdown.appendChild(p);
+      } else {
+        list.forEach(item => {
+          const opt = document.createElement('div');
+          opt.textContent = item.display;
+          opt.style.padding='6px 10px';
+          opt.style.cursor='pointer';
+          opt.style.fontSize='13px';
+          opt.addEventListener('mouseenter', () => {
+            opt.style.background = 'var(--color-primary-light)';
+            showComboHintTooltip(editorEl, opt, item.hint);
+          });
+          opt.addEventListener('mouseleave', () => {
+            opt.style.background='';
+            hideComboHintTooltip();
+          });
+          opt.addEventListener('click', (ev) => {
+            ev.stopPropagation();
+            inp.value = item.display;
+            closeDropdown();
+            inp.dispatchEvent(new Event('input', {bubbles:true}));
+          });
+          dropdown.appendChild(opt);
+        });
+      }
+      const r = inp.getBoundingClientRect();
+      let left = r.left, top = r.bottom + 2;
+      const width = Math.max(r.width, 100);
+      if(left + width > window.innerWidth) left = Math.max(4, window.innerWidth - width - 4);
+      if(top + 180 > window.innerHeight) top = Math.max(4, r.top - 182);
+      dropdown.style.left = left+'px';
+      dropdown.style.top = top+'px';
+      dropdown.style.width = width+'px';
+      dropdown.style.display='block';
+      __activeComboDropdown = { dropdown, wrap, close: closeDropdown };
+    }
+
+    toggleBtn.addEventListener('click', (ev) => {
+      ev.stopPropagation();
+      if(dropdown.style.display==='block') closeDropdown(); else openDropdown();
+    });
+    inp.addEventListener('click', (ev) => {
+      if(isRestricted()){ ev.stopPropagation(); if(dropdown.style.display==='block') closeDropdown(); else openDropdown(); }
+    });
+
+    return { wrap, input: inp };
+  }
+  // ▲▲▲ 追加完了 ▲▲▲
+
   function showAttrPopup(el,node){
     try{
       const attrs = getAttrs(node);
@@ -3152,7 +3468,15 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     keys.forEach(k=>{ 
         if (k === 'wordID') return; // wordIDは入力欄を作成しない
-        const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='6px'; const kdiv=document.createElement('div'); kdiv.textContent=k; kdiv.style.width='86px'; kdiv.style.fontWeight='700'; kdiv.style.color='#333'; const inp=document.createElement('input'); inp.value = attrs[k] || ''; inp.style.flex='1'; inp.style.padding='6px'; inp.style.borderRadius='8px'; inp.style.border='1px solid rgba(0,0,0,0.06)'; row.appendChild(kdiv); row.appendChild(inp); form.appendChild(row); inputs[k]=inp; });
+        const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='6px'; const kdiv=document.createElement('div'); kdiv.textContent=k; kdiv.style.width='86px'; kdiv.style.fontWeight='700'; kdiv.style.color='#333'; row.appendChild(kdiv);
+        // ▼▼▼ 追加: タグリストと一致する属性はコンボボックスにする ▲▲▲
+        if (window.__comboAttrNames && window.__comboAttrNames.indexOf(k) !== -1) {
+            const combo = createComboAttrField(k, attrs[k] || '', editor);
+            row.appendChild(combo.wrap); form.appendChild(row); inputs[k]=combo.input;
+        } else {
+            const inp=document.createElement('input'); inp.value = attrs[k] || ''; inp.style.flex='1'; inp.style.padding='6px'; inp.style.borderRadius='8px'; inp.style.border='1px solid rgba(0,0,0,0.06)'; row.appendChild(inp); form.appendChild(row); inputs[k]=inp;
+        }
+    });
 	
     const nr=document.createElement('div'); nr.style.display='flex'; nr.style.gap='8px'; nr.style.marginTop='6px';
     const nk=document.createElement('input'); nk.placeholder='新属性名'; nk.style.flex='1'; nk.style.padding='6px'; nk.style.borderRadius='8px';
@@ -3409,7 +3733,31 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
   function refreshPosList(){ const el=$('posColorList'); el.innerHTML=''; Object.keys(posColorMap).forEach(k=>{ const keyUpper=k.toUpperCase(); const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.alignItems='center'; row.style.marginBottom='4px'; const key=document.createElement('div'); key.textContent=keyUpper; key.style.width='56px'; const ci=document.createElement('input'); ci.type='color'; ci.value=posColorMap[keyUpper]; ci.addEventListener('input', ()=>{ posColorMap[keyUpper]=ci.value; renderTokens(); }); const del=document.createElement('button'); del.textContent='削除'; del.className='btn small'; del.addEventListener('click', ()=>{ delete posColorMap[keyUpper]; refreshPosList(); renderTokens(); }); row.appendChild(key); row.appendChild(ci); row.appendChild(del); el.appendChild(row); }); }
   $('addPos').addEventListener('click', function(){ const k=($('newPOS').value.trim()||'').toUpperCase(); if(!k) return; posColorMap[k]=$('newColor').value; $('newPOS').value=''; refreshPosList(); renderTokens(); });
   $('posCsv').addEventListener('change', function(e) { const file = e.target.files && e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(event) { const csvText = event.target.result; const lines = csvText.split(/\r\n|\n/); let loadedCount = 0; lines.forEach(line => { const parts = line.split(','); if (parts.length === 2) { const pos = (parts[0].trim()||'').toUpperCase(); const color = parts[1].trim(); if (pos && color.match(/^#[0-9a-fA-F]{6}$/)) { posColorMap[pos] = color; loadedCount++; } } }); if(loadedCount>0){setStatus(`${loadedCount}件のPOS色情報を読込`);refreshPosList();renderTokens();}else{alert('有効なPOS色情報が見つかりませんでした。');} }; reader.readAsText(file); e.target.value = ''; });
-  refreshPosList();
+  refreshPosList();
+
+  // ▼▼▼ 追加: タグリストCSVのアップロードとデフォルト読込 ▲▲▲
+  $('tagListCsv').addEventListener('change', function(e){
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = function(ev){
+      const rows = parseCsvText(String(ev.target.result||''));
+      const ok = applyTagListRows(rows, file.name);
+      const statusEl2 = $('tagListStatus');
+      if(ok){
+        if(statusEl2) statusEl2.textContent = 'タグリスト: ' + file.name + ' を読込 (' + window.__tagListColumns.join(', ') + ')';
+        setStatus('タグリストを読込みました: ' + file.name);
+        renderTokens();
+      } else {
+        if(statusEl2) statusEl2.textContent = 'タグリスト: 有効な列が見つかりませんでした';
+        alert('有効なタグリスト情報が見つかりませんでした。');
+      }
+    };
+    reader.readAsText(file, 'utf-8');
+    e.target.value = '';
+  });
+  loadDefaultTagList();
+  // ▲▲▲ 追加完了 ▲▲▲
   const historySnapshots=[];
   function pushSnapshot(){ try{ if(!xmlDoc) return; const s=(new XMLSerializer()).serializeToString(xmlDoc.documentElement); if(historySnapshots.length > 0 && historySnapshots[historySnapshots.length-1] === s) return; historySnapshots.push(s); if(historySnapshots.length > 10) historySnapshots.shift(); writeLog(`snapshot saved (${historySnapshots.length} total)`); }catch(e){ console.error("Snapshot failed", e); } }
 
