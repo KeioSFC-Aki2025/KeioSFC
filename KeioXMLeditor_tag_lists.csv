@@ -1,0 +1,38 @@
+pos,lemma,tag,udType
+ADJ: adjective,,CC: Coordinating conjunction,nsubj
+ADP: adposition,,CD: Cardinal number,obj
+ADV: adverb,,DT: Determiner,iobj
+AUX: auxiliary,,EX: Existential there,csubj
+CCONJ: coordinating conjunction,,FW: Foreign word,ccomp
+DET: determiner,,IN: Preposition or subordinating conjunction,xcomp
+INTJ: interjection,,JJ: Adjective,obl
+NOUN: noun,,"JJR: Adjective, comparative",vocative
+NUM: numeral,,"JJS: Adjective, superlative",expl
+PART: particle,,LS: List item marker,dislocated
+PRON: pronoun,,MD: Modal,advcl
+PROPN: proper noun,,"NN: Noun, singular or mass",advmod
+PUNCT: punctuation,,"NNS: Noun, plural",discourse
+SCONJ: subordinating conjunction,,"NNP: Proper noun, singular",aux
+SYM: symbol,,"NNPS: Proper noun, plural",cop
+VERB: verb,,PDT: Predeterminer,mark
+X: other,,POS: Possessive ending,nmod
+,,PRP: Personal pronoun,appos
+,,PRP$: Possessive pronoun,nummod
+,,RB: Adverb,acl
+,,"RBR: Adverb, comparative",amod
+,,"RBS: Adverb, superlative",det
+,,RP: Particle,clf
+,,SYM: Symbol,case
+,,TO: to,conj
+,,UH: Interjection,cc
+,,"VB: Verb, base form",fixed
+,,"VBD: Verb, past tense",flat
+,,"VBG: Verb, gerund or present participle",list
+,,"VBN: Verb, past participle",parataxis
+,,"VBP: Verb, non-3rd person singular present",compound
+,,"VBZ: Verb, 3rd person singular present",orphan
+,,WDT: Wh-determiner,goeswith
+,,WP: Wh-pronoun,reparandum
+,,WP$: Possessive wh-pronoun,punct
+,,WRB: Wh-adverb,root
+,,,dep
