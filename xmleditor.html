@@ -4,6 +4,9 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>KeioXML</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@700;800;900&family=Hachi+Maru+Pop&display=swap" rel="stylesheet">
 <style>
 :root {
   /* モダンでプロフェッショナルなカラーパレット */
@@ -485,107 +488,373 @@ label[for="fileInput"], label[for="posCsv"] {
     pointer-events:auto;
 }
 
+
+/* ============================================================
+   ▼▼▼ 追加: 上部パネル（#topPanelCard）専用の「季節テーマ」デザイン ▼▼▼
+   ここから下のスタイルはすべて #topPanelCard の内側だけに効きます。
+   下部の作業エリア（#mainLayout 以下）には一切影響しません。
+   1-3月 / 4-6月 / 7-9月 / 10-12月 の4シーズンで自動的に配色・装飾が変わります。
+   ============================================================ */
+
+#topPanelCard {
+  position: relative;
+  overflow: hidden;
+  border-radius: 28px;
+  padding: 26px 28px 22px 28px;
+  border: 5px solid var(--season-accent, #cccccc);
+  background: var(--season-bg, #ffffff);
+  box-shadow: 0 10px 0 rgba(0,0,0,0.05), var(--shadow);
+}
+
+/* 季節ごとの配色テーマ（ここだけ書き換えれば全体に反映される） */
+#topPanelCard.season-q1 {
+  /* 1-3月: ゆき・おしょうがつ */
+  --season-accent:   #4FC3F7;
+  --season-accent2:  #F48FB1;
+  --season-text:     #01579B;
+  --season-bg:       linear-gradient(180deg,#E1F5FE 0%, #FFFFFF 75%);
+  --season-card-bg:  rgba(255,255,255,0.88);
+  --season-btn-bg:   linear-gradient(180deg,#81D4FA,#29B6F6);
+  --season-btn-on:   linear-gradient(180deg,#FF8FAB,#F06292);
+}
+#topPanelCard.season-q2 {
+  /* 4-6月: さくら・はる */
+  --season-accent:   #FF8FAB;
+  --season-accent2:  #9CCC65;
+  --season-text:     #AD1457;
+  --season-bg:       linear-gradient(180deg,#FFF0F5 0%, #F1F8E9 85%);
+  --season-card-bg:  rgba(255,255,255,0.88);
+  --season-btn-bg:   linear-gradient(180deg,#FFB6C9,#FF8FAB);
+  --season-btn-on:   linear-gradient(180deg,#AED581,#7CB342);
+}
+#topPanelCard.season-q3 {
+  /* 7-9月: なつやすみ・すいか・入道雲 */
+  --season-accent:   #26C6DA;
+  --season-accent2:  #FFCA28;
+  --season-text:     #01579B;
+  --season-bg:       linear-gradient(180deg,#4FC3F7 0%, #B3E5FC 45%, #FFF9C4 100%);
+  --season-card-bg:  rgba(255,255,255,0.90);
+  --season-btn-bg:   linear-gradient(180deg,#4DD0E1,#00ACC1);
+  --season-btn-on:   linear-gradient(180deg,#FF7043,#E64A19);
+}
+#topPanelCard.season-q4 {
+  /* 10-12月: もみじ・おつきみ・秋 */
+  --season-accent:   #FF8A65;
+  --season-accent2:  #FFB300;
+  --season-text:     #BF360C;
+  --season-bg:       linear-gradient(180deg,#FFE0B2 0%, #FFF3E0 85%);
+  --season-card-bg:  rgba(255,255,255,0.88);
+  --season-btn-bg:   linear-gradient(180deg,#FFCC80,#FFA726);
+  --season-btn-on:   linear-gradient(180deg,#8D6E63,#6D4C41);
+}
+
+/* 四隅に季節の絵文字をうっすら大きく配置（装飾のみ・クリックに影響しない） */
+#topPanelCard::before, #topPanelCard::after {
+  position: absolute;
+  font-size: 92px;
+  line-height: 1;
+  opacity: 0.16;
+  pointer-events: none;
+  z-index: 0;
+  filter: saturate(1.2);
+}
+#topPanelCard::before { top: -18px; right: 6px; }
+#topPanelCard::after  { bottom: -22px; left: -10px; transform: rotate(-12deg); }
+#topPanelCard.season-q1::before { content: '⛄'; }
+#topPanelCard.season-q1::after  { content: '❄️'; }
+#topPanelCard.season-q2::before { content: '🌸'; }
+#topPanelCard.season-q2::after  { content: '🦋'; }
+#topPanelCard.season-q3::before { content: '🍉'; }
+#topPanelCard.season-q3::after  { content: '☀️'; }
+#topPanelCard.season-q4::before { content: '🍁'; }
+#topPanelCard.season-q4::after  { content: '🎃'; }
+
+/* マストヘッド（タイトル部分） */
+#topPanelCard .kx-masthead { position: relative; z-index: 1; }
+#topPanelCard .kx-masthead__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+#topPanelCard .kx-masthead__title {
+  font-family: 'Hachi Maru Pop', 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 400;
+  font-size: 34px;
+  margin: 0 0 4px 0;
+  color: var(--season-text, #333);
+  text-shadow:
+    2px 2px 0 #fff, -2px -2px 0 #fff,
+    2px -2px 0 #fff, -2px 2px 0 #fff,
+    0 3px 0 rgba(0,0,0,0.05);
+  letter-spacing: 0.5px;
+}
+#topPanelCard .kx-masthead__title small {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  opacity: 0.65;
+  margin-left: 4px;
+}
+#topPanelCard .kx-masthead__tagline {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--season-text, #333);
+  opacity: 0.85;
+  margin: 0;
+}
+#topPanelCard .kx-masthead__meta {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  background: var(--season-accent2, #999);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 11px;
+  line-height: 1.6;
+  padding: 8px 16px;
+  border-radius: 999px;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  white-space: nowrap;
+}
+#topPanelCard .kx-season-emoji {
+  font-size: 26px;
+  letter-spacing: 6px;
+  margin-top: 6px;
+  filter: drop-shadow(0 2px 0 rgba(255,255,255,0.6));
+}
+
+/* コントロールグループ（カード）のスタイル */
+#topPanelCard #controlsContainer { position: relative; z-index: 1; }
+#topPanelCard .control-group {
+  background: var(--season-card-bg, #fff);
+  border: 3px solid var(--season-accent, #ddd);
+  border-radius: 20px;
+  padding: 14px 18px 16px 18px;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.05);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+#topPanelCard .control-group:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.07);
+}
+#topPanelCard .control-group h3 {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 800;
+  font-size: 15px;
+  color: var(--season-text, #333);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+/* カードごとに合った絵文字アイコンを見出しの前に自動でつける */
+#topPanelCard .control-group h3::before {
+  font-size: 17px;
+}
+#topPanelCard #tagListUploadGroup h3::before { content: '🏷️'; }
+#topPanelCard #comboListPanel h3::before { content: '📋'; }
+#topPanelCard #udDisplayPropsGroup h3::before { content: '🌳'; }
+#topPanelCard #autosaveGroup h3::before { content: '💾'; }
+#topPanelCard .control-group:nth-of-type(1) h3::before { content: '📂'; }
+#topPanelCard .control-group:nth-of-type(4) h3::before { content: '✏️'; }
+#topPanelCard .control-group:nth-of-type(6) h3::before { content: '⚙️'; }
+#topPanelCard .control-group:nth-of-type(8) h3::before { content: '🧑'; }
+#topPanelCard .control-group:nth-of-type(9) h3::before { content: '📊'; }
+
+#topPanelCard .status { font-family: 'M PLUS Rounded 1c', sans-serif; }
+
+/* ボタン類（ファイル選択・モード切替など）をぷっくりカラフルに */
+#topPanelCard .btn,
+#topPanelCard .mode-btn {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 800;
+  border: none !important;
+  border-radius: 999px;
+  color: #ffffff !important;
+  background: var(--season-btn-bg, #90caf9) !important;
+  box-shadow: 0 4px 0 rgba(0,0,0,0.15);
+  transform: translateY(0);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+#topPanelCard .btn:hover,
+#topPanelCard .mode-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 0 rgba(0,0,0,0.15);
+  filter: brightness(1.06);
+  background: var(--season-btn-bg, #90caf9) !important;
+  border-color: transparent !important;
+}
+#topPanelCard .btn:active,
+#topPanelCard .mode-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 2px 0 rgba(0,0,0,0.15);
+}
+#topPanelCard .mode-btn.mode-on {
+  background: var(--season-btn-on, #ff7043) !important;
+  box-shadow: inset 0 2px 4px rgba(0,0,0,0.15), 0 4px 0 rgba(0,0,0,0.15) !important;
+}
+#topPanelCard label.btn[for] { background: var(--season-btn-bg, #90caf9) !important; }
+
+/* 入力欄・テキストフィールドも丸くかわいく */
+#topPanelCard input[type="text"],
+#topPanelCard input:not([type]),
+#topPanelCard input#workerName,
+#topPanelCard input.small {
+  border: 2px solid var(--season-accent, #ccc);
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+}
+#topPanelCard input[type="checkbox"] {
+  width: 16px; height: 16px; accent-color: var(--season-accent, #4FC3F7);
+}
+
+/* ▲▲▲ 追加完了（季節テーマ） ▲▲▲ */
+
+/* ▼▼▼ 追加: ボタン文字サイズを一回り大きく（アプリ全体） ▼▼▼ */
+.btn, .mode-btn {
+  font-size: 16px; /* 既定の約13.3pxから一回り拡大 */
+}
+.btn.small {
+  font-size: 15px; /* 既定の13pxから一回り拡大 */
+}
+/* ▲▲▲ 追加完了 ▲▲▲ */
+
+/* ▼▼▼ 追加: 言語切り替えボタン（上部パネル専用） ▼▼▼ */
+.kx-lang-switch {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 10px;
+  position: relative;
+  z-index: 1;
+}
+.kx-lang-btn {
+  font-family: 'M PLUS Rounded 1c', sans-serif;
+  font-weight: 800;
+  font-size: 13px;
+  border: none;
+  border-radius: 999px;
+  padding: 7px 16px;
+  cursor: pointer;
+  background: var(--season-accent, #607D8B);
+  color: #fff;
+  box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+  transition: transform .12s ease, box-shadow .12s ease, filter .12s ease;
+}
+.kx-lang-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 0 rgba(0,0,0,0.15);
+  filter: brightness(1.06);
+}
+.kx-lang-btn:active {
+  transform: translateY(1px);
+  box-shadow: 0 1px 0 rgba(0,0,0,0.15);
+}
+/* ▲▲▲ 追加完了 ▲▲▲ */
 </style>
 </head>
 <body>
 <div class="app">
-  <div class="card">
+  <div class="card" id="topPanelCard">
      <div class="kx-masthead">
       <div class="kx-masthead__row">
         <div>
           
           <h1 class="kx-masthead__title">KeioXML <small>editor · v1</small></h1>
-          <p class="kx-masthead__tagline">日本語コーパス注釈エディタ — トークン分割・マルチワード・UD係り受け編集</p>
+          <p class="kx-masthead__tagline" data-i18n="tagline">日本語コーパス注釈エディタ — トークン分割・マルチワード・UD係り受け編集</p>
         </div>
         <div class="kx-masthead__meta">MODE // ANNOTATION<br>ENCODING // UTF-8</div>
+      </div>
+      <div class="kx-lang-switch">
+        <button id="langToggleBtn" type="button" class="kx-lang-btn">🌐 English</button>
       </div>
     </div>
     <div id="controlsContainer" style="display: flex; flex-wrap: wrap; gap: 16px;">
       <div class="control-group">
-        <h3>ファイル操作</h3>
+        <h3 data-i18n="file_ops">ファイル操作</h3>
         <div id="fileOpsGroup" class="controls-content">
-          <label class="btn small" for="fileInput" style="background:#eef7ff;">ファイルを選択 (Ctrl+O)</label>
+          <label class="btn small" for="fileInput" style="background:#eef7ff;" data-i18n="file_select">ファイルを選択 (Ctrl+O)</label>
           <input id="fileInput" type="file" accept=".xml,.txt,.ann,text/xml,application/xml,text/plain" style="display:none">
-          <button id="loadSample" class="btn small">サンプル</button>
-          <button id="downloadBtn" class="btn small">変更済XMLをダウンロード</button>
+          <button id="loadSample" class="btn small" data-i18n="sample">サンプル</button>
+          <button id="downloadBtn" class="btn small" data-i18n="download_xml">変更済XMLをダウンロード</button>
           </div>
       </div>
 
       <div class="control-group" id="tagListUploadGroup">
-        <h3>タグリスト</h3>
+        <h3 data-i18n="taglist">タグリスト</h3>
         <div class="controls-content" style="flex-direction:column; align-items:flex-start; gap:8px;">
           <div style="display:flex; gap:8px; align-items:center; width:100%;">
-            <label class="btn small" for="tagListCsv" style="background:#eef7ff; flex:1; text-align:center;">タグリストのファイルをアップロードする</label>
+            <label class="btn small" for="tagListCsv" style="background:#eef7ff; flex:1; text-align:center;" data-i18n="taglist_upload">タグリストのファイルをアップロードする</label>
             <input id="tagListCsv" type="file" accept=".csv,text/csv" style="display:none">
           </div>
-          <div id="tagListStatus" style="font-size:12px; color:#666;">タグリスト: 読込中...</div>
+          <div id="tagListStatus" style="font-size:12px; color:#666;" data-i18n="taglist_loading">タグリスト: 読込中...</div>
         </div>
       </div>
 
       <div class="control-group" id="comboListPanel" style="display:none; flex-basis:100%;">
-        <h3>コンボリストタグリスト</h3>
+        <h3 data-i18n="combolist">コンボリストタグリスト</h3>
         <div id="comboListContent" class="controls-content" style="flex-direction:column; align-items:flex-start; gap:6px;"></div>
       </div>
 
       <div class="control-group">
-        <h3>XML編集モード</h3>
+        <h3 data-i18n="xml_edit_mode">XML編集モード</h3>
         <div class="controls-content">
-          <button id="btnMweMode" class="mode-btn" onclick="switchMode('__mweModeActive')">マルチワード (m)</button>
-          <button id="btnMweDissolveMode" class="mode-btn" onclick="switchMode('__mweDissolveModeActive')">マルチワード解除</button>
-          <button id="btnSplitMode" class="mode-btn">分割 (S)</button>
-          <button id="btnMergeMode" class="mode-btn">統合 (U)</button>
-          <button id="btnAttrMode" class="mode-btn mode-on">属性編集 (P)</button>
-          <button id="btnUDMode" class="mode-btn">UD編集 (D)</button>
+          <button id="btnMweMode" class="mode-btn" onclick="switchMode('__mweModeActive')" data-i18n="mwe_mode">マルチワード (m)</button>
+          <button id="btnMweDissolveMode" class="mode-btn" onclick="switchMode('__mweDissolveModeActive')" data-i18n="mwe_dissolve">マルチワード解除</button>
+          <button id="btnSplitMode" class="mode-btn" data-i18n="split_mode">分割 (S)</button>
+          <button id="btnMergeMode" class="mode-btn" data-i18n="merge_mode">統合 (U)</button>
+          <button id="btnAttrMode" class="mode-btn mode-on" data-i18n="attr_edit_mode">属性編集 (P)</button>
+          <button id="btnUDMode" class="mode-btn" data-i18n="ud_edit_mode">UD編集 (D)</button>
         </div>
         
         <div id="udLayoutGroup" style="display: none; margin-top: 12px; border-top: 1px solid #eee; padding-top: 12px;">
-          <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #555;">UD表示モード</h3>
+          <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #555;" data-i18n="ud_display_mode">UD表示モード</h3>
           <div class="controls-content">
             <button id="btnUDLayoutFlat" class="mode-btn mode-on">Flat</button>
             <button id="btnUDLayoutUpright" class="mode-btn">Upright</button>
           </div>
           
           <div id="udDirectionContainer" style="display: none; margin-top: 12px;">
-             <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #555;">Upright方向</h3>
+             <h3 style="margin: 0 0 8px 0; font-size: 14px; color: #555;" data-i18n="upright_direction">Upright方向</h3>
              <div class="controls-content">
-               <button id="btnDirParentChild" class="mode-btn mode-on">親＞子 (↓)</button>
-               <button id="btnDirChildParent" class="mode-btn">子＞親 (↑)</button>
+               <button id="btnDirParentChild" class="mode-btn mode-on" data-i18n="dir_parent_child">親＞子 (↓)</button>
+               <button id="btnDirChildParent" class="mode-btn" data-i18n="dir_child_parent">子＞親 (↑)</button>
              </div>
           </div>
         </div>
         </div>
       <div id="udDisplayPropsGroup" class="control-group" style="display: none; flex-basis: 100%;">
-        <h3>UDノード表示</h3>
+        <h3 data-i18n="ud_node_display">UDノード表示</h3>
         <div id="udDisplayPropsList" class="controls-content" style="max-height: 100px; overflow-y: auto; flex-direction: column; align-items: flex-start;">
           </div>
       </div>
       <div class="control-group">
-        <h3>編集詳細設定</h3>
+        <h3 data-i18n="edit_detail_settings">編集詳細設定</h3>
         <div class="controls-content">
-          <button id="autoEditToggleBtn" class="mode-btn">自動編集 OFF</button>
-          <button id="appendEditAttrToggleBtn" class="mode-btn mode-on">編集情報を追記 ON</button>
-          <button id="toggleSentenceInfoBtn" class="mode-btn mode-on">文情報 表示</button>
+          <button id="autoEditToggleBtn" class="mode-btn" data-i18n="auto_edit_off">自動編集 OFF</button>
+          <button id="appendEditAttrToggleBtn" class="mode-btn mode-on" data-i18n="append_edit_on">編集情報を追記 ON</button>
+          <button id="toggleSentenceInfoBtn" class="mode-btn mode-on" data-i18n="sentence_info_show">文情報 表示</button>
         </div>
       </div>
 
       <div class="control-group" id="autosaveGroup" style="min-width: 220px;">
-        <h3>自動保存</h3>
+        <h3 data-i18n="autosave">自動保存</h3>
         <div class="controls-content" style="flex-direction: column; align-items: flex-start; gap: 6px;">
-          <div id="autosaveStatus" style="font-size:12px; color:#666;">自動保存: まだありません</div>
-          <button id="chooseAutosaveFileBtn" class="btn small">保存先ファイルを選択 (任意)</button>
+          <div id="autosaveStatus" style="font-size:12px; color:#666;" data-i18n="autosave_none">自動保存: まだありません</div>
+          <button id="chooseAutosaveFileBtn" class="btn small" data-i18n="choose_autosave_file">保存先ファイルを選択 (任意)</button>
         </div>
       </div>
 
       <div class="control-group" style="min-width: 150px;">
-        <h3>作業者</h3>
+        <h3 data-i18n="worker">作業者</h3>
         <div class="controls-content">
-          <input id="workerName" class="small" placeholder="名前を入力" style="width:100%">
+          <input id="workerName" class="small" placeholder="名前を入力" data-i18n-placeholder="worker_placeholder" style="width:100%">
         </div>
       </div>
 
       <div class="control-group" style="flex-basis: 100%;">
-        <h3>ステータス</h3>
-        <div id="status" class="status" style="margin-top:0;">準備完了</div>
+        <h3 data-i18n="status_heading">ステータス</h3>
+        <div id="status" class="status" style="margin-top:0;" data-i18n="status_ready">準備完了</div>
       </div>
 
     </div>
@@ -597,9 +866,9 @@ label[for="fileInput"], label[for="posCsv"] {
   <div style="flex:1; overflow-x: auto;">
     <div class="card">
       <div style="display: flex; align-items: center; margin-bottom: 8px;">
-        <h3 style="margin: 0;">テキスト表示</h3>
+        <h3 style="margin: 0;" data-i18n="text_view_heading">テキスト表示</h3>
       </div>
-                <div id="tokens" class="tokens">ここにトークンが表示されます。</div>
+                <div id="tokens" class="tokens" data-i18n="tokens_placeholder">ここにトークンが表示されます。</div>
       </div>
     </div>
         <div class="sidebar" style="width:320px">
@@ -643,6 +912,147 @@ label[for="fileInput"], label[for="posCsv"] {
 <script>
 (function(){
   const $ = id => document.getElementById(id);
+
+  // ▼▼▼ 追加: 上部パネルの「季節テーマ」自動切り替え（CSS/レイアウトのみ・機能には無関係） ▼▼▼
+  window.__seasonMeta = { ja: '', en: '' };
+  function updateSeasonMetaLabel(){
+    const metaEl = document.querySelector('#topPanelCard .kx-masthead__meta');
+    if (!metaEl) return;
+    const label = window.__seasonMeta[window.__lang] || window.__seasonMeta.ja;
+    const encodingLine = window.__lang === 'en' ? 'ENCODING // UTF-8' : 'ENCODING // UTF-8';
+    metaEl.innerHTML = label + '<br>' + encodingLine;
+  }
+  (function applySeasonTheme(){
+    try{
+      const month = new Date().getMonth() + 1; // 1-12
+      let seasonClass, emojiLine, metaLabelJa, metaLabelEn;
+      if (month >= 1 && month <= 3) {
+        seasonClass = 'season-q1'; emojiLine = '⛄ ❄️ 🎍 🍊';
+        metaLabelJa = 'SEASON // ふゆ・おしょうがつ'; metaLabelEn = 'SEASON // WINTER';
+      } else if (month >= 4 && month <= 6) {
+        seasonClass = 'season-q2'; emojiLine = '🌸 🦋 🎏 🌷';
+        metaLabelJa = 'SEASON // はる'; metaLabelEn = 'SEASON // SPRING';
+      } else if (month >= 7 && month <= 9) {
+        seasonClass = 'season-q3'; emojiLine = '🍉 ☀️ 🌻 👒 🎆';
+        metaLabelJa = 'SEASON // なつやすみ！'; metaLabelEn = 'SEASON // SUMMER VACATION!';
+      } else {
+        seasonClass = 'season-q4'; emojiLine = '🍁 🍂 🎃 🌰';
+        metaLabelJa = 'SEASON // あき'; metaLabelEn = 'SEASON // AUTUMN';
+      }
+      window.__seasonMeta = { ja: metaLabelJa, en: metaLabelEn };
+      const topPanel = document.getElementById('topPanelCard');
+      if (topPanel) topPanel.classList.add(seasonClass);
+
+      const titleWrap = document.querySelector('#topPanelCard .kx-masthead__row > div');
+      if (titleWrap) {
+        const emojiEl = document.createElement('div');
+        emojiEl.className = 'kx-season-emoji';
+        emojiEl.textContent = emojiLine;
+        emojiEl.setAttribute('aria-hidden', 'true');
+        titleWrap.appendChild(emojiEl);
+      }
+      updateSeasonMetaLabel();
+    } catch(e) {
+      console.warn('季節テーマの適用に失敗しました', e);
+    }
+  })();
+  // ▲▲▲ 追加完了 ▲▲▲
+
+  // ▼▼▼ 追加: 日本語 / English 表示切替（翻訳辞書と適用関数） ▼▼▼
+  window.__lang = 'ja';
+  const I18N = {
+    ja: {
+      tagline: '日本語コーパス注釈エディタ — トークン分割・マルチワード・UD係り受け編集',
+      file_ops: 'ファイル操作', taglist: 'タグリスト', combolist: 'コンボリストタグリスト',
+      xml_edit_mode: 'XML編集モード', ud_display_mode: 'UD表示モード', upright_direction: 'Upright方向',
+      ud_node_display: 'UDノード表示', edit_detail_settings: '編集詳細設定', autosave: '自動保存',
+      worker: '作業者', status_heading: 'ステータス',
+      file_select: 'ファイルを選択 (Ctrl+O)', sample: 'サンプル', download_xml: '変更済XMLをダウンロード',
+      generate_html: '生成してHTMLをダウンロード', taglist_upload: 'タグリストのファイルをアップロードする',
+      taglist_loading: 'タグリスト: 読込中...',
+      mwe_mode: 'マルチワード (m)', mwe_dissolve: 'マルチワード解除', split_mode: '分割 (S)',
+      merge_mode: '統合 (U)', attr_edit_mode: '属性編集 (P)', ud_edit_mode: 'UD編集 (D)',
+      dir_parent_child: '親＞子 (↓)', dir_child_parent: '子＞親 (↑)',
+      auto_edit_off: '自動編集 OFF', auto_edit_on: '自動編集 ON',
+      append_edit_on: '編集情報を追記 ON', append_edit_off: '編集情報を追記 OFF',
+      sentence_info_show: '文情報 表示', sentence_info_hide: '文情報 非表示',
+      autosave_none: '自動保存: まだありません', choose_autosave_file: '保存先ファイルを選択 (任意)',
+      worker_placeholder: '名前を入力', status_ready: '準備完了',
+      combo_restrict_suffix: ' をリスト内の値に限定する',
+      text_view_heading: 'テキスト表示', tokens_placeholder: 'ここにトークンが表示されます。',
+      upload_xml_prompt: 'XMLをアップロードしてください。',
+      attr_edit_title: '属性編集', original_text_label: '原文文字列',
+      exact_match: '完全一致', partial_match: '部分一致', candidate_search: '候補検索',
+      no_candidates: '候補なし', no_attrs: '属性がありません',
+      new_attr_name_placeholder: '新属性名', value_placeholder: '値', add_btn: '追加',
+      auto_edit_label: '自動編集', bulk_copy: '一括コピー', bulk_copied: 'コピー済み',
+      bulk_paste: '一括貼り付け', cancel_btn: 'キャンセル', ok_btn: '決定',
+      alert_empty_text: '原文文字列が空です。', alert_no_candidates: '一致する候補が見つかりませんでした。',
+      alert_enter_attr_name: '属性名を入力', alert_already_exists: '既にあります',
+      alert_no_copied_attrs: 'コピーされた属性がありません。先に「一括コピー」を押してください。',
+      confirm_bulk_apply: (t) => `他の "${t}" も一括で変更しますか？`,
+    },
+    en: {
+      tagline: 'Japanese Corpus Annotation Editor — Token Splitting, Multi-word Units, UD Dependency Editing',
+      file_ops: 'File Operations', taglist: 'Tag List', combolist: 'Combo List Tags',
+      xml_edit_mode: 'XML Edit Mode', ud_display_mode: 'UD Display Mode', upright_direction: 'Upright Direction',
+      ud_node_display: 'UD Node Display', edit_detail_settings: 'Edit Settings', autosave: 'Autosave',
+      worker: 'Worker', status_heading: 'Status',
+      file_select: 'Select File (Ctrl+O)', sample: 'Sample', download_xml: 'Download Modified XML',
+      generate_html: 'Generate & Download HTML', taglist_upload: 'Upload Tag List File',
+      taglist_loading: 'Tag list: loading...',
+      mwe_mode: 'Multi-word (m)', mwe_dissolve: 'Dissolve Multi-word', split_mode: 'Split (S)',
+      merge_mode: 'Merge (U)', attr_edit_mode: 'Edit Attributes (P)', ud_edit_mode: 'Edit UD (D)',
+      dir_parent_child: 'Parent > Child (↓)', dir_child_parent: 'Child > Parent (↑)',
+      auto_edit_off: 'Auto-edit OFF', auto_edit_on: 'Auto-edit ON',
+      append_edit_on: 'Append Edit Info ON', append_edit_off: 'Append Edit Info OFF',
+      sentence_info_show: 'Show Sentence Info', sentence_info_hide: 'Hide Sentence Info',
+      autosave_none: 'Autosave: none yet', choose_autosave_file: 'Choose Save File (optional)',
+      worker_placeholder: 'Enter your name', status_ready: 'Ready',
+      combo_restrict_suffix: ' — restrict to list values',
+      text_view_heading: 'Text View', tokens_placeholder: 'Tokens will be displayed here.',
+      upload_xml_prompt: 'Please upload an XML file.',
+      attr_edit_title: 'Edit Attributes', original_text_label: 'Original Text',
+      exact_match: 'Exact Match', partial_match: 'Partial Match', candidate_search: 'Search Candidates',
+      no_candidates: 'No candidates', no_attrs: 'No attributes',
+      new_attr_name_placeholder: 'New attribute name', value_placeholder: 'Value', add_btn: 'Add',
+      auto_edit_label: 'Auto-edit', bulk_copy: 'Copy All', bulk_copied: 'Copied',
+      bulk_paste: 'Paste All', cancel_btn: 'Cancel', ok_btn: 'OK',
+      alert_empty_text: 'The original text is empty.', alert_no_candidates: 'No matching candidates were found.',
+      alert_enter_attr_name: 'Please enter an attribute name', alert_already_exists: 'Already exists',
+      alert_no_copied_attrs: 'No copied attributes. Please click "Copy All" first.',
+      confirm_bulk_apply: (t) => `Apply this change to all other "${t}" as well?`,
+    }
+  };
+  function T(key, ...args){
+    const dict = I18N[window.__lang] || I18N.ja;
+    const val = (dict[key] !== undefined) ? dict[key] : I18N.ja[key];
+    return (typeof val === 'function') ? val(...args) : val;
+  }
+  function applyLanguage(){
+    document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = T(el.getAttribute('data-i18n')); });
+    document.querySelectorAll('[data-i18n-placeholder]').forEach(el => { el.placeholder = T(el.getAttribute('data-i18n-placeholder')); });
+
+    const autoEditBtn = $('autoEditToggleBtn');
+    if (autoEditBtn) autoEditBtn.textContent = autoEditBtn.classList.contains('mode-on') ? T('auto_edit_on') : T('auto_edit_off');
+    const appendEditAttrBtn = $('appendEditAttrToggleBtn');
+    if (appendEditAttrBtn) appendEditAttrBtn.textContent = appendEditAttrBtn.classList.contains('mode-on') ? T('append_edit_on') : T('append_edit_off');
+    const sentInfoBtn = $('toggleSentenceInfoBtn');
+    if (sentInfoBtn) sentInfoBtn.textContent = sentInfoBtn.classList.contains('mode-on') ? T('sentence_info_show') : T('sentence_info_hide');
+
+    const tokensElLocal = $('tokens');
+    if (tokensElLocal && typeof xmlDoc !== 'undefined' && !xmlDoc) tokensElLocal.textContent = T('tokens_placeholder');
+
+    if (typeof refreshComboAttrList === 'function') refreshComboAttrList();
+    updateSeasonMetaLabel();
+
+    const langBtn = $('langToggleBtn');
+    if (langBtn) langBtn.textContent = window.__lang === 'ja' ? '🌐 English' : '🌐 日本語';
+
+    document.documentElement.lang = window.__lang;
+  }
+  // ▲▲▲ 追加完了 ▲▲▲
+
 
 
   function getLightColor(str) {
@@ -1147,7 +1557,7 @@ function renderTokens() {
     tokensEl.classList.toggle('ud-mode-active', window.__udModeActive);
 
     if (!xmlDoc) {
-        tokensEl.textContent = 'XMLをアップロードしてください。';
+        tokensEl.textContent = T('upload_xml_prompt');
         return;
     }
 
@@ -2349,7 +2759,7 @@ function renderTokensUpright() {
       chk.addEventListener('change', () => { window.__comboRestrictFlags[name] = chk.checked; });
       row.appendChild(chk);
       const label = document.createElement('span');
-      label.innerHTML = '<b>'+name+'</b> をリスト内の値に限定する';
+      label.innerHTML = '<b>'+name+'</b>' + T('combo_restrict_suffix');
       row.appendChild(label);
       content.appendChild(row);
     });
@@ -3221,7 +3631,7 @@ function confirmCancelEdit() {
 	
 	
 	const title = document.createElement('div');
-    title.textContent='属性編集'; title.style.fontWeight='900'; title.style.marginBottom='8px'; 
+    title.textContent=T('attr_edit_title'); title.style.fontWeight='900'; title.style.marginBottom='8px'; 
 // title.style.color='#D6336C';
     title.style.color = 'var(--color-primary)'; // プライマリカラー
 	
@@ -3276,7 +3686,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     textContentRow.style.borderBottom = '1px solid rgba(221,170,192,0.5)';
 
     const textContentLabel = document.createElement('div');
-    textContentLabel.textContent = '原文文字列';
+    textContentLabel.textContent = T('original_text_label');
     textContentLabel.style.width = '86px';
     textContentLabel.style.fontWeight = '700';
     // textContentLabel.style.color = '#D6336C';
@@ -3328,7 +3738,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
         nextBtn.style.cursor = nextBtn.disabled ? 'default' : 'pointer';
         candidateCountLabel.textContent = candidateMatches.length > 0
             ? `${candidateIndex + 1} / ${candidateMatches.length}`
-            : '候補なし';
+            : T('no_candidates');
     }
 
     function attrSignature(node) {
@@ -3339,7 +3749,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     function runCandidateSearch() {
         const target = (xmlNode.textContent || '').trim();
-        if (!target) { alert('原文文字列が空です。'); return; }
+        if (!target) { alert(T('alert_empty_text')); return; }
         const all = getLeafWNodes();
         const rawMatches = all.filter(n => {
             if (n === xmlNode) return false;
@@ -3359,7 +3769,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
         if (candidateMatches.length === 0) {
             candidateIndex = -1;
             updateCandidateNav();
-            alert('一致する候補が見つかりませんでした。');
+            alert(T('alert_no_candidates'));
             return;
         }
         candidateIndex = 0;
@@ -3378,7 +3788,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     const exactBtn = document.createElement('button');
     exactBtn.type = 'button';
-    exactBtn.textContent = '完全一致';
+    exactBtn.textContent = T('exact_match');
     exactBtn.style.padding = '4px 8px';
     exactBtn.style.borderRadius = '8px';
     exactBtn.style.border = '1px solid var(--color-border)';
@@ -3386,7 +3796,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     const partialBtn = document.createElement('button');
     partialBtn.type = 'button';
-    partialBtn.textContent = '部分一致';
+    partialBtn.textContent = T('partial_match');
     partialBtn.style.padding = '4px 8px';
     partialBtn.style.borderRadius = '8px';
     partialBtn.style.border = '1px solid var(--color-border)';
@@ -3403,7 +3813,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     const searchBtn = document.createElement('button');
     searchBtn.type = 'button';
-    searchBtn.textContent = '候補検索';
+    searchBtn.textContent = T('candidate_search');
     searchBtn.style.padding = '4px 10px';
     searchBtn.style.borderRadius = '8px';
     searchBtn.style.border = 'none';
@@ -3425,7 +3835,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     candidateCountLabel.style.color = '#666';
     candidateCountLabel.style.minWidth = '56px';
     candidateCountLabel.style.textAlign = 'center';
-    candidateCountLabel.textContent = '候補なし';
+    candidateCountLabel.textContent = T('no_candidates');
 
     const nextBtn = document.createElement('button');
     nextBtn.type = 'button';
@@ -3463,7 +3873,7 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
 
     // wordID以外のキーが存在するかチェック
     if(keys.filter(k => k !== 'wordID').length === 0){ 
-        const p=document.createElement('div'); p.textContent='属性がありません'; p.style.color='#666'; form.appendChild(p); 
+        const p=document.createElement('div'); p.textContent=T('no_attrs'); p.style.color='#666'; form.appendChild(p); 
     }
 
     keys.forEach(k=>{ 
@@ -3479,19 +3889,19 @@ title.style.fontSize='15px'; title.style.cursor='move'; editor.appendChild(title
     });
 	
     const nr=document.createElement('div'); nr.style.display='flex'; nr.style.gap='8px'; nr.style.marginTop='6px';
-    const nk=document.createElement('input'); nk.placeholder='新属性名'; nk.style.flex='1'; nk.style.padding='6px'; nk.style.borderRadius='8px';
-    const nv=document.createElement('input'); nv.placeholder='値'; nv.style.padding='6px'; nv.style.borderRadius='8px';
-    const add=document.createElement('button'); add.textContent='追加'; add.style.padding='6px 8px'; add.style.borderRadius='10px';
-    add.addEventListener('click', ()=>{ if(!nk.value.trim()) return alert('属性名を入力'); if(inputs[nk.value.trim()]) return alert('既にあります'); const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='6px'; const kdiv=document.createElement('div'); kdiv.textContent=nk.value.trim(); kdiv.style.width='86px'; kdiv.style.fontWeight='700'; kdiv.style.color='#333'; const inp=document.createElement('input'); inp.value=nv.value; inp.style.flex='1'; inp.style.padding='6px'; inp.style.borderRadius='8px'; const del=document.createElement('button'); del.textContent='−'; del.style.padding='6px 8px'; del.style.borderRadius='10px'; del.addEventListener('click', ()=>{ row.remove(); delete inputs[nk.value.trim()]; }); row.appendChild(kdiv); row.appendChild(inp); row.appendChild(del); form.appendChild(row); inputs[nk.value.trim()]=inp; nk.value=''; nv.value=''; });
+    const nk=document.createElement('input'); nk.placeholder=T('new_attr_name_placeholder'); nk.style.flex='1'; nk.style.padding='6px'; nk.style.borderRadius='8px';
+    const nv=document.createElement('input'); nv.placeholder=T('value_placeholder'); nv.style.padding='6px'; nv.style.borderRadius='8px';
+    const add=document.createElement('button'); add.textContent=T('add_btn'); add.style.padding='6px 8px'; add.style.borderRadius='10px';
+    add.addEventListener('click', ()=>{ if(!nk.value.trim()) return alert(T('alert_enter_attr_name')); if(inputs[nk.value.trim()]) return alert(T('alert_already_exists')); const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.marginBottom='6px'; const kdiv=document.createElement('div'); kdiv.textContent=nk.value.trim(); kdiv.style.width='86px'; kdiv.style.fontWeight='700'; kdiv.style.color='#333'; const inp=document.createElement('input'); inp.value=nv.value; inp.style.flex='1'; inp.style.padding='6px'; inp.style.borderRadius='8px'; const del=document.createElement('button'); del.textContent='−'; del.style.padding='6px 8px'; del.style.borderRadius='10px'; del.addEventListener('click', ()=>{ row.remove(); delete inputs[nk.value.trim()]; }); row.appendChild(kdiv); row.appendChild(inp); row.appendChild(del); form.appendChild(row); inputs[nk.value.trim()]=inp; nk.value=''; nv.value=''; });
     nr.appendChild(nk); nr.appendChild(nv); nr.appendChild(add); form.appendChild(nr);
     editor.appendChild(form);
     const foot=document.createElement('div'); foot.style.display='flex'; foot.style.justifyContent='space-between'; foot.style.alignItems='center'; foot.style.marginTop='10px';
     const leftControls = document.createElement('div');
-    const applyAllLabel=document.createElement('label'); const applyAllChk=document.createElement('input'); applyAllChk.type='checkbox'; applyAllChk.id='applyAllChk'; applyAllChk.style.marginRight='6px'; if(window.__autoEditEnabled) applyAllChk.checked=true; applyAllLabel.appendChild(applyAllChk); applyAllLabel.appendChild(document.createTextNode('自動編集')); leftControls.appendChild(applyAllLabel);
+    const applyAllLabel=document.createElement('label'); const applyAllChk=document.createElement('input'); applyAllChk.type='checkbox'; applyAllChk.id='applyAllChk'; applyAllChk.style.marginRight='6px'; if(window.__autoEditEnabled) applyAllChk.checked=true; applyAllLabel.appendChild(applyAllChk); applyAllLabel.appendChild(document.createTextNode(T('auto_edit_label'))); leftControls.appendChild(applyAllLabel);
     foot.appendChild(leftControls);
     const rightControls = document.createElement('div'); rightControls.style.display='flex'; rightControls.style.gap='8px';
     const copyBtn = document.createElement('button');
-    copyBtn.textContent = '一括コピー';
+    copyBtn.textContent = T('bulk_copy');
     copyBtn.className = 'btn small';
     copyBtn.style.background = '#E3F2FD';
 
@@ -3509,21 +3919,21 @@ copyBtn.addEventListener('click', () => {
         // ▲▲▲ 修正 ▲▲▲
         setStatus('一括コピーしました (wordIDを除く)');
         writeLog('属性をコピーしました: ' + JSON.stringify(__copiedAttributes));
-        copyBtn.textContent = 'コピー済み';
+        copyBtn.textContent = T('bulk_copied');
         copyBtn.disabled = true;
     });
 
 
     rightControls.appendChild(copyBtn);
     const pasteBtn = document.createElement('button');
-    pasteBtn.textContent = '一括貼り付け';
+    pasteBtn.textContent = T('bulk_paste');
     pasteBtn.className = 'btn small';
     pasteBtn.style.background = '#D1C4E9';
     pasteBtn.disabled = !__copiedAttributes;
     pasteBtn.style.opacity = __copiedAttributes ? '1' : '0.4';
     pasteBtn.style.cursor = __copiedAttributes ? 'pointer' : 'default';
     pasteBtn.addEventListener('click', () => {
-        if (!__copiedAttributes) return alert('コピーされた属性がありません。先に「一括コピー」を押してください。');
+        if (!__copiedAttributes) return alert(T('alert_no_copied_attrs'));
 
         // ▼▼▼ バグ修正: 自動適用の判定ロジックを修正 ▼▼▼
         const localApplyAllChk = $('applyAllChk');
@@ -3532,7 +3942,7 @@ copyBtn.addEventListener('click', () => {
 
         if (applyAll) {
             const originalText = (xmlNode.textContent || '').trim();
-            const confirmed = confirm(`他の "${originalText}" も一括で変更しますか？`);
+            const confirmed = confirm(T('confirm_bulk_apply', originalText));
             if (!confirmed) {
                 applyAll = false;
             }
@@ -3541,7 +3951,7 @@ copyBtn.addEventListener('click', () => {
     });
     rightControls.appendChild(pasteBtn);
 
-    const cancel=document.createElement('button'); cancel.textContent='キャンセル'; cancel.className='btn small'; 
+    const cancel=document.createElement('button'); cancel.textContent=T('cancel_btn'); cancel.className='btn small'; 
     cancel.addEventListener('click', async ()=>{ // ★ async を追加
         if (window.__isAttrDirty) {
             const shouldDiscard = await confirmCancelEdit(); // ★ モーダルを呼び出し
@@ -3550,7 +3960,7 @@ copyBtn.addEventListener('click', () => {
         closeAttrEditor(); 
     });
     
-    const ok=document.createElement('button'); ok.textContent='決定'; ok.className='btn small attr-ok-btn'; 
+    const ok=document.createElement('button'); ok.textContent=T('ok_btn'); ok.className='btn small attr-ok-btn'; 
 // ok.style.background='#FFDFF0';
     ok.style.background = 'var(--color-primary)'; // 決定ボタンをプライマリーカラーに
     ok.style.color = '#FFFFFF';
@@ -3610,7 +4020,7 @@ const sb=$('loadSample'); if(sb){ sb.disabled=true; sb.style.opacity=0.5; } }cat
 $('loadSample').addEventListener('click', function(){ const ns = '<?xml version="1.0" encoding="UTF-8"?>\n<TEI xmlns="http://www.tei-c.org/ns/1.0">\n  <text>\n    <body>\n      <p>\n        <s Task="91" textID="1" person="1">\n          <w pos="NNP">ケン</w> <w pos="P">は</w> <w pos="NN">夜</w> <w pos="ADJ">遅く</w> <w pos="NN">家</w> <w pos="P">に</w> <w pos="VB">帰って</w> <w pos="P">き</w> <w pos="P">て</w> <w pos="P">、</w> <w pos="NN">ドア</w> <w pos="P">を</w> <w pos="VB">開けよう</w> <w pos="P">と</w> <w pos="VB">し</w> <w pos="NN">ます</w> <w pos="P">。</w>\n        </s>\n        <s Task="92" textID="1" person="2">\n          <w pos="VB">起き</w> <w pos="P">て</w> <w pos="NN">窓</w> <w pos="P">から</w> <w pos="NN">この</w> <w pos="NN">状況</w> <w pos="P">を</w> <w pos="VB">見つけ</w> <w pos="NN">ます</w> <w pos="P">。</w>\n        </s>\n      </p>\n    </body>\n  </text>\n</TEI>'; loadXMLText(ns,'サンプル'); const sb=$('loadSample'); if(sb){ sb.disabled=true; sb.style.opacity=0.5; } });
 
   $('downloadBtn').addEventListener('click', function(){ if(!xmlDoc) return alert('まずXMLを読み込んでください'); const ser = new XMLSerializer(); const out = '<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n' + ser.serializeToString(xmlDoc.documentElement); const blob = new Blob([out],{type:'application/xml;charset=utf-8;'}); const url=URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download='modified.xml'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url); setStatus('ダウンロード完了'); });
-  const createHtmlBtn = document.createElement('button'); createHtmlBtn.textContent = '生成してHTMLをダウンロード'; createHtmlBtn.className = 'btn small';
+  const createHtmlBtn = document.createElement('button'); createHtmlBtn.textContent = '生成してHTMLをダウンロード'; createHtmlBtn.setAttribute('data-i18n','generate_html'); createHtmlBtn.className = 'btn small';
   // 新しい「ファイル操作」グループにボタンを追加する
   const fileOpsGroup = $('fileOpsGroup');
   if (fileOpsGroup) {
@@ -3719,14 +4129,14 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
   autoEditBtn.addEventListener('click', function() {
     window.__autoEditEnabled = !window.__autoEditEnabled; // 状態を反転
     this.classList.toggle('mode-on', window.__autoEditEnabled);
-    this.textContent = window.__autoEditEnabled ? '自動編集 ON' : '自動編集 OFF';
+    this.textContent = window.__autoEditEnabled ? T('auto_edit_on') : T('auto_edit_off');
   });
 
   const appendEditAttrBtn = $('appendEditAttrToggleBtn');
   appendEditAttrBtn.addEventListener('click', function() {
     window.__appendEditInfoEnabled = !window.__appendEditInfoEnabled; // 状態を反転
     this.classList.toggle('mode-on', window.__appendEditInfoEnabled);
-    this.textContent = window.__appendEditInfoEnabled ? '編集情報を追記 ON' : '編集情報を追記 OFF';
+    this.textContent = window.__appendEditInfoEnabled ? T('append_edit_on') : T('append_edit_off');
   });
 
   $('downloadHistory').addEventListener('click', downloadHistoryCsv);
@@ -3757,6 +4167,18 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
     e.target.value = '';
   });
   loadDefaultTagList();
+  // ▲▲▲ 追加完了 ▲▲▲
+
+  // ▼▼▼ 追加: 言語切替ボタンの動作 ▼▼▼
+  const langToggleBtn = $('langToggleBtn');
+  if (langToggleBtn) {
+    langToggleBtn.addEventListener('click', function(){
+      window.__lang = (window.__lang === 'ja') ? 'en' : 'ja';
+      applyLanguage();
+      renderTokens();
+    });
+  }
+  applyLanguage();
   // ▲▲▲ 追加完了 ▲▲▲
   const historySnapshots=[];
   function pushSnapshot(){ try{ if(!xmlDoc) return; const s=(new XMLSerializer()).serializeToString(xmlDoc.documentElement); if(historySnapshots.length > 0 && historySnapshots[historySnapshots.length-1] === s) return; historySnapshots.push(s); if(historySnapshots.length > 10) historySnapshots.shift(); writeLog(`snapshot saved (${historySnapshots.length} total)`); }catch(e){ console.error("Snapshot failed", e); } }
@@ -4099,7 +4521,7 @@ $('btnSplitMode').addEventListener('click', ()=>{ switchMode('__splitModeActive'
       sentenceInfoVisible = !sentenceInfoVisible;
       tokensEl.classList.toggle('hide-sentence-info', !sentenceInfoVisible);
       toggleBtn.classList.toggle('mode-on', sentenceInfoVisible);
-      toggleBtn.textContent = sentenceInfoVisible ? '文情報 表示' : '文情報 非表示';
+      toggleBtn.textContent = sentenceInfoVisible ? T('sentence_info_show') : T('sentence_info_hide');
       // ▼▼▼ 追加: Flatモードでの表示切替時にレイアウトが崩れるのを防ぐため再描画 ▼▼▼
       if (window.__udModeActive && !window.__udLayoutUpright) {
         setTimeout(drawAllUDArcs, 0);
