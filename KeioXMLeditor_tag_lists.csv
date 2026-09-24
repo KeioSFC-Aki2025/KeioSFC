@@ -1,38 +1,38 @@
 pos,lemma,tag,udType
-ADJ: adjective,,CC: Coordinating conjunction,nsubj
-ADP: adposition,,CD: Cardinal number,obj
-ADV: adverb,,DT: Determiner,iobj
-AUX: auxiliary,,EX: Existential there,csubj
-CCONJ: coordinating conjunction,,FW: Foreign word,ccomp
-DET: determiner,,IN: Preposition or subordinating conjunction,xcomp
-INTJ: interjection,,JJ: Adjective,obl
-NOUN: noun,,"JJR: Adjective, comparative",vocative
-NUM: numeral,,"JJS: Adjective, superlative",expl
-PART: particle,,LS: List item marker,dislocated
-PRON: pronoun,,MD: Modal,advcl
-PROPN: proper noun,,"NN: Noun, singular or mass",advmod
-PUNCT: punctuation,,"NNS: Noun, plural",discourse
-SCONJ: subordinating conjunction,,"NNP: Proper noun, singular",aux
-SYM: symbol,,"NNPS: Proper noun, plural",cop
-VERB: verb,,PDT: Predeterminer,mark
-X: other,,POS: Possessive ending,nmod
-,,PRP: Personal pronoun,appos
-,,PRP$: Possessive pronoun,nummod
-,,RB: Adverb,acl
-,,"RBR: Adverb, comparative",amod
-,,"RBS: Adverb, superlative",det
-,,RP: Particle,clf
-,,SYM: Symbol,case
-,,TO: to,conj
-,,UH: Interjection,cc
-,,"VB: Verb, base form",fixed
-,,"VBD: Verb, past tense",flat
-,,"VBG: Verb, gerund or present participle",list
-,,"VBN: Verb, past participle",parataxis
-,,"VBP: Verb, non-3rd person singular present",compound
-,,"VBZ: Verb, 3rd person singular present",orphan
-,,WDT: Wh-determiner,goeswith
-,,WP: Wh-pronoun,reparandum
-,,WP$: Possessive wh-pronoun,punct
-,,WRB: Wh-adverb,root
-,,,dep
+ADJ: adjective,,CC: Coordinating conjunction,nsubj: https://universaldependencies.org/u/dep/nsubj.html
+ADP: adposition,,CD: Cardinal number,obj: https://universaldependencies.org/u/dep/obj.html
+ADV: adverb,,DT: Determiner,iobj: https://universaldependencies.org/u/dep/iobj.html
+AUX: auxiliary,,EX: Existential there,csubj: https://universaldependencies.org/u/dep/csubj.html
+CCONJ: coordinating conjunction,,FW: Foreign word,ccomp: https://universaldependencies.org/u/dep/ccomp.html
+DET: determiner,,IN: Preposition or subordinating conjunction,xcomp: https://universaldependencies.org/u/dep/xcomp.html
+INTJ: interjection,,JJ: Adjective,obl: https://universaldependencies.org/u/dep/obl.html
+NOUN: noun,,"JJR: Adjective, comparative",vocative: https://universaldependencies.org/u/dep/vocative.html
+NUM: numeral,,"JJS: Adjective, superlative",expl: https://universaldependencies.org/u/dep/expl.html
+PART: particle,,LS: List item marker,dislocated: https://universaldependencies.org/u/dep/dislocated.html
+PRON: pronoun,,MD: Modal,advcl: https://universaldependencies.org/u/dep/advcl.html
+PROPN: proper noun,,"NN: Noun, singular or mass",advmod: https://universaldependencies.org/u/dep/advmod.html
+PUNCT: punctuation,,"NNS: Noun, plural",discourse: https://universaldependencies.org/u/dep/discourse.html
+SCONJ: subordinating conjunction,,"NNP: Proper noun, singular",aux: https://universaldependencies.org/u/dep/aux.html
+SYM: symbol,,"NNPS: Proper noun, plural",cop: https://universaldependencies.org/u/dep/cop.html
+VERB: verb,,PDT: Predeterminer,mark: https://universaldependencies.org/u/dep/mark.html
+X: other,,POS: Possessive ending,nmod: https://universaldependencies.org/u/dep/nmod.html
+,,PRP: Personal pronoun,appos: https://universaldependencies.org/u/dep/appos.html
+,,PRP$: Possessive pronoun,nummod: https://universaldependencies.org/u/dep/nummod.html
+,,RB: Adverb,acl: https://universaldependencies.org/u/dep/acl.html
+,,"RBR: Adverb, comparative",amod: https://universaldependencies.org/u/dep/amod.html
+,,"RBS: Adverb, superlative",det: https://universaldependencies.org/u/dep/det.html
+,,RP: Particle,clf: https://universaldependencies.org/u/dep/clf.html
+,,SYM: Symbol,case: https://universaldependencies.org/u/dep/case.html
+,,TO: to,conj: https://universaldependencies.org/u/dep/conj.html
+,,UH: Interjection,cc: https://universaldependencies.org/u/dep/cc.html
+,,"VB: Verb, base form",fixed: https://universaldependencies.org/u/dep/fixed.html
+,,"VBD: Verb, past tense",flat: https://universaldependencies.org/u/dep/flat.html
+,,"VBG: Verb, gerund or present participle",list: https://universaldependencies.org/u/dep/list.html
+,,"VBN: Verb, past participle",parataxis: https://universaldependencies.org/u/dep/parataxis.html
+,,"VBP: Verb, non-3rd person singular present",compound: https://universaldependencies.org/u/dep/compound.html
+,,"VBZ: Verb, 3rd person singular present",orphan: https://universaldependencies.org/u/dep/orphan.html
+,,WDT: Wh-determiner,goeswith: https://universaldependencies.org/u/dep/goeswith.html
+,,WP: Wh-pronoun,reparandum: https://universaldependencies.org/u/dep/reparandum.html
+,,WP$: Possessive wh-pronoun,punct: https://universaldependencies.org/u/dep/punct.html
+,,WRB: Wh-adverb,root: https://universaldependencies.org/u/dep/root.html
+,,,dep: https://universaldependencies.org/u/dep/dep.html
