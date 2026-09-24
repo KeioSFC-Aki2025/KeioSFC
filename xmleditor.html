@@ -979,6 +979,7 @@ label[for="fileInput"], label[for="posCsv"] {
       autosave_none: '自動保存: まだありません', choose_autosave_file: '保存先ファイルを選択 (任意)',
       worker_placeholder: '名前を入力', status_ready: '準備完了',
       combo_restrict_suffix: ' をリスト内の値に限定する',
+      combo_dropdown_title: '候補一覧から選択', combo_hint_arrow_title: '→キーでヒントを固定表示',
       text_view_heading: 'テキスト表示', tokens_placeholder: 'ここにトークンが表示されます。',
       upload_xml_prompt: 'XMLをアップロードしてください。',
       attr_edit_title: '属性編集', original_text_label: '原文文字列',
@@ -1010,6 +1011,7 @@ label[for="fileInput"], label[for="posCsv"] {
       autosave_none: 'Autosave: none yet', choose_autosave_file: 'Choose Save File (optional)',
       worker_placeholder: 'Enter your name', status_ready: 'Ready',
       combo_restrict_suffix: ' — restrict to list values',
+      combo_dropdown_title: 'Choose from list', combo_hint_arrow_title: 'Press → to pin this hint',
       text_view_heading: 'Text View', tokens_placeholder: 'Tokens will be displayed here.',
       upload_xml_prompt: 'Please upload an XML file.',
       attr_edit_title: 'Edit Attributes', original_text_label: 'Original Text',
@@ -2765,13 +2767,13 @@ function renderTokensUpright() {
     });
   }
 
-  // ▼ コンボボックスのヒント（ホバー時ポップアップ）用ツールチップ ▼
+  // ▼ コンボボックスのヒント（ホバー／キーボードでのポップアップ）用ツールチップ ▼
   let __comboHintTooltip = null;
   function getComboHintTooltip(editorEl){
     if(__comboHintTooltip && __comboHintTooltip.parentNode === editorEl) return __comboHintTooltip;
     const el = document.createElement('div');
     el.style.position='fixed';
-    el.style.zIndex=100000;
+    el.style.zIndex=100050; // ★ ドロップダウン(100000)より必ず手前に出るよう高めに設定
     el.style.maxWidth='240px';
     el.style.padding='6px 10px';
     el.style.background='#1F2937';
@@ -2787,26 +2789,54 @@ function renderTokensUpright() {
     __comboHintTooltip = el;
     return el;
   }
-  function showComboHintTooltip(editorEl, anchorEl, hintText){
-    if(!hintText){ hideComboHintTooltip(); return; }
-    const tip = getComboHintTooltip(editorEl);
-    const isUrl = /^https?:\/\/\S+$/i.test(hintText.trim());
-    tip.innerHTML = '';
-    if(isUrl){
+  // ★ 追加: ヒント文字列の中からURLらしき部分を見つけてリンク化する（文字列全体がURLでなくても対応）
+  function linkifyHintText(container, hintText){
+    container.innerHTML = '';
+    const urlRegex = /https?:\/\/[^\s]+/gi;
+    let lastIndex = 0;
+    let match;
+    let foundAny = false;
+    while ((match = urlRegex.exec(hintText)) !== null) {
+      foundAny = true;
+      if (match.index > lastIndex) {
+        container.appendChild(document.createTextNode(hintText.slice(lastIndex, match.index)));
+      }
+      let url = match[0];
+      // URLの末尾に付きがちな句読点・閉じ括弧などはリンクから除外する
+      let trailing = '';
+      while (url.length > 0 && /[)\]。、,．\.，'"』」>]$/.test(url)) {
+        trailing = url.slice(-1) + trailing;
+        url = url.slice(0, -1);
+      }
       const a = document.createElement('a');
-      a.href = hintText.trim();
+      a.href = url;
       a.target = '_blank';
       a.rel = 'noopener noreferrer';
-      a.textContent = hintText.trim();
+      a.textContent = url;
       a.style.color = '#93C5FD';
       a.style.textDecoration = 'underline';
       a.addEventListener('click', (ev) => { ev.stopPropagation(); });
-      tip.appendChild(a);
-    } else {
-      tip.textContent = hintText;
+      container.appendChild(a);
+      if (trailing) container.appendChild(document.createTextNode(trailing));
+      lastIndex = match.index + match[0].length;
     }
+    if (lastIndex < hintText.length) {
+      container.appendChild(document.createTextNode(hintText.slice(lastIndex)));
+    }
+    return foundAny;
+  }
+  function showComboHintTooltip(editorEl, anchorEl, hintText){
+    if(!hintText){ hideComboHintTooltip(); return; }
+    const tip = getComboHintTooltip(editorEl);
+    // ★ 追加: このツールチップが今どのエディタに属しているか記録しておく（別エディタとの取り違え防止）
+    __comboHintTooltip._ownerEditor = editorEl;
+    linkifyHintText(tip, hintText.trim());
     const r = anchorEl.getBoundingClientRect();
     tip.style.display='block';
+    // ★ editorEl の直下に再アペンドし、常に最後尾（最前面）に来るようにする（z-indexの取り違え対策の保険）
+    if (tip.parentNode !== editorEl || tip.nextSibling !== null) {
+      editorEl.appendChild(tip);
+    }
     let left = r.right + 6;
     let top = r.top;
     if(left + 244 > window.innerWidth) left = Math.max(4, r.left - 246);
@@ -2844,7 +2874,7 @@ function renderTokensUpright() {
     const toggleBtn = document.createElement('button');
     toggleBtn.type='button';
     toggleBtn.textContent='▼';
-    toggleBtn.title='候補一覧から選択';
+    toggleBtn.title=T('combo_dropdown_title');
     toggleBtn.style.padding='6px 8px';
     toggleBtn.style.borderRadius='8px';
     toggleBtn.style.border='1px solid var(--color-border)';
@@ -2872,35 +2902,95 @@ function renderTokensUpright() {
     inp.style.background = isRestricted() ? '#F3F4F6' : '#fff';
     inp.style.cursor = isRestricted() ? 'pointer' : 'text';
 
+    // ▼▼▼ 追加: キーボード操作によるヒントの「固定表示（ピン留め）」対応 ▼▼▼
+    let currentList = [];
+    let optionEls = [];      // 各候補<div>要素の配列（表示順）
+    let highlightedIndex = -1;
+    let stickyOn = false;    // true の間はマウスが離れてもヒントを表示し続ける
+
+    function clearHighlightStyles(){
+      optionEls.forEach(o => {
+        o.el.style.background = '';
+        if (o.arrowEl) o.arrowEl.style.visibility = 'hidden';
+      });
+    }
+
+    function highlightItem(idx, opts){
+      opts = opts || {};
+      if (optionEls.length === 0) return;
+      if (idx < 0) idx = optionEls.length - 1;
+      if (idx >= optionEls.length) idx = 0;
+      highlightedIndex = idx;
+      clearHighlightStyles();
+      const entry = optionEls[idx];
+      entry.el.style.background = 'var(--color-primary-light)';
+      if (entry.arrowEl && entry.item.hint) entry.arrowEl.style.visibility = 'visible';
+      if (opts.scroll) {
+        entry.el.scrollIntoView({ block: 'nearest' });
+      }
+      if (entry.item.hint) {
+        showComboHintTooltip(editorEl, entry.el, entry.item.hint);
+      } else {
+        hideComboHintTooltip();
+      }
+    }
+
     function closeDropdown(){
       dropdown.style.display='none';
       hideComboHintTooltip();
+      stickyOn = false;
+      highlightedIndex = -1;
       if(__activeComboDropdown && __activeComboDropdown.dropdown === dropdown) __activeComboDropdown = null;
     }
 
     function openDropdown(){
       if(__activeComboDropdown && __activeComboDropdown.close) __activeComboDropdown.close();
-      const list = (window.__tagListValues[attrName]||[]);
+      currentList = (window.__tagListValues[attrName]||[]);
+      optionEls = [];
+      highlightedIndex = -1;
+      stickyOn = false;
       dropdown.innerHTML='';
-      if(list.length===0){
+      if(currentList.length===0){
         const p=document.createElement('div');
-        p.textContent='候補なし';
+        p.textContent=T('no_candidates');
         p.style.padding='6px 10px'; p.style.color='#888'; p.style.fontSize='12px';
         dropdown.appendChild(p);
       } else {
-        list.forEach(item => {
+        currentList.forEach((item, idx) => {
           const opt = document.createElement('div');
-          opt.textContent = item.display;
+          opt.style.display = 'flex';
+          opt.style.alignItems = 'center';
+          opt.style.justifyContent = 'space-between';
+          opt.style.gap = '6px';
           opt.style.padding='6px 10px';
           opt.style.cursor='pointer';
           opt.style.fontSize='13px';
+
+          const label = document.createElement('span');
+          label.textContent = item.display;
+          opt.appendChild(label);
+
+          // ★ 追加: ヒントがある候補にだけ「押すとヒントが固定表示される」ことを示す右向き矢印
+          const arrowEl = document.createElement('span');
+          arrowEl.textContent = '▷';
+          arrowEl.title = T('combo_hint_arrow_title');
+          arrowEl.style.fontSize='11px';
+          arrowEl.style.color = 'var(--color-primary)';
+          arrowEl.style.visibility = 'hidden';
+          arrowEl.style.flexShrink = '0';
+          if (item.hint) opt.appendChild(arrowEl);
+
+          optionEls.push({ el: opt, arrowEl: item.hint ? arrowEl : null, item });
+
           opt.addEventListener('mouseenter', () => {
-            opt.style.background = 'var(--color-primary-light)';
-            showComboHintTooltip(editorEl, opt, item.hint);
+            highlightItem(idx, { scroll: false });
           });
           opt.addEventListener('mouseleave', () => {
-            opt.style.background='';
-            hideComboHintTooltip();
+            if (!stickyOn) {
+              opt.style.background = '';
+              if (arrowEl) arrowEl.style.visibility = 'hidden';
+              hideComboHintTooltip();
+            }
           });
           opt.addEventListener('click', (ev) => {
             ev.stopPropagation();
@@ -2921,7 +3011,38 @@ function renderTokensUpright() {
       dropdown.style.width = width+'px';
       dropdown.style.display='block';
       __activeComboDropdown = { dropdown, wrap, close: closeDropdown };
+      inp.focus(); // ★ 追加: 開いたら矢印キー操作を受け付けられるようフォーカスする
     }
+
+    // ★ 追加: 矢印キーでの候補ハイライト移動・右矢印キーでのヒント固定表示
+    inp.addEventListener('keydown', (ev) => {
+      if (dropdown.style.display !== 'block' || optionEls.length === 0) return;
+      if (ev.key === 'ArrowDown') {
+        ev.preventDefault();
+        highlightItem(highlightedIndex + 1, { scroll: true });
+      } else if (ev.key === 'ArrowUp') {
+        ev.preventDefault();
+        highlightItem(highlightedIndex - 1, { scroll: true });
+      } else if (ev.key === 'ArrowRight') {
+        ev.preventDefault();
+        if (highlightedIndex === -1) return;
+        stickyOn = !stickyOn;
+        // 固定表示ON/OFFを切り替えたら、現在ハイライト中の候補のヒント表示状態を更新
+        highlightItem(highlightedIndex, { scroll: false });
+      } else if (ev.key === 'Enter') {
+        ev.preventDefault();
+        if (highlightedIndex !== -1 && optionEls[highlightedIndex]) {
+          const item = optionEls[highlightedIndex].item;
+          inp.value = item.display;
+          closeDropdown();
+          inp.dispatchEvent(new Event('input', {bubbles:true}));
+        }
+      } else if (ev.key === 'Escape') {
+        ev.preventDefault();
+        closeDropdown();
+      }
+    });
+    // ▲▲▲ 追加完了 ▲▲▲
 
     toggleBtn.addEventListener('click', (ev) => {
       ev.stopPropagation();
@@ -2934,6 +3055,7 @@ function renderTokensUpright() {
     return { wrap, input: inp };
   }
   // ▲▲▲ 追加完了 ▲▲▲
+
 
   function showAttrPopup(el,node){
     try{
