@@ -143,7 +143,7 @@ body {
 
 /* HTML側でインラインスタイルが使われている部分への対応 */
 /* style="background:#eef7ff;" を持つ要素を上書き */
-label[for="fileInput"], label[for="posCsv"] {
+label[for="fileInput"], label[for="colorCsvLoad"] {
     background: none !important;
 }
 .tokens{
@@ -656,10 +656,23 @@ label[for="fileInput"], label[for="posCsv"] {
 #topPanelCard #udDisplayPropsGroup h3::before { content: '🌳'; }
 #topPanelCard #autosaveGroup h3::before { content: '💾'; }
 #topPanelCard .control-group:nth-of-type(1) h3::before { content: '📂'; }
-#topPanelCard .control-group:nth-of-type(4) h3::before { content: '✏️'; }
-#topPanelCard .control-group:nth-of-type(6) h3::before { content: '⚙️'; }
-#topPanelCard .control-group:nth-of-type(8) h3::before { content: '🧑'; }
-#topPanelCard .control-group:nth-of-type(9) h3::before { content: '📊'; }
+#topPanelCard #colorSettingsGroup h3::before { content: '🎨'; }
+#topPanelCard .control-group:nth-of-type(5) h3::before { content: '✏️'; }
+#topPanelCard .control-group:nth-of-type(7) h3::before { content: '⚙️'; }
+#topPanelCard .control-group:nth-of-type(9) h3::before { content: '🧑'; }
+#topPanelCard .control-group:nth-of-type(10) h3::before { content: '📊'; }
+
+/* 色設定パネル */
+#colorSettingsGroup .color-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; width:100%; }
+#colorSettingsGroup select { padding:4px 8px; border-radius:8px; border:1px solid var(--color-border); background:#fff; font-size:13px; max-width:260px; }
+#colorSettingsGroup .color-summary { font-size:12px; color:#666; }
+#colorSettingsGroup .color-list { display:flex; flex-wrap:wrap; gap:6px; width:100%; margin-top:2px; max-height:260px; overflow:auto; padding:2px; }
+#colorSettingsGroup .color-list.hidden { display:none; }
+#colorSettingsGroup .color-sep { flex-basis:100%; font-size:11px; color:#888; margin-top:4px; }
+#colorSettingsGroup .color-chip { display:inline-flex; align-items:center; gap:5px; padding:2px 8px 2px 4px; border:1px solid var(--color-border); border-radius:999px; background:#fff; font-size:12px; cursor:pointer; }
+#colorSettingsGroup .color-chip input[type=color] { width:22px; height:22px; padding:0; border:none; background:none; cursor:pointer; }
+#colorSettingsGroup .color-chip .cnt { color:#888; font-size:11px; }
+#colorSettingsGroup .color-chip.unused { opacity:.55; }
 
 #topPanelCard .status { font-family: 'M PLUS Rounded 1c', sans-serif; }
 
@@ -786,8 +799,26 @@ label[for="fileInput"], label[for="posCsv"] {
           <div style="display:flex; gap:8px; align-items:center; width:100%;">
             <label class="btn small" for="tagListCsv" style="background:#eef7ff; flex:1; text-align:center;" data-i18n="taglist_upload">タグリストのファイルをアップロードする</label>
             <input id="tagListCsv" type="file" accept=".csv,text/csv" style="display:none">
+            <button id="tagListSave" class="btn small" type="button" data-i18n="taglist_save">保存</button>
           </div>
           <div id="tagListStatus" style="font-size:12px; color:#666;" data-i18n="taglist_loading">タグリスト: 読込中...</div>
+        </div>
+      </div>
+
+      <div class="control-group" id="colorSettingsGroup" style="flex-basis:100%;">
+        <h3 data-i18n="color_settings">色設定</h3>
+        <div class="controls-content" style="flex-direction:column; align-items:flex-start; gap:8px;">
+          <div class="color-row">
+            <label for="colorAttrSelect" style="font-size:13px;" data-i18n="color_attr_label">色分けに使う属性:</label>
+            <select id="colorAttrSelect"></select>
+            <button id="colorToggleListBtn" class="btn small" type="button"></button>
+            <label style="font-size:12px; display:inline-flex; align-items:center; gap:4px; cursor:pointer;"><input id="colorUsedOnly" type="checkbox"><span data-i18n="color_used_only">文書内で使われている値のみ</span></label>
+            <button id="colorResetBtn" class="btn small" type="button" data-i18n="color_reset">色をリセット</button>
+            <label style="font-size:12px; display:inline-flex; align-items:center; gap:4px;"><span data-i18n="color_transparency">透明度</span><input id="colorTransparency" type="range" min="0" max="100" step="5" value="0" style="width:110px;"><span id="colorTransparencyVal" style="min-width:34px;">0%</span></label>
+            
+          </div>
+          <div id="colorSummary" class="color-summary"></div>
+          <div id="colorList" class="color-list"></div>
         </div>
       </div>
 
@@ -875,20 +906,6 @@ label[for="fileInput"], label[for="posCsv"] {
 	
       <div class="card">
         <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-          <h3 style="margin: 0;">色設定 (品詞)</h3>
-          <button class="btn small toggle-visibility-btn">非表示</button>
-        </div>
-        <div class="card-content-toggleable">
-          <div id="posColorList"></div>
-          <div style="margin-top:8px;display:flex;gap:8px"><input id="newPOS" placeholder="例えば: NN" class="small" style="flex:1"><input id="newColor" type="color" value="#ffb6c1"><button id="addPos" class="btn small">追加</button></div>
-          <div style="margin-top:8px;display:flex;gap:8px;align-items:center">
-            <label class="btn small" for="posCsv" style="background:#eef7ff; flex:1; text-align:center;">POS色CSVを読み込む</label>
-            <input id="posCsv" type="file" accept=".csv,text/csv" style="display:none">
-          </div>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <h3 style="margin: 0;">履歴のエクスポート</h3>
           <button class="btn small toggle-visibility-btn">非表示</button>
         </div>
@@ -968,7 +985,7 @@ label[for="fileInput"], label[for="posCsv"] {
       ud_node_display: 'UDノード表示', edit_detail_settings: '編集詳細設定', autosave: '自動保存',
       worker: '作業者', status_heading: 'ステータス',
       file_select: 'ファイルを選択 (Ctrl+O)', sample: 'サンプル', download_xml: '変更済XMLをダウンロード',
-      generate_html: '生成してHTMLをダウンロード', taglist_upload: 'タグリストのファイルをアップロードする',
+      generate_html: '生成してHTMLをダウンロード', taglist_upload: 'タグリスト（色つきCSV）を読込', taglist_save: 'タグリスト＋色を保存',
       taglist_loading: 'タグリスト: 読込中...',
       mwe_mode: 'マルチワード (m)', mwe_dissolve: 'マルチワード解除', split_mode: '分割 (S)',
       merge_mode: '統合 (U)', attr_edit_mode: '属性編集 (P)', ud_edit_mode: 'UD編集 (D)',
@@ -979,6 +996,13 @@ label[for="fileInput"], label[for="posCsv"] {
       autosave_none: '自動保存: まだありません', choose_autosave_file: '保存先ファイルを選択 (任意)',
       worker_placeholder: '名前を入力', status_ready: '準備完了',
       combo_restrict_suffix: ' をリスト内の値に限定する',
+      color_transparency: '透明度', color_settings: '色設定', color_attr_label: '色分けに使う属性:', color_none: '（色分けなし）',
+      color_show: '色の一覧を表示', color_hide: '色の一覧を隠す', color_used_only: '文書内で使われている値のみ',
+      color_reset: '色をリセット', color_csv_load: '色CSVを読込', color_csv_save: '色CSVを保存',
+      color_out_of_list: 'タグリストにない値（文書内に存在）',
+      color_summary: (attr, n, extra) => `属性「${attr}」で色分け中: ${n}色` + (extra ? `（うちリスト外 ${extra}）` : ''),
+      color_in_taglist: '（タグリストあり）',
+      color_csv_none: '有効な色情報が見つかりませんでした。', color_csv_loaded: (n) => `${n}件の色情報を読み込みました`,
       combo_dropdown_title: '候補一覧から選択', combo_hint_arrow_title: '→キーでヒントを固定表示',
       text_view_heading: 'テキスト表示', tokens_placeholder: 'ここにトークンが表示されます。',
       upload_xml_prompt: 'XMLをアップロードしてください。',
@@ -1000,7 +1024,7 @@ label[for="fileInput"], label[for="posCsv"] {
       ud_node_display: 'UD Node Display', edit_detail_settings: 'Edit Settings', autosave: 'Autosave',
       worker: 'Worker', status_heading: 'Status',
       file_select: 'Select File (Ctrl+O)', sample: 'Sample', download_xml: 'Download Modified XML',
-      generate_html: 'Generate & Download HTML', taglist_upload: 'Upload Tag List File',
+      generate_html: 'Generate & Download HTML', taglist_upload: 'Load tag list (CSV with colors)', taglist_save: 'Save tag list + colors',
       taglist_loading: 'Tag list: loading...',
       mwe_mode: 'Multi-word (m)', mwe_dissolve: 'Dissolve Multi-word', split_mode: 'Split (S)',
       merge_mode: 'Merge (U)', attr_edit_mode: 'Edit Attributes (P)', ud_edit_mode: 'Edit UD (D)',
@@ -1011,6 +1035,13 @@ label[for="fileInput"], label[for="posCsv"] {
       autosave_none: 'Autosave: none yet', choose_autosave_file: 'Choose Save File (optional)',
       worker_placeholder: 'Enter your name', status_ready: 'Ready',
       combo_restrict_suffix: ' — restrict to list values',
+      color_transparency: 'Transparency', color_settings: 'Color Settings', color_attr_label: 'Color by attribute:', color_none: '(no coloring)',
+      color_show: 'Show color list', color_hide: 'Hide color list', color_used_only: 'Only values used in document',
+      color_reset: 'Reset colors', color_csv_load: 'Load color CSV', color_csv_save: 'Save color CSV',
+      color_out_of_list: 'Values not in tag list (found in document)',
+      color_summary: (attr, n, extra) => `Coloring by "${attr}": ${n} colors` + (extra ? ` (${extra} not in list)` : ''),
+      color_in_taglist: ' (in tag list)',
+      color_csv_none: 'No valid color data found.', color_csv_loaded: (n) => `Loaded ${n} color entries`,
       combo_dropdown_title: 'Choose from list', combo_hint_arrow_title: 'Press → to pin this hint',
       text_view_heading: 'Text View', tokens_placeholder: 'Tokens will be displayed here.',
       upload_xml_prompt: 'Please upload an XML file.',
@@ -1072,21 +1103,188 @@ label[for="fileInput"], label[for="posCsv"] {
   const tokensEl = $('tokens'); const logEl = $('log'); const statusEl = $('status');
   let xmlDoc = null;
   let tokenIdToNode = new Map();
-  let posColorMap = {
-		 'NN':'#ffb6c1'
-		,'VVN':'#cfe8ff'
-		,'ADJ':'#e8ffd6'
-		,'名詞':'#ff8484'
-		,'動詞':'#FFF7AE'
-		,'形容詞':'#D7F2E6'
-		,'副詞':'#CDE7FF'
-		,'助詞':'#E9D7FF'
-		,'接続詞':'#ff89ff'
-		,'助動詞':'#FDE2F8'
-		,'連体詞':'#ff8ec6'
-		,'感動詞':'#FBE8D3'
-		,'*':'#ff9393'
-		};
+  // ▼▼▼ 色設定エンジン（属性選択式・タグリスト連動）▼▼▼
+  const DEFAULT_TAGSET_CSV = "attribute,value,description,color\npos,CC,Coordinating conjunction,#c5f1f1\npos,CD,Cardinal number,#ecc7ac\npos,DT,Determiner,#d1acec\npos,EX,Existential there,#dfc5f1\npos,FW,Foreign word,#f2b5d4\npos,IN,Preposition or subordinating conjunction,#acecec\npos,JJ,Adjective,#ecdcac\npos,JJR,\"Adjective, comparative\",#f2e3b5\npos,JJS,\"Adjective, superlative\",#f1e6c5\npos,LS,List item marker,#f2cfb5\npos,MD,Modal,#acecb2\npos,NN,\"Noun, singular or mass\",#ecacac\npos,NNS,\"Noun, plural\",#f2b5b5\npos,NNP,\"Proper noun, singular\",#f1c5c5\npos,NNPS,\"Proper noun, plural\",#f0a8a8\npos,PDT,Predeterminer,#d9b5f2\npos,POS,Possessive ending,#a8f0f0\npos,PRP,Personal pronoun,#d1acec\npos,PRP$,Possessive pronoun,#d9b5f2\npos,RB,Adverb,#acc7ec\npos,RBR,\"Adverb, comparative\",#b5cff2\npos,RBS,\"Adverb, superlative\",#c5d8f1\npos,RP,Particle,#a8c6f0\npos,SYM,Symbol,#f1c5db\npos,TO,to,#b5f2f2\npos,UH,Interjection,#ecaccc\npos,VB,\"Verb, base form\",#acecb2\npos,VBD,\"Verb, past tense\",#b5f2ba\npos,VBG,\"Verb, gerund or present participle\",#c5f1c9\npos,VBN,\"Verb, past participle\",#a8f0ae\npos,VBP,\"Verb, non-3rd person singular present\",#b9efbd\npos,VBZ,\"Verb, 3rd person singular present\",#c2f4c6\npos,WDT,Wh-determiner,#d8b9ef\npos,WP,Wh-pronoun,#dfc5f1\npos,WP$,Possessive wh-pronoun,#d2a8f0\npos,WRB,Wh-adverb,#dfc2f4\nudType,nsubj,nominal subject,#ecacac\nudType,obj,object,#f1c5c5\nudType,iobj,indirect object,#f0a8a8\nudType,csubj,clausal subject,#f2b5b5\nudType,ccomp,clausal complement,#efb9b9\nudType,xcomp,open clausal complement,#f4c2c2\nudType,obl,oblique nominal,#acecb2\nudType,vocative,vocative,#b5f2ba\nudType,expl,expletive,#c5f1c9\nudType,dislocated,dislocated elements,#a8f0ae\nudType,advcl,adverbial clause modifier,#b9efbd\nudType,advmod,adverbial modifier,#c2f4c6\nudType,discourse,discourse element,#acecb2\nudType,aux,auxiliary,#b5f2ba\nudType,cop,copula,#c5f1c9\nudType,mark,marker,#a8f0ae\nudType,nmod,nominal modifier,#acc7ec\nudType,appos,appositional modifier,#b5cff2\nudType,nummod,numeric modifier,#c5d8f1\nudType,acl,clausal modifier of noun,#a8c6f0\nudType,amod,adjectival modifier,#b9cfef\nudType,det,determiner,#c2d7f4\nudType,clf,classifier,#acc7ec\nudType,case,case marking,#b5cff2\nudType,conj,conjunct,#d1acec\nudType,cc,coordinating conjunction,#d9b5f2\nudType,fixed,fixed multiword expression,#dfc5f1\nudType,flat,flat expression,#d2a8f0\nudType,list,list,#dfc2f4\nudType,parataxis,parataxis,#d1acec\nudType,compound,compound,#d8b9ef\nudType,orphan,orphan,#d9b5f2\nudType,goeswith,goes with,#dfc5f1\nudType,reparandum,overridden disfluency,#d2a8f0\nudType,punct,punctuation,#dbdbdb\nudType,root,root,#e6e6e6\nudType,dep,unspecified dependency,#f0f0f0\n";
+  const COLOR_LS_KEY = 'keioxml_colors_v3';
+  const colorState = {
+    attr: 'pos',        // 色分けに使う<w>の属性名（''=色分けなし）
+    maps: {},           // { 属性名: { 値(大文字): '#rrggbb' } }
+    listVisible: true,  // 色一覧の表示/非表示
+    usedOnly: false,    // 文書内で使われている値のみ表示
+    transparency: 0     // 背景色の透明度(%)。0=不透明, 100=完全透明
+  };
+  const COLOR_EXCLUDE_ATTRS = new Set(['wordID','udFrom','newsplit','merged']);
+  function colorKey(v){ return String(v==null?'':v).trim().toUpperCase(); }
+  function hslToHex(h,s,l){
+    s/=100; l/=100;
+    const k = n => (n + h/30) % 12, a = s*Math.min(l,1-l);
+    const f = n => { const c = l - a*Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1))); return Math.round(255*c).toString(16).padStart(2,'0'); };
+    return '#'+f(0)+f(8)+f(4);
+  }
+  function autoColorByIndex(i){ return hslToHex((i*137.508)%360, 68, 82); }  // 黄金角で色相を散らす（淡い色）
+  function colorMapFor(attr){ return colorState.maps[attr] || (colorState.maps[attr] = {}); }
+  function ensureColor(attr, key){
+    const m = colorMapFor(attr);
+    if(!(key in m)) m[key] = autoColorByIndex(Object.keys(m).length);
+    return m[key];
+  }
+  // トークン（属性オブジェクト）に対応する色を返す。色分けなし/値なしは ''
+  function getTokenColor(attrs){
+    const a = colorState.attr;
+    if(!a || !attrs) return '';
+    const raw = attrs[a];
+    if(raw===undefined || String(raw).trim()==='') return '';
+    const key = colorKey(raw);
+    const m = colorMapFor(a);
+    if(!(key in m)){
+      const base = key.split(':')[0];             // 例: nsubj:pass → nsubj の色を流用
+      if(base !== key && (base in m)) return m[base];
+    }
+    return ensureColor(a, key);
+  }
+  function hexToRgba(hex){
+    const m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex||'');
+    if(!m) return hex;
+    const a = Math.max(0, Math.min(1, 1 - (Number(colorState.transparency)||0)/100));
+    return 'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+','+a.toFixed(2)+')';
+  }
+  function saveColorState(){
+    try{ localStorage.setItem(COLOR_LS_KEY, JSON.stringify({attr:colorState.attr, maps:colorState.maps, listVisible:colorState.listVisible, usedOnly:colorState.usedOnly, transparency:colorState.transparency})); }catch(e){}
+  }
+  function loadColorState(){
+    try{
+      const o = JSON.parse(localStorage.getItem(COLOR_LS_KEY)||'null');
+      if(!o) return;
+      if(typeof o.attr==='string') colorState.attr = o.attr;
+      if(o.maps && typeof o.maps==='object') colorState.maps = o.maps;
+      if(typeof o.listVisible==='boolean') colorState.listVisible = o.listVisible;
+      if(typeof o.usedOnly==='boolean') colorState.usedOnly = o.usedOnly;
+      if(typeof o.transparency==='number') colorState.transparency = Math.max(0, Math.min(100, o.transparency));
+    }catch(e){}
+  }
+  // 文書内の<w>から attr の値ごとの出現数を数える（出現順を保つ）
+  function countAttrValues(attr){
+    const counts = new Map();
+    if(!xmlDoc || !attr) return counts;
+    getAllWElements().forEach(n => {
+      const v = n.getAttribute && n.getAttribute(attr);
+      if(v===null || v===undefined || String(v).trim()==='') return;
+      const k = colorKey(v);
+      counts.set(k, (counts.get(k)||0)+1);
+    });
+    return counts;
+  }
+  function candidateColorAttrs(){
+    const set = new Set(window.__tagListColumns || []);
+    if(xmlDoc){
+      getAllWElements().forEach(n => {
+        if(!n.attributes) return;
+        for(let i=0;i<n.attributes.length;i++) set.add(n.attributes[i].name);
+      });
+    }
+    COLOR_EXCLUDE_ATTRS.forEach(a => set.delete(a));
+    if(colorState.attr) set.add(colorState.attr);
+    const pri = ['pos','udType','udLabel','lemma'];
+    return Array.from(set).sort((a,b)=>{
+      const ia = pri.indexOf(a), ib = pri.indexOf(b);
+      if(ia!==-1 || ib!==-1) return (ia===-1?99:ia)-(ib===-1?99:ib);
+      return a.localeCompare(b);
+    });
+  }
+  function refreshColorPanel(){
+    const sel = $('colorAttrSelect'), listEl = $('colorList'), sumEl = $('colorSummary'), togBtn = $('colorToggleListBtn');
+    if(!sel || !listEl) return;
+    const attrs = candidateColorAttrs();
+    const tagCols = new Set(window.__tagListColumns || []);
+    sel.innerHTML = '';
+    const optNone = document.createElement('option'); optNone.value=''; optNone.textContent = T('color_none'); sel.appendChild(optNone);
+    attrs.forEach(a => {
+      const o = document.createElement('option'); o.value = a;
+      o.textContent = a + (tagCols.has(a) ? T('color_in_taglist') : '');
+      sel.appendChild(o);
+    });
+    sel.value = colorState.attr;
+
+    const trSl = $('colorTransparency'), trVal = $('colorTransparencyVal');
+    if(trSl) trSl.value = colorState.transparency;
+    if(trVal) trVal.textContent = colorState.transparency + '%';
+    const usedOnlyChk = $('colorUsedOnly'); if(usedOnlyChk) usedOnlyChk.checked = colorState.usedOnly;
+    if(togBtn) togBtn.textContent = colorState.listVisible ? T('color_hide') : T('color_show');
+    listEl.classList.toggle('hidden', !colorState.listVisible);
+    listEl.innerHTML = '';
+    if(!colorState.attr){ if(sumEl) sumEl.textContent = ''; return; }
+
+    const attr = colorState.attr;
+    const tagList = (window.__tagListValues && window.__tagListValues[attr]) || [];
+    const counts = countAttrValues(attr);
+    const inList = new Set();
+    const entries = [];   // {key, label, title, extra}
+    tagList.forEach(t => {
+      const key = colorKey(t.display);
+      if(inList.has(key)) return;
+      inList.add(key);
+      entries.push({key, label:t.display, title:t.raw, outside:false});
+    });
+    counts.forEach((n, key) => { if(!inList.has(key)) entries.push({key, label:key, title:key, outside:true}); });
+    entries.forEach(e => ensureColor(attr, e.key));
+
+    const visible = entries.filter(e => !colorState.usedOnly || counts.has(e.key));
+    const addChip = (e) => {
+      const chip = document.createElement('label');
+      const n = counts.get(e.key) || 0;
+      chip.className = 'color-chip' + ((xmlDoc && n===0) ? ' unused' : '');
+      chip.title = e.title;
+      const ci = document.createElement('input'); ci.type='color'; ci.value = colorMapFor(attr)[e.key];
+      ci.addEventListener('input', () => { colorMapFor(attr)[e.key] = ci.value; saveColorState(); renderTokens(); });
+      const k = document.createElement('span'); k.textContent = e.label;
+      chip.appendChild(ci); chip.appendChild(k);
+      if(xmlDoc){ const c = document.createElement('span'); c.className='cnt'; c.textContent = String(n); chip.appendChild(c); }
+      listEl.appendChild(chip);
+    };
+    visible.filter(e=>!e.outside).forEach(addChip);
+    const outs = visible.filter(e=>e.outside);
+    if(outs.length){
+      const sep = document.createElement('div'); sep.className='color-sep'; sep.textContent = T('color_out_of_list'); listEl.appendChild(sep);
+      outs.forEach(addChip);
+    }
+    if(sumEl) sumEl.textContent = T('color_summary', attr, entries.length, entries.filter(e=>e.outside).length);
+  }
+  function exportTagListCsv(){
+    const q = v => '"'+String(v==null?'':v).replace(/"/g,'""')+'"';
+    let csv = 'attribute,value,description,color\n';
+    const cols = window.__tagListColumns || [];
+    cols.forEach(attr => {
+      (window.__tagListValues[attr]||[]).forEach(t => {
+        const key = colorKey(t.display);
+        const col = (colorState.maps[attr] && colorState.maps[attr][key]) || '';
+        csv += q(attr)+','+q(t.display)+','+q(t.hint)+','+col+'\n';
+      });
+    });
+    const blob = new Blob(['\uFEFF'+csv], {type:'text/csv;charset=utf-8;'});
+    const url = URL.createObjectURL(blob); const a = document.createElement('a');
+    a.href = url; a.download = 'tagset_with_colors.csv'; document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }
+  function resetColorsForCurrentAttr(){
+    const attr = colorState.attr; if(!attr) return;
+    colorState.maps[attr] = Object.assign({}, (window.__tagListColors && window.__tagListColors[attr]) || {});
+    saveColorState(); refreshColorPanel(); renderTokens();
+  }
+  function initColorPanel(){
+    loadColorState();
+    const sel = $('colorAttrSelect');
+    sel.addEventListener('change', () => { colorState.attr = sel.value; saveColorState(); refreshColorPanel(); renderTokens(); });
+    $('colorToggleListBtn').addEventListener('click', () => { colorState.listVisible = !colorState.listVisible; saveColorState(); refreshColorPanel(); });
+    $('colorUsedOnly').addEventListener('change', (e) => { colorState.usedOnly = e.target.checked; saveColorState(); refreshColorPanel(); });
+    $('colorResetBtn').addEventListener('click', resetColorsForCurrentAttr);
+    $('tagListSave').addEventListener('click', exportTagListCsv);
+    $('colorTransparency').addEventListener('input', (e) => {
+      colorState.transparency = Number(e.target.value) || 0;
+      $('colorTransparencyVal').textContent = colorState.transparency + '%';
+      saveColorState(); renderTokens();
+    });
+    refreshColorPanel();
+  }
+  // ▲▲▲ 色設定エンジン ▲▲▲
 
   window.__isAttrDirty = false; // 属性編集で変更が加えられたかを判定するフラグ
 
@@ -1635,10 +1833,8 @@ function renderTokens() {
 
         // ★ UD表示モード時の描画
         if (window.__udModeActive && currentEditingSentenceIdentifier !== null) {
-            const posUpper = pos.toUpperCase();
-            if (posUpper && !uprightPosColorCache.has(posUpper)) {
-                uprightPosColorCache.set(posUpper, getLightColor(posUpper));
-            }
+            const __udColor = getTokenColor(attrs);
+            if (__udColor) s.style.backgroundColor = hexToRgba(__udColor);
             s.style.textAlign = "left";
 
             const propsListEl = $('udDisplayPropsList');
@@ -1667,10 +1863,8 @@ function renderTokens() {
             word.textContent = (wordId === '0') ? 'ROOT' : ((wNode.textContent || '').trim() || '□');
             s.appendChild(word);
 
-            const posUpper = pos.toUpperCase();
-            if (posUpper && posColorMap[posUpper]) {
-                s.style.backgroundColor = posColorMap[posUpper] + '40';
-            }
+            const __color = getTokenColor(attrs);
+            if (__color) s.style.backgroundColor = hexToRgba(__color);
         }
     }
 
@@ -2017,12 +2211,8 @@ function renderTokensUpright() {
         // ★ 既存のコード（提示いただいた部分）をそのまま残します！
         // ==========================================
         const pos = wNode.getAttribute('pos') || 'UNKNOWN';
-        if (isEditingThis && !uprightPosColorCache.has(pos)) {
-            uprightPosColorCache.set(pos, getLightColor(pos));
-        }
-        s.style.backgroundColor = uprightPosColorCache.has(pos) 
-            ? uprightPosColorCache.get(pos) 
-            : getLightColor(pos);
+        const __upColor = getTokenColor(getAttrs(wNode));
+        if (__upColor) s.style.backgroundColor = hexToRgba(__upColor);
 
         s.style.display = 'inline-block';
         s.style.padding = '6px 10px';
@@ -2672,39 +2862,61 @@ function renderTokensUpright() {
     return rows.filter(r => !(r.length===1 && r[0].trim()===''));
   }
 
-  // タグリストの行データを列ごとの候補リストに変換して反映する
-  function applyTagListRows(rows, sourceLabel){
+  // タグリストCSVを反映する。
+  //  ・統合形式(縦型): attribute,value,description,color  ← 色は空欄可（空欄は自動色）
+  //  ・従来形式(横型): 列名=属性名、各列が候補リスト（"NN: 説明" 形式可）。色は自動
+  function applyTagListRows(rows, sourceLabel, opts){
+    opts = opts || {};
     if(!rows || rows.length===0){ return false; }
     const header = rows[0].map(h => String(h||'').trim());
+    const lower = header.map(h => h.toLowerCase());
+    const iA = lower.indexOf('attribute'), iV = lower.indexOf('value');
+    const iD = lower.indexOf('description'), iC = lower.indexOf('color');
     const dataRows = rows.slice(1);
-    const values = {};
-    header.forEach((col, idx) => {
-      if(!col) return;
-      const list = [];
-      const seen = new Set();
+    const values = {}, fileColors = {};
+    const isHex = c => /^#[0-9a-fA-F]{6}$/.test(c);
+    const seenBy = {};
+    const push = (col, display, hint, raw, color) => {
+      if(!display) return;
+      const seen = seenBy[col] || (seenBy[col] = new Set());
+      const key = colorKey(display);
+      if(seen.has(key)) return;
+      seen.add(key);
+      (values[col] || (values[col] = [])).push({ display, hint, raw });
+      if(color && isHex(color)) (fileColors[col] || (fileColors[col] = {}))[key] = color.toLowerCase();
+    };
+    if(iA !== -1 && iV !== -1){
       dataRows.forEach(r => {
-        const raw = (r[idx]!==undefined ? String(r[idx]) : '').trim();
-        if(!raw) return;
-        if(seen.has(raw)) return;
-        seen.add(raw);
-        const colonIdx = raw.indexOf(':');
-        let display, hint;
-        if(colonIdx >= 0){
-          display = raw.slice(0, colonIdx).trim();
-          hint = raw.slice(colonIdx+1).trim();
-        } else {
-          display = raw;
-          hint = '';
-        }
-        if(!display) return;
-        list.push({ display, hint, raw });
+        const col = String(r[iA]||'').trim();
+        const display = String(r[iV]||'').trim();
+        const hint = iD !== -1 ? String(r[iD]||'').trim() : '';
+        const color = iC !== -1 ? String(r[iC]||'').trim() : '';
+        push(col, display, hint, hint ? (display + ': ' + hint) : display, color);
       });
-      if(list.length>0) values[col] = list;
-    });
+    } else {
+      header.forEach((col, idx) => {
+        if(!col) return;
+        dataRows.forEach(r => {
+          const raw = (r[idx]!==undefined ? String(r[idx]) : '').trim();
+          if(!raw) return;
+          const ci = raw.indexOf(':');
+          const display = ci >= 0 ? raw.slice(0, ci).trim() : raw;
+          const hint = ci >= 0 ? raw.slice(ci+1).trim() : '';
+          push(col, display, hint, raw, '');
+        });
+      });
+    }
     const cols = Object.keys(values);
     if(cols.length === 0) return false;
     window.__tagListColumns = cols;
     window.__tagListValues = values;
+    window.__tagListColors = fileColors;
+    // ファイルの色を反映（アップロード時は上書き、既定リストは未設定の値だけ補う）
+    cols.forEach(attr => {
+      const m = colorMapFor(attr);
+      Object.keys(fileColors[attr]||{}).forEach(k => { if(opts.override !== false || !(k in m)) m[k] = fileColors[attr][k]; });
+    });
+    saveColorState();
     writeLog('タグリストを読込: ' + sourceLabel + ' (列: ' + cols.join(', ') + ')');
     refreshComboAttrList();
     return true;
@@ -2712,24 +2924,17 @@ function renderTokensUpright() {
 
   // 既定のタグリストCSVをネットワークから取得する（file://等で失敗しても無視して続行）
   function loadDefaultTagList(){
+    // 既定リストは埋め込みの tagsets.csv（ネットワーク不要・file://でも動作）
     const statusEl2 = $('tagListStatus');
-    fetch(DEFAULT_TAGLIST_URL).then(r => {
-      if(!r.ok) throw new Error('HTTP '+r.status);
-      return r.text();
-    }).then(text => {
-      const rows = parseCsvText(text);
-      const ok = applyTagListRows(rows, 'デフォルト');
-      if(statusEl2) statusEl2.textContent = ok
-        ? ('タグリスト: デフォルトを読込 (' + window.__tagListColumns.join(', ') + ')')
-        : 'タグリスト: デフォルトに有効な列が見つかりませんでした';
-    }).catch(err => {
-      console.warn('デフォルトタグリストの読込に失敗しました', err);
-      if(statusEl2) statusEl2.textContent = 'タグリスト: デフォルトの自動読込に失敗しました（アップロードしてください）';
-    });
+    const ok = applyTagListRows(parseCsvText(DEFAULT_TAGSET_CSV), 'デフォルト(tagset_with_colors.csv)', {override:false});
+    if(statusEl2) statusEl2.textContent = ok
+      ? ('タグリスト: デフォルトを読込 (' + window.__tagListColumns.join(', ') + ')')
+      : 'タグリスト: デフォルトに有効な列が見つかりませんでした';
   }
 
   // 現在編集中のXMLの<w>タグに実在する属性名と、タグリストの列名の積集合を求めてパネルを更新する
   function refreshComboAttrList(){
+    try { refreshColorPanel(); } catch(e) { console.warn(e); }
     const panel = $('comboListPanel');
     const content = $('comboListContent');
     if(!panel || !content) return;
@@ -4175,7 +4380,9 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
         } else {
             // 個別単語
             const txt = (wNode.textContent || '').trim() || '□';
-            return `<span class="token" data-pos="${escapeHtml(pos)}" data-attrs='${attrsJson}' style="display:inline-block;padding:6px 10px;border-radius:10px;margin:4px;border:1px solid #ddd;cursor:pointer;"><span style="font-weight:bold;">${escapeHtml(txt)}</span></span>`;
+            const snapColor = getTokenColor(attrs);
+            const snapKey = colorState.attr ? escapeHtml(colorKey(attrs[colorState.attr])) : '';
+            return `<span class="token" data-pos="${escapeHtml(pos)}" data-ckey="${snapKey}" data-attrs='${attrsJson}' style="display:inline-block;padding:6px 10px;border-radius:10px;margin:4px;border:1px solid #ddd;cursor:pointer;${snapColor ? 'background-color:' + hexToRgba(snapColor) + ';' : ''}"><span style="font-weight:bold;">${escapeHtml(txt)}</span></span>`;
         }
     };
 
@@ -4195,18 +4402,14 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
     bodyHtml += '</div></div><div id="attrPopup" style="display:none; position:fixed; z-index:999; background:#fff; border:1px solid #ccc; box-shadow:0 8px 24px rgba(0,0,0,0.12); border-radius:12px; padding:8px; font-size:13px; min-width:180px;"></div>';
 
     const snapshotScript = `
-        const pcm = ${JSON.stringify(posColorMap)};
         const pop = document.getElementById('attrPopup');
         document.querySelectorAll('.token').forEach(el => {
-            const pos = (el.dataset.pos || '').toUpperCase();
-            if (pos && pcm[pos]) {
-                el.style.borderColor = pcm[pos];
-            }
+            const ckey = el.dataset.ckey || '';
             el.addEventListener('mouseenter', (ev) => {
                 ev.stopPropagation();
-                if (pos && pcm[pos]) {
+                if (ckey) {
                     document.querySelectorAll('.token').forEach(t => {
-                        if ((t.dataset.pos || '').toUpperCase() === pos) t.style.background = pcm[pos] + '40';
+                        if ((t.dataset.ckey || '') === ckey) t.style.outline = '2px solid #333';
                     });
                 }
                 try {
@@ -4225,7 +4428,7 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
             });
             el.addEventListener('mouseleave', (ev) => {
                 ev.stopPropagation();
-                document.querySelectorAll('.token').forEach(t => { t.style.background = ''; });
+                document.querySelectorAll('.token').forEach(t => { t.style.outline = ''; });
                 pop.style.display = 'none';
             });
         });
@@ -4262,10 +4465,7 @@ $('loadSample').addEventListener('click', function(){ const ns = '<?xml version=
   });
 
   $('downloadHistory').addEventListener('click', downloadHistoryCsv);
-  function refreshPosList(){ const el=$('posColorList'); el.innerHTML=''; Object.keys(posColorMap).forEach(k=>{ const keyUpper=k.toUpperCase(); const row=document.createElement('div'); row.style.display='flex'; row.style.gap='8px'; row.style.alignItems='center'; row.style.marginBottom='4px'; const key=document.createElement('div'); key.textContent=keyUpper; key.style.width='56px'; const ci=document.createElement('input'); ci.type='color'; ci.value=posColorMap[keyUpper]; ci.addEventListener('input', ()=>{ posColorMap[keyUpper]=ci.value; renderTokens(); }); const del=document.createElement('button'); del.textContent='削除'; del.className='btn small'; del.addEventListener('click', ()=>{ delete posColorMap[keyUpper]; refreshPosList(); renderTokens(); }); row.appendChild(key); row.appendChild(ci); row.appendChild(del); el.appendChild(row); }); }
-  $('addPos').addEventListener('click', function(){ const k=($('newPOS').value.trim()||'').toUpperCase(); if(!k) return; posColorMap[k]=$('newColor').value; $('newPOS').value=''; refreshPosList(); renderTokens(); });
-  $('posCsv').addEventListener('change', function(e) { const file = e.target.files && e.target.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(event) { const csvText = event.target.result; const lines = csvText.split(/\r\n|\n/); let loadedCount = 0; lines.forEach(line => { const parts = line.split(','); if (parts.length === 2) { const pos = (parts[0].trim()||'').toUpperCase(); const color = parts[1].trim(); if (pos && color.match(/^#[0-9a-fA-F]{6}$/)) { posColorMap[pos] = color; loadedCount++; } } }); if(loadedCount>0){setStatus(`${loadedCount}件のPOS色情報を読込`);refreshPosList();renderTokens();}else{alert('有効なPOS色情報が見つかりませんでした。');} }; reader.readAsText(file); e.target.value = ''; });
-  refreshPosList();
+  initColorPanel();
 
   // ▼▼▼ 追加: タグリストCSVのアップロードとデフォルト読込 ▲▲▲
   $('tagListCsv').addEventListener('change', function(e){
