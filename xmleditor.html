@@ -1104,15 +1104,18 @@ label[for="fileInput"], label[for="colorCsvLoad"] {
   let xmlDoc = null;
   let tokenIdToNode = new Map();
   // ▼▼▼ 色設定エンジン（属性選択式・タグリスト連動）▼▼▼
-  const DEFAULT_TAGSET_CSV = "attribute,value,description,color\npos,CC,Coordinating conjunction,#c5f1f1\npos,CD,Cardinal number,#ecc7ac\npos,DT,Determiner,#d1acec\npos,EX,Existential there,#dfc5f1\npos,FW,Foreign word,#f2b5d4\npos,IN,Preposition or subordinating conjunction,#acecec\npos,JJ,Adjective,#ecdcac\npos,JJR,\"Adjective, comparative\",#f2e3b5\npos,JJS,\"Adjective, superlative\",#f1e6c5\npos,LS,List item marker,#f2cfb5\npos,MD,Modal,#acecb2\npos,NN,\"Noun, singular or mass\",#ecacac\npos,NNS,\"Noun, plural\",#f2b5b5\npos,NNP,\"Proper noun, singular\",#f1c5c5\npos,NNPS,\"Proper noun, plural\",#f0a8a8\npos,PDT,Predeterminer,#d9b5f2\npos,POS,Possessive ending,#a8f0f0\npos,PRP,Personal pronoun,#d1acec\npos,PRP$,Possessive pronoun,#d9b5f2\npos,RB,Adverb,#acc7ec\npos,RBR,\"Adverb, comparative\",#b5cff2\npos,RBS,\"Adverb, superlative\",#c5d8f1\npos,RP,Particle,#a8c6f0\npos,SYM,Symbol,#f1c5db\npos,TO,to,#b5f2f2\npos,UH,Interjection,#ecaccc\npos,VB,\"Verb, base form\",#acecb2\npos,VBD,\"Verb, past tense\",#b5f2ba\npos,VBG,\"Verb, gerund or present participle\",#c5f1c9\npos,VBN,\"Verb, past participle\",#a8f0ae\npos,VBP,\"Verb, non-3rd person singular present\",#b9efbd\npos,VBZ,\"Verb, 3rd person singular present\",#c2f4c6\npos,WDT,Wh-determiner,#d8b9ef\npos,WP,Wh-pronoun,#dfc5f1\npos,WP$,Possessive wh-pronoun,#d2a8f0\npos,WRB,Wh-adverb,#dfc2f4\nudType,nsubj,nominal subject,#ecacac\nudType,obj,object,#f1c5c5\nudType,iobj,indirect object,#f0a8a8\nudType,csubj,clausal subject,#f2b5b5\nudType,ccomp,clausal complement,#efb9b9\nudType,xcomp,open clausal complement,#f4c2c2\nudType,obl,oblique nominal,#acecb2\nudType,vocative,vocative,#b5f2ba\nudType,expl,expletive,#c5f1c9\nudType,dislocated,dislocated elements,#a8f0ae\nudType,advcl,adverbial clause modifier,#b9efbd\nudType,advmod,adverbial modifier,#c2f4c6\nudType,discourse,discourse element,#acecb2\nudType,aux,auxiliary,#b5f2ba\nudType,cop,copula,#c5f1c9\nudType,mark,marker,#a8f0ae\nudType,nmod,nominal modifier,#acc7ec\nudType,appos,appositional modifier,#b5cff2\nudType,nummod,numeric modifier,#c5d8f1\nudType,acl,clausal modifier of noun,#a8c6f0\nudType,amod,adjectival modifier,#b9cfef\nudType,det,determiner,#c2d7f4\nudType,clf,classifier,#acc7ec\nudType,case,case marking,#b5cff2\nudType,conj,conjunct,#d1acec\nudType,cc,coordinating conjunction,#d9b5f2\nudType,fixed,fixed multiword expression,#dfc5f1\nudType,flat,flat expression,#d2a8f0\nudType,list,list,#dfc2f4\nudType,parataxis,parataxis,#d1acec\nudType,compound,compound,#d8b9ef\nudType,orphan,orphan,#d9b5f2\nudType,goeswith,goes with,#dfc5f1\nudType,reparandum,overridden disfluency,#d2a8f0\nudType,punct,punctuation,#dbdbdb\nudType,root,root,#e6e6e6\nudType,dep,unspecified dependency,#f0f0f0\n";
+  const DEFAULT_TAGLIST_ONLINE_URL = 'https://keiosfc-aki2025.github.io/KeioSFC/KeioXMLeditor_tag_lists.csv';
+  const DEFAULT_TAGSET_CSV = "attribute,value,description,color\npos,CC,Coordinating conjunction,#c5f1f1\npos,CD,Cardinal number,#ecc7ac\npos,DT,Determiner,#d1acec\npos,EX,Existential there,#dfc5f1\npos,FW,Foreign word,#f2b5d4\npos,IN,Preposition or subordinating conjunction,#acecec\npos,JJ,Adjective,#ecdcac\npos,JJR,\"Adjective, comparative\",#f2e3b5\npos,JJS,\"Adjective, superlative\",#f1e6c5\npos,LS,List item marker,#f2cfb5\npos,MD,Modal,#acecb2\npos,NN,\"Noun, singular or mass\",#ecacac\npos,NNS,\"Noun, plural\",#f2b5b5\npos,NNP,\"Proper noun, singular\",#f1c5c5\npos,NNPS,\"Proper noun, plural\",#f0a8a8\npos,PDT,Predeterminer,#d9b5f2\npos,POS,Possessive ending,#a8f0f0\npos,PRP,Personal pronoun,#d1acec\npos,PRP$,Possessive pronoun,#d9b5f2\npos,RB,Adverb,#acc7ec\npos,RBR,\"Adverb, comparative\",#b5cff2\npos,RBS,\"Adverb, superlative\",#c5d8f1\npos,RP,Particle,#a8c6f0\npos,SYM,Symbol,#f1c5db\npos,TO,to,#b5f2f2\npos,UH,Interjection,#ecaccc\npos,VB,\"Verb, base form\",#acecb2\npos,VBD,\"Verb, past tense\",#b5f2ba\npos,VBG,\"Verb, gerund or present participle\",#c5f1c9\npos,VBN,\"Verb, past participle\",#a8f0ae\npos,VBP,\"Verb, non-3rd person singular present\",#b9efbd\npos,VBZ,\"Verb, 3rd person singular present\",#c2f4c6\npos,WDT,Wh-determiner,#d8b9ef\npos,WP,Wh-pronoun,#dfc5f1\npos,WP$,Possessive wh-pronoun,#d2a8f0\npos,WRB,Wh-adverb,#dfc2f4\npos,#,Pound sign,#ffd9a8\npos,$,Dollar sign,#ffcf99\npos,``,Opening quotation mark,#dcdcdc\npos,'',Closing quotation mark,#d4d4d4\npos,(,Opening parenthesis (bracket),#e6e6e6\npos,),Closing parenthesis (bracket),#dedede\npos,\",\",Comma,#e2e2e2\npos,.,Sentence-final punctuation,#d0d0d0\npos,:,\"Colon, semi-colon, dash, ellipsis\",#eaeaea\npos,-LRB-,Left round bracket (bracketed files),#e6e6e6\npos,-RRB-,Right round bracket (bracketed files),#dedede\npos,HYPH,Hyphen (extended),#ececec\npos,NFP,Superfluous punctuation (extended),#d8d8d8\npos,ADD,E-mail / URL address (extended),#f2c9e6\npos,AFX,Affix (extended),#f5d6ea\npos,XX,Unknown / unclassified (extended),#f2f2f2\npos,GW,Goes with (extended),#f7e0ef\npos,-NONE-,Empty element / trace (bracketed files),#f5f5f5\nudType,nsubj,nominal subject,#ecacac\nudType,obj,object,#f1c5c5\nudType,iobj,indirect object,#f0a8a8\nudType,csubj,clausal subject,#f2b5b5\nudType,ccomp,clausal complement,#efb9b9\nudType,xcomp,open clausal complement,#f4c2c2\nudType,obl,oblique nominal,#acecb2\nudType,vocative,vocative,#b5f2ba\nudType,expl,expletive,#c5f1c9\nudType,dislocated,dislocated elements,#a8f0ae\nudType,advcl,adverbial clause modifier,#b9efbd\nudType,advmod,adverbial modifier,#c2f4c6\nudType,discourse,discourse element,#acecb2\nudType,aux,auxiliary,#b5f2ba\nudType,cop,copula,#c5f1c9\nudType,mark,marker,#a8f0ae\nudType,nmod,nominal modifier,#acc7ec\nudType,appos,appositional modifier,#b5cff2\nudType,nummod,numeric modifier,#c5d8f1\nudType,acl,clausal modifier of noun,#a8c6f0\nudType,amod,adjectival modifier,#b9cfef\nudType,det,determiner,#c2d7f4\nudType,clf,classifier,#acc7ec\nudType,case,case marking,#b5cff2\nudType,conj,conjunct,#d1acec\nudType,cc,coordinating conjunction,#d9b5f2\nudType,fixed,fixed multiword expression,#dfc5f1\nudType,flat,flat expression,#d2a8f0\nudType,list,list,#dfc2f4\nudType,parataxis,parataxis,#d1acec\nudType,compound,compound,#d8b9ef\nudType,orphan,orphan,#d9b5f2\nudType,goeswith,goes with,#dfc5f1\nudType,reparandum,overridden disfluency,#d2a8f0\nudType,punct,punctuation,#dbdbdb\nudType,root,root,#e6e6e6\nudType,dep,unspecified dependency,#f0f0f0\n";
   const COLOR_LS_KEY = 'keioxml_colors_v3';
   const colorState = {
     attr: 'pos',        // 色分けに使う<w>の属性名（''=色分けなし）
     maps: {},           // { 属性名: { 値(大文字): '#rrggbb' } }
     listVisible: true,  // 色一覧の表示/非表示
     usedOnly: false,    // 文書内で使われている値のみ表示
-    transparency: 0     // 背景色の透明度(%)。0=不透明, 100=完全透明
+    transparency: 0,    // 背景色の透明度(%)。0=不透明, 100=完全透明
+    manual: {}          // { 属性名: { 値: true } } 手動で色を変えた値（既定リストの再読込で上書きしない）
   };
+  function manualFor(attr){ return colorState.manual[attr] || (colorState.manual[attr] = {}); }
   const COLOR_EXCLUDE_ATTRS = new Set(['wordID','udFrom','newsplit','merged']);
   function colorKey(v){ return String(v==null?'':v).trim().toUpperCase(); }
   function hslToHex(h,s,l){
@@ -1149,7 +1152,7 @@ label[for="fileInput"], label[for="colorCsvLoad"] {
     return 'rgba('+parseInt(m[1],16)+','+parseInt(m[2],16)+','+parseInt(m[3],16)+','+a.toFixed(2)+')';
   }
   function saveColorState(){
-    try{ localStorage.setItem(COLOR_LS_KEY, JSON.stringify({attr:colorState.attr, maps:colorState.maps, listVisible:colorState.listVisible, usedOnly:colorState.usedOnly, transparency:colorState.transparency})); }catch(e){}
+    try{ localStorage.setItem(COLOR_LS_KEY, JSON.stringify({attr:colorState.attr, maps:colorState.maps, listVisible:colorState.listVisible, usedOnly:colorState.usedOnly, transparency:colorState.transparency, manual:colorState.manual})); }catch(e){}
   }
   function loadColorState(){
     try{
@@ -1159,6 +1162,7 @@ label[for="fileInput"], label[for="colorCsvLoad"] {
       if(o.maps && typeof o.maps==='object') colorState.maps = o.maps;
       if(typeof o.listVisible==='boolean') colorState.listVisible = o.listVisible;
       if(typeof o.usedOnly==='boolean') colorState.usedOnly = o.usedOnly;
+      if(o.manual && typeof o.manual==='object') colorState.manual = o.manual;
       if(typeof o.transparency==='number') colorState.transparency = Math.max(0, Math.min(100, o.transparency));
     }catch(e){}
   }
@@ -1235,7 +1239,7 @@ label[for="fileInput"], label[for="colorCsvLoad"] {
       chip.className = 'color-chip' + ((xmlDoc && n===0) ? ' unused' : '');
       chip.title = e.title;
       const ci = document.createElement('input'); ci.type='color'; ci.value = colorMapFor(attr)[e.key];
-      ci.addEventListener('input', () => { colorMapFor(attr)[e.key] = ci.value; saveColorState(); renderTokens(); });
+      ci.addEventListener('input', () => { colorMapFor(attr)[e.key] = ci.value; manualFor(attr)[e.key] = true; saveColorState(); renderTokens(); });
       const k = document.createElement('span'); k.textContent = e.label;
       chip.appendChild(ci); chip.appendChild(k);
       if(xmlDoc){ const c = document.createElement('span'); c.className='cnt'; c.textContent = String(n); chip.appendChild(c); }
@@ -1267,6 +1271,7 @@ label[for="fileInput"], label[for="colorCsvLoad"] {
   function resetColorsForCurrentAttr(){
     const attr = colorState.attr; if(!attr) return;
     colorState.maps[attr] = Object.assign({}, (window.__tagListColors && window.__tagListColors[attr]) || {});
+    delete colorState.manual[attr];
     saveColorState(); refreshColorPanel(); renderTokens();
   }
   function initColorPanel(){
@@ -2911,10 +2916,15 @@ function renderTokensUpright() {
     window.__tagListColumns = cols;
     window.__tagListValues = values;
     window.__tagListColors = fileColors;
+    if(!opts.respectManual) window.__tagListUserLoaded = true;   // ユーザー指定のファイルが優先（オンライン既定で上書きしない）
     // ファイルの色を反映（アップロード時は上書き、既定リストは未設定の値だけ補う）
     cols.forEach(attr => {
       const m = colorMapFor(attr);
-      Object.keys(fileColors[attr]||{}).forEach(k => { if(opts.override !== false || !(k in m)) m[k] = fileColors[attr][k]; });
+      const man = manualFor(attr);
+      Object.keys(fileColors[attr]||{}).forEach(k => {
+        if(opts.respectManual){ if(!man[k]) m[k] = fileColors[attr][k]; }   // 既定/オンライン読込: 手動変更は尊重
+        else { m[k] = fileColors[attr][k]; delete man[k]; }                  // ユーザーがファイルを読込: ファイルの色を優先
+      });
     });
     saveColorState();
     writeLog('タグリストを読込: ' + sourceLabel + ' (列: ' + cols.join(', ') + ')');
@@ -2922,14 +2932,29 @@ function renderTokensUpright() {
     return true;
   }
 
-  // 既定のタグリストCSVをネットワークから取得する（file://等で失敗しても無視して続行）
+  // 既定のタグリスト: まず埋め込みCSVで即時に表示し、オンラインのCSVが取得できればそれに差し替える
   function loadDefaultTagList(){
-    // 既定リストは埋め込みの tagsets.csv（ネットワーク不要・file://でも動作）
     const statusEl2 = $('tagListStatus');
-    const ok = applyTagListRows(parseCsvText(DEFAULT_TAGSET_CSV), 'デフォルト(tagset_with_colors.csv)', {override:false});
-    if(statusEl2) statusEl2.textContent = ok
-      ? ('タグリスト: デフォルトを読込 (' + window.__tagListColumns.join(', ') + ')')
-      : 'タグリスト: デフォルトに有効な列が見つかりませんでした';
+    const setSt = (t) => { if(statusEl2) statusEl2.textContent = t; };
+    const ok = applyTagListRows(parseCsvText(DEFAULT_TAGSET_CSV), '内蔵デフォルト', {respectManual:true});
+    setSt(ok ? ('タグリスト: 内蔵デフォルトを使用中 (' + window.__tagListColumns.join(', ') + ') ／オンライン版を確認中...') : 'タグリスト: 内蔵デフォルトが読めませんでした');
+    if(typeof fetch !== 'function') return;
+    let timer = null, ctrl = null;
+    try { ctrl = new AbortController(); timer = setTimeout(() => ctrl.abort(), 8000); } catch(e) {}
+    fetch(DEFAULT_TAGLIST_ONLINE_URL, { cache:'no-store', signal: ctrl ? ctrl.signal : undefined })
+      .then(r => { if(!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+      .then(text => {
+        if(timer) clearTimeout(timer);
+        if(window.__tagListUserLoaded) return;   // ユーザーが先にファイルを読み込んでいた場合は尊重
+        const okOnline = applyTagListRows(parseCsvText(text), 'オンライン: KeioXMLeditor_tag_lists.csv', {respectManual:true});
+        if(okOnline){ setSt('タグリスト: オンラインのKeioXMLeditor_tag_lists.csvを読込 (' + window.__tagListColumns.join(', ') + ')'); try { renderTokens(); } catch(e) {} }
+        else setSt('タグリスト: オンライン版に有効な列がなく、内蔵デフォルトを使用中');
+      })
+      .catch(err => {
+        if(timer) clearTimeout(timer);
+        console.warn('online tag list unavailable:', err);
+        if(!window.__tagListUserLoaded) setSt('タグリスト: オンライン版を取得できず、内蔵デフォルトを使用中 (' + window.__tagListColumns.join(', ') + ')');
+      });
   }
 
   // 現在編集中のXMLの<w>タグに実在する属性名と、タグリストの列名の積集合を求めてパネルを更新する
