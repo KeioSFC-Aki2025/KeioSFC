@@ -1,38 +1,92 @@
-pos,lemma,tag,udType
-ADJ: adjective,,CC: Coordinating conjunction,nsubj: https://universaldependencies.org/u/dep/nsubj.html
-ADP: adposition,,CD: Cardinal number,obj: https://universaldependencies.org/u/dep/obj.html
-ADV: adverb,,DT: Determiner,iobj: https://universaldependencies.org/u/dep/iobj.html
-AUX: auxiliary,,EX: Existential there,csubj: https://universaldependencies.org/u/dep/csubj.html
-CCONJ: coordinating conjunction,,FW: Foreign word,ccomp: https://universaldependencies.org/u/dep/ccomp.html
-DET: determiner,,IN: Preposition or subordinating conjunction,xcomp: https://universaldependencies.org/u/dep/xcomp.html
-INTJ: interjection,,JJ: Adjective,obl: https://universaldependencies.org/u/dep/obl.html
-NOUN: noun,,"JJR: Adjective, comparative",vocative: https://universaldependencies.org/u/dep/vocative.html
-NUM: numeral,,"JJS: Adjective, superlative",expl: https://universaldependencies.org/u/dep/expl.html
-PART: particle,,LS: List item marker,dislocated: https://universaldependencies.org/u/dep/dislocated.html
-PRON: pronoun,,MD: Modal,advcl: https://universaldependencies.org/u/dep/advcl.html
-PROPN: proper noun,,"NN: Noun, singular or mass",advmod: https://universaldependencies.org/u/dep/advmod.html
-PUNCT: punctuation,,"NNS: Noun, plural",discourse: https://universaldependencies.org/u/dep/discourse.html
-SCONJ: subordinating conjunction,,"NNP: Proper noun, singular",aux: https://universaldependencies.org/u/dep/aux.html
-SYM: symbol,,"NNPS: Proper noun, plural",cop: https://universaldependencies.org/u/dep/cop.html
-VERB: verb,,PDT: Predeterminer,mark: https://universaldependencies.org/u/dep/mark.html
-X: other,,POS: Possessive ending,nmod: https://universaldependencies.org/u/dep/nmod.html
-,,PRP: Personal pronoun,appos: https://universaldependencies.org/u/dep/appos.html
-,,PRP$: Possessive pronoun,nummod: https://universaldependencies.org/u/dep/nummod.html
-,,RB: Adverb,acl: https://universaldependencies.org/u/dep/acl.html
-,,"RBR: Adverb, comparative",amod: https://universaldependencies.org/u/dep/amod.html
-,,"RBS: Adverb, superlative",det: https://universaldependencies.org/u/dep/det.html
-,,RP: Particle,clf: https://universaldependencies.org/u/dep/clf.html
-,,SYM: Symbol,case: https://universaldependencies.org/u/dep/case.html
-,,TO: to,conj: https://universaldependencies.org/u/dep/conj.html
-,,UH: Interjection,cc: https://universaldependencies.org/u/dep/cc.html
-,,"VB: Verb, base form",fixed: https://universaldependencies.org/u/dep/fixed.html
-,,"VBD: Verb, past tense",flat: https://universaldependencies.org/u/dep/flat.html
-,,"VBG: Verb, gerund or present participle",list: https://universaldependencies.org/u/dep/list.html
-,,"VBN: Verb, past participle",parataxis: https://universaldependencies.org/u/dep/parataxis.html
-,,"VBP: Verb, non-3rd person singular present",compound: https://universaldependencies.org/u/dep/compound.html
-,,"VBZ: Verb, 3rd person singular present",orphan: https://universaldependencies.org/u/dep/orphan.html
-,,WDT: Wh-determiner,goeswith: https://universaldependencies.org/u/dep/goeswith.html
-,,WP: Wh-pronoun,reparandum: https://universaldependencies.org/u/dep/reparandum.html
-,,WP$: Possessive wh-pronoun,punct: https://universaldependencies.org/u/dep/punct.html
-,,WRB: Wh-adverb,root: https://universaldependencies.org/u/dep/root.html
-,,,dep: https://universaldependencies.org/u/dep/dep.html
+﻿attribute,value,description,color
+pos,CC,Coordinating conjunction,#c5f1f1
+pos,CD,Cardinal number,#ecc7ac
+pos,DT,Determiner,#d1acec
+pos,EX,Existential there,#dfc5f1
+pos,FW,Foreign word,#f2b5d4
+pos,IN,Preposition or subordinating conjunction,#acecec
+pos,JJ,Adjective,#ecdcac
+pos,JJR,"Adjective, comparative",#f2e3b5
+pos,JJS,"Adjective, superlative",#f1e6c5
+pos,LS,List item marker,#f2cfb5
+pos,MD,Modal,#acecb2
+pos,NN,"Noun, singular or mass",#ecacac
+pos,NNS,"Noun, plural",#f2b5b5
+pos,NNP,"Proper noun, singular",#f1c5c5
+pos,NNPS,"Proper noun, plural",#f0a8a8
+pos,PDT,Predeterminer,#d9b5f2
+pos,POS,Possessive ending,#a8f0f0
+pos,PRP,Personal pronoun,#d1acec
+pos,PRP$,Possessive pronoun,#d9b5f2
+pos,RB,Adverb,#acc7ec
+pos,RBR,"Adverb, comparative",#b5cff2
+pos,RBS,"Adverb, superlative",#c5d8f1
+pos,RP,Particle,#a8c6f0
+pos,SYM,Symbol,#f1c5db
+pos,TO,to,#b5f2f2
+pos,UH,Interjection,#ecaccc
+pos,VB,"Verb, base form",#acecb2
+pos,VBD,"Verb, past tense",#b5f2ba
+pos,VBG,"Verb, gerund or present participle",#c5f1c9
+pos,VBN,"Verb, past participle",#a8f0ae
+pos,VBP,"Verb, non-3rd person singular present",#b9efbd
+pos,VBZ,"Verb, 3rd person singular present",#c2f4c6
+pos,WDT,Wh-determiner,#d8b9ef
+pos,WP,Wh-pronoun,#dfc5f1
+pos,WP$,Possessive wh-pronoun,#d2a8f0
+pos,WRB,Wh-adverb,#dfc2f4
+pos,#,Pound sign,#ffd9a8
+pos,$,Dollar sign,#ffcf99
+pos,``,Opening quotation mark,#dcdcdc
+pos,'',Closing quotation mark,#d4d4d4
+pos,(,Opening parenthesis (bracket),#e6e6e6
+pos,),Closing parenthesis (bracket),#dedede
+pos,",",Comma,#e2e2e2
+pos,.,Sentence-final punctuation,#d0d0d0
+pos,:,"Colon, semi-colon, dash, ellipsis",#eaeaea
+pos,-LRB-,Left round bracket (bracketed files),#e6e6e6
+pos,-RRB-,Right round bracket (bracketed files),#dedede
+pos,HYPH,Hyphen (extended),#ececec
+pos,NFP,Superfluous punctuation (extended),#d8d8d8
+pos,ADD,E-mail / URL address (extended),#f2c9e6
+pos,AFX,Affix (extended),#f5d6ea
+pos,XX,Unknown / unclassified (extended),#f2f2f2
+pos,GW,Goes with (extended),#f7e0ef
+pos,-NONE-,Empty element / trace (bracketed files),#f5f5f5
+udType,nsubj,nominal subject,#ecacac
+udType,obj,object,#f1c5c5
+udType,iobj,indirect object,#f0a8a8
+udType,csubj,clausal subject,#f2b5b5
+udType,ccomp,clausal complement,#efb9b9
+udType,xcomp,open clausal complement,#f4c2c2
+udType,obl,oblique nominal,#acecb2
+udType,vocative,vocative,#b5f2ba
+udType,expl,expletive,#c5f1c9
+udType,dislocated,dislocated elements,#a8f0ae
+udType,advcl,adverbial clause modifier,#b9efbd
+udType,advmod,adverbial modifier,#c2f4c6
+udType,discourse,discourse element,#acecb2
+udType,aux,auxiliary,#b5f2ba
+udType,cop,copula,#c5f1c9
+udType,mark,marker,#a8f0ae
+udType,nmod,nominal modifier,#acc7ec
+udType,appos,appositional modifier,#b5cff2
+udType,nummod,numeric modifier,#c5d8f1
+udType,acl,clausal modifier of noun,#a8c6f0
+udType,amod,adjectival modifier,#b9cfef
+udType,det,determiner,#c2d7f4
+udType,clf,classifier,#acc7ec
+udType,case,case marking,#b5cff2
+udType,conj,conjunct,#d1acec
+udType,cc,coordinating conjunction,#d9b5f2
+udType,fixed,fixed multiword expression,#dfc5f1
+udType,flat,flat expression,#d2a8f0
+udType,list,list,#dfc2f4
+udType,parataxis,parataxis,#d1acec
+udType,compound,compound,#d8b9ef
+udType,orphan,orphan,#d9b5f2
+udType,goeswith,goes with,#dfc5f1
+udType,reparandum,overridden disfluency,#d2a8f0
+udType,punct,punctuation,#dbdbdb
+udType,root,root,#e6e6e6
+udType,dep,unspecified dependency,#f0f0f0
